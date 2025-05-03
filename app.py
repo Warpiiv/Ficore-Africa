@@ -489,7 +489,7 @@ translations = {
         'Utilities': 'Kayan Aiki',
         'Entertainment': 'Nishaɗi',
         'Other': 'Sauran',
-        'Unlock Your Financial Freedom': 'Buɗe 'Yancin Kuɗin Ku',
+        'Unlock Your Financial Freedom': 'Buɗe Yancin Kuɗin Ku',
         'Access essential tools and insights to understand, manage, and grow your finances across Africa': 'Samun kayan aiki masu mahimmanci da fahimta don fahimta, sarrafawa, da haɓaka kuɗin ku a duk faɗin Afirka',
         'Why Ficore Africa?': 'Me yasa Ficore Afirka?',
         'Localized for Africa with support for Naira and regional financial contexts': 'An keɓance shi don Afirka tare da tallafi ga Naira da yanayin kuɗi na yanki',
