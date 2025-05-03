@@ -130,10 +130,26 @@ class ExpenseForm(FlaskForm):
 
 # Form for Bill Planner
 class BillForm(FlaskForm):
-    bill_name = StringField('Bill Name', validators=[DataRequired()])
+    first_name = StringField('First Name', validators=[DataRequired()])
+    email = EmailField('Email', validators=[DataRequired(), Email()])
+    language = SelectField('Language', choices=[('English', 'English'), ('Hausa', 'Hausa')], validators=[DataRequired()])
+    description = TextAreaField('Description', validators=[DataRequired()])
     amount = FloatField('Amount', validators=[DataRequired(), NumberRange(min=0)])
     due_date = StringField('Due Date', validators=[DataRequired()])
-    status = SelectField('Status', choices=[('Pending', 'Pending'), ('Paid', 'Paid')], validators=[DataRequired()])
+    category = SelectField('Category', choices=[
+        ('Utilities', 'Utilities'),
+        ('Housing', 'Housing'),
+        ('Transport', 'Transport'),
+        ('Food', 'Food'),
+        ('Other', 'Other')
+    ], validators=[DataRequired()])
+    recurrence = SelectField('Recurrence', choices=[
+        ('None', 'None'),
+        ('Daily', 'Daily'),
+        ('Weekly', 'Weekly'),
+        ('Monthly', 'Monthly'),
+        ('Yearly', 'Yearly')
+    ], validators=[DataRequired()])
     submit = SubmitField('Submit')
 
 def calculate_health_score(income, expenses, debt, interest_rate):
@@ -353,53 +369,94 @@ def edit_expense(expense_id):
 def bill_planner():
     form = BillForm()
     language = session.get('language', 'English')
-    bills = session.get('bills', [])
+    tasks = session.get('bills', [])
+    current_date = datetime.strptime('2025-05-04', '%Y-%m-%d').date()  # Current date for overdue check
+
+    # Update task status based on due date
+    for task in tasks:
+        try:
+            due_date = parse(task['due_date']).date()
+            if task['status'] != 'Completed' and due_date < current_date:
+                task['status'] = 'Overdue'
+            else:
+                task['status'] = task.get('status', 'Pending')
+        except ValueError:
+            task['status'] = 'Pending'
+
     if form.validate_on_submit():
-        bill = {
+        session['language'] = form.language.data
+        task = {
             'id': str(uuid.uuid4()),
-            'bill_name': form.bill_name.data,
-            'amount': form.amount.data,
-            'due_date': form.due_date.data,
-            'status': form.status.data
+            'first_name': form.first_name.data,
+            'email': form.email.data,
+            'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'Description': form.description.data,
+            'Amount': form.amount.data,
+            'DueDate': form.due_date.data,
+            'Category': form.category.data,
+            'Recurrence': form.recurrence.data,
+            'status': 'Pending'
         }
-        bills.append(bill)
-        session['bills'] = bills
+        try:
+            due_date = parse(form.due_date.data).date()
+            if due_date < current_date:
+                task['status'] = 'Overdue'
+        except ValueError:
+            pass  # If date parsing fails, status remains Pending
+
+        tasks.append(task)
+        session['bills'] = tasks
         flash(translations[language]['Submission Success'], 'success')
         return redirect(url_for('bill_planner'))
-    rreturn render_template('bill_planner_form.html', form=form, bills=bills, translations=translations[language])
+    return render_template('bill_planner.html', form=form, tasks=tasks, translations=translations[language], FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
-@app.route('/edit_bill/<bill_id>', methods=['GET', 'POST'])
-def edit_bill(bill_id):
+@app.route('/bill_edit/<id>', methods=['GET', 'POST'])
+def bill_edit(id):
     language = session.get('language', 'English')
-    bills = session.get('bills', [])
-    bill = next((b for b in bills if b['id'] == bill_id), None)
-    if not bill:
+    tasks = session.get('bills', [])
+    try:
+        index = int(id)
+        task = tasks[index]
+    except (IndexError, ValueError):
         flash(translations[language]['Error processing form'], 'error')
         return redirect(url_for('bill_planner'))
-    form = BillForm(data=bill)
+    form = BillForm(data=task)
     if form.validate_on_submit():
-        bill.update({
-            'bill_name': form.bill_name.data,
-            'amount': form.amount.data,
-            'due_date': form.due_date.data,
-            'status': form.status.data
+        task.update({
+            'first_name': form.first_name.data,
+            'email': form.email.data,
+            'Description': form.description.data,
+            'Amount': form.amount.data,
+            'DueDate': form.due_date.data,
+            'Category': form.category.data,
+            'Recurrence': form.recurrence.data
         })
-        session['bills'] = bills
+        # Recheck status after editing due date
+        current_date = datetime.strptime('2025-05-04', '%Y-%m-%d').date()
+        try:
+            due_date = parse(form.due_date.data).date()
+            if task['status'] != 'Completed':
+                task['status'] = 'Overdue' if due_date < current_date else 'Pending'
+        except ValueError:
+            task['status'] = 'Pending'
+        session['bills'] = tasks
         flash(translations[language]['Submission Success'], 'success')
         return redirect(url_for('bill_planner'))
-    return render_template('bill_edit_form.html', form=form, bill_id=bill_id, translations=translations[language])
+    return render_template('bill_edit_form.html', form=form, id=id, translations=translations[language])
 
-@app.route('/complete_bill/<bill_id>')
-def complete_bill(bill_id):
+@app.route('/bill_complete/<id>')
+def bill_complete(id):
     language = session.get('language', 'English')
-    bills = session.get('bills', [])
-    bill = next((b for b in bills if b['id'] == bill_id), None)
-    if bill:
-        bill['status'] = 'Paid'
-        session['bills'] = bills
-        flash(translations[language]['Submission Success'], 'success')
-    else:
+    tasks = session.get('bills', [])
+    try:
+        index = int(id)
+        task = tasks[index]
+    except (IndexError, ValueError):
         flash(translations[language]['Error processing form'], 'error')
+        return redirect(url_for('bill_planner'))
+    task['status'] = 'Completed'
+    session['bills'] = tasks
+    flash(translations[language]['Submission Success'], 'success')
     return redirect(url_for('bill_planner'))
 
 @app.route('/change_language', methods=['POST'])
