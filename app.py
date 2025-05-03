@@ -15,7 +15,7 @@ from dateutil import parser
 import random
 
 # Initialize Flask app with custom template and static folders
-app = Flask(__name__, template_folder='ficore_templates', static_folder='static')
+app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
