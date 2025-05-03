@@ -21,6 +21,12 @@
         .container {
             max-width: 1200px;
             margin: auto;
+            position: relative;
+        }
+        nav {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
         }
         header {
             background: #fff;
@@ -40,13 +46,17 @@
             background: #fff;
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem; /* Increased spacing for better balance */
+            margin-bottom: 2rem;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             border: 1px solid #E0E0E0;
+            position: relative;
         }
         .card:hover {
             transform: translateY(-5px);
             box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        }
+        .card:hover .tooltip-fallback {
+            display: block; /* Show tooltip on hover for desktop */
         }
         .card-header {
             background: linear-gradient(135deg, #28A745, #1E88E5);
@@ -64,7 +74,7 @@
         .card-body {
             padding: 1.25rem;
         }
-        h1, h3 {
+        h1, h3, h4 {
             color: #28A745;
             font-weight: 600;
         }
@@ -74,6 +84,10 @@
         h3 {
             font-size: 1.35rem;
         }
+        h4 {
+            font-size: 1.2rem;
+            margin: 1.5rem 0;
+        }
         .lead {
             font-size: 1.25rem;
             color: #333;
@@ -81,16 +95,16 @@
         .btn-primary {
             background: linear-gradient(135deg, #2E7D32, #0288D1);
             border: none;
-            padding: 16px 32px; /* Larger buttons for better clickability */
-            font-weight: 700; /* Bolder text */
+            padding: 16px 32px;
+            font-weight: 700;
             border-radius: 8px;
-            font-size: 1.25rem; /* Slightly larger font */
-            color: #FFFFFF; /* High contrast */
+            font-size: 1.25rem;
+            color: #FFFFFF;
             transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             display: inline-flex;
             align-items: center;
-            gap: 8px; /* Space for icon */
+            gap: 8px;
         }
         .btn-primary:hover {
             transform: scale(1.05);
@@ -98,7 +112,7 @@
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
         }
         .btn-primary::after {
-            content: "➔"; /* Arrow icon for CTA */
+            content: "➔";
             font-size: 1rem;
         }
         .btn-secondary {
@@ -136,7 +150,13 @@
             line-height: 1.6;
             margin-top: 0.5rem;
             position: relative;
-            min-height: 3.2rem; /* Standardize description height */
+            min-height: 3.2rem;
+        }
+        .feature-label {
+            color: #333;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            text-align: center;
         }
         .tool-description .info-icon {
             margin-left: 5px;
@@ -149,20 +169,23 @@
             background: #E3F2FD;
             border: 1px solid #0288D1;
             border-radius: 4px;
-            padding: 8px;
+            padding: 12px;
             margin-top: 4px;
             font-size: 0.9rem;
             color: #333;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            position: relative;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            position: absolute;
+            z-index: 10;
+            width: 90%;
+            left: 5%;
         }
         .tooltip-fallback.active {
             display: block;
         }
         .tooltip-fallback .close-btn {
             position: absolute;
-            top: 2px;
-            right: 5px;
+            top: 4px;
+            right: 8px;
             font-size: 1rem;
             background: none;
             border: none;
@@ -170,8 +193,7 @@
             color: #dc3545;
         }
         .language-selector {
-            max-width: 200px;
-            margin: 1rem auto;
+            max-width: 150px;
         }
         .hero-cta {
             margin-top: 1.5rem;
@@ -197,6 +219,40 @@
             color: #28A745;
             margin-right: 0.5rem;
         }
+        .daily-tip {
+            background: #E3F2FD;
+            border: 1px solid #0288D1;
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+        .daily-tip p {
+            margin: 0;
+            font-size: 1rem;
+            color: #333;
+        }
+        .daily-tip .emoji {
+            font-size: 1.2rem;
+            margin-right: 0.5rem;
+        }
+        footer {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        footer .btn-home {
+            background: linear-gradient(135deg, #2E7D32, #0288D1);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 500;
+            border-radius: 8px;
+            color: #FFFFFF;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        footer .btn-home:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
         @media (max-width: 600px) {
             .card {
                 margin-bottom: 1.5rem;
@@ -212,18 +268,30 @@
             h3 {
                 font-size: 1.25rem;
             }
+            h4 {
+                font-size: 1.1rem;
+            }
             .lead {
                 font-size: 1rem;
             }
             .btn-primary {
-                padding: 14px 28px; /* Slightly smaller for mobile */
-                font-size: 1.15rem; /* Adjusted for mobile */
+                padding: 14px 28px;
+                font-size: 1.15rem;
             }
             .language-selector {
-                max-width: 150px;
+                max-width: 120px;
             }
             .hero-cta .lead {
                 font-size: 1rem;
+            }
+            nav {
+                position: static;
+                text-align: center;
+                margin-bottom: 1rem;
+            }
+            .tooltip-fallback {
+                width: 80%;
+                left: 10%;
             }
         }
     </style>
@@ -231,14 +299,16 @@
 <body>
     <div class="container">
         <!-- Language Selector -->
-        <div class="language-selector my-3 text-center">
-            <form method="POST" action="{{ url_for('set_language') }}">
-                <select name="language" class="form-select" onchange="this.form.submit()" aria-label="{{ translations['Select Language'] }}">
-                    <option value="English" {% if language == 'English' %}selected{% endif %}>English</option>
-                    <option value="Hausa" {% if language == 'Hausa' %}selected{% endif %}>Hausa</option>
-                </select>
-            </form>
-        </div>
+        <nav>
+            <div class="language-selector">
+                <form method="POST" action="{{ url_for('set_language') }}">
+                    <select name="language" class="form-select" onchange="this.form.submit()" aria-label="{{ translations['Select Language'] }}">
+                        <option value="English" {% if language == 'English' %}selected{% endif %}>English</option>
+                        <option value="Hausa" {% if language == 'Hausa' %}selected{% endif %}>Hausa</option>
+                    </select>
+                </form>
+            </div>
+        </nav>
 
         <!-- Hero Section -->
         <header class="my-4">
@@ -278,6 +348,8 @@
 
         <!-- Tools Grid -->
         <div class="row">
+            <!-- Core Tools Section -->
+            <h4><span class="emoji">🧮</span> {{ translations['Core Tools'] }}</h4>
             <!-- Financial Health Score -->
             <div class="col-md-4 mb-4">
                 <div class="card">
@@ -290,6 +362,7 @@
                             <span class="info-icon" data-tooltip-target="health-score-tooltip" title="{{ translations['Evaluates income, expenses, and debt for a health score'] }}" aria-label="More info">ℹ️</span>
                         </p>
                         <a href="{{ url_for('financial_health') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Health Score Assessment'] }}">{{ translations['Get Started'] }}</a>
+                        <p class="feature-label">{{ translations['Evaluate your financial wellness'] }}</p>
                         <div class="tooltip-fallback" id="health-score-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span></span>
@@ -310,6 +383,7 @@
                             <span class="info-icon" data-tooltip-target="net-worth-tooltip" title="{{ translations['Net worth is assets minus liabilities'] }}" aria-label="More info">ℹ️</span>
                         </p>
                         <a href="{{ url_for('net_worth') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Net Worth Calculator'] }}">{{ translations['Get Started'] }}</a>
+                        <p class="feature-label">{{ translations['Measure your financial position'] }}</p>
                         <div class="tooltip-fallback" id="net-worth-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span></span>
@@ -330,6 +404,7 @@
                             <span class="info-icon" data-tooltip-target="emergency-fund-tooltip" title="{{ translations['Covers 3-6 months of expenses for security'] }}" aria-label="More info">ℹ️</span>
                         </p>
                         <a href="{{ url_for('emergency_fund') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Emergency Fund Calculator'] }}">{{ translations['Get Started'] }}</a>
+                        <p class="feature-label">{{ translations['Prepare for financial emergencies'] }}</p>
                         <div class="tooltip-fallback" id="emergency-fund-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span></span>
@@ -338,26 +413,8 @@
                 </div>
             </div>
 
-            <!-- Financial Personality Quiz -->
-            <div class="col-md-4 mb-4">
-                <div class="card">
-                    <div class="card-header">
-                        <span class="emoji">❓</span> {{ translations['Financial Personality Quiz'] }}
-                    </div>
-                    <div class="card-body">
-                        <p class="tool-description">
-                            {{ translations['Test your financial knowledge with a quiz'] }}
-                            <span class="info-icon" data-tooltip-target="quiz-tooltip" title="{{ translations['Answer questions to assess financial literacy'] }}" aria-label="More info">ℹ️</span>
-                        </p>
-                        <a href="{{ url_for('quiz') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Personality Quiz'] }}">{{ translations['Get Started'] }}</a>
-                        <div class="tooltip-fallback" id="quiz-tooltip">
-                            <button class="close-btn" aria-label="Close tooltip">×</button>
-                            <span></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            <!-- Planning Tools Section -->
+            <h4><span class="emoji">📊</span> {{ translations['Planning Tools'] }}</h4>
             <!-- Weekly Budget Planner -->
             <div class="col-md-4 mb-4">
                 <div class="card">
@@ -370,6 +427,7 @@
                             <span class="info-icon" data-tooltip-target="budget-tooltip" title="{{ translations['Allocate income across expense categories'] }}" aria-label="More info">ℹ️</span>
                         </p>
                         <a href="{{ url_for('budget') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Weekly Budget Planner'] }}">{{ translations['Get Started'] }}</a>
+                        <p class="feature-label">{{ translations['Plan your weekly spending'] }}</p>
                         <div class="tooltip-fallback" id="budget-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span></span>
@@ -390,6 +448,7 @@
                             <span class="info-icon" data-tooltip-target="expense-tracker-tooltip" title="{{ translations['Log and edit expenses for spending insights'] }}" aria-label="More info">ℹ️</span>
                         </p>
                         <a href="{{ url_for('expense_tracker') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Expense Tracker'] }}">{{ translations['Get Started'] }}</a>
+                        <p class="feature-label">{{ translations['Monitor your spending habits'] }}</p>
                         <div class="tooltip-fallback" id="expense-tracker-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span></span>
@@ -410,7 +469,31 @@
                             <span class="info-icon" data-tooltip-target="bill-planner-tooltip" title="{{ translations['Manage and mark bills as paid'] }}" aria-label="More info">ℹ️</span>
                         </p>
                         <a href="{{ url_for('bill_planner') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Bill Planner'] }}">{{ translations['Get Started'] }}</a>
+                        <p class="feature-label">{{ translations['Stay on top of bills'] }}</p>
                         <div class="tooltip-fallback" id="bill-planner-tooltip">
+                            <button class="close-btn" aria-label="Close tooltip">×</button>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Self-Awareness Tools Section -->
+            <h4><span class="emoji">🤔</span> {{ translations['Self-Awareness Tools'] }}</h4>
+            <!-- Financial Personality Quiz -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="emoji">❓</span> {{ translations['Financial Personality Quiz'] }}
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">
+                            {{ translations['Test your financial knowledge with a quiz'] }}
+                            <span class="info-icon" data-tooltip-target="quiz-tooltip" title="{{ translations['Answer questions to assess financial literacy'] }}" aria-label="More info">ℹ️</span>
+                        </p>
+                        <a href="{{ url_for('quiz') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Personality Quiz'] }}">{{ translations['Get Started'] }}</a>
+                        <p class="feature-label">{{ translations['Discover your financial personality'] }}</p>
+                        <div class="tooltip-fallback" id="quiz-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span></span>
                         </div>
@@ -419,7 +502,12 @@
             </div>
         </div>
 
-       <!-- Contact Information -->
+        <!-- Daily Tip Section -->
+        <section class="daily-tip">
+            <p><span class="emoji">💡</span> {{ translations['Daily Tip: Pay yourself first before expenses'] }}</p>
+        </section>
+
+        <!-- Contact Information -->
         <div class="text-center my-4">
             <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com" class="btn btn-email" aria-label="{{ translations['Email Ficore Africa Support'] }}">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}.</p>
         </div>
@@ -428,6 +516,11 @@
         <div class="text-center my-4">
             <a href="{{ FEEDBACK_FORM_URL }}" class="btn btn-secondary" target="_blank" aria-label="{{ translations['Provide Feedback'] }}">{{ translations['Provide Feedback'] }}</a>
         </div>
+
+        <!-- Footer -->
+        <footer>
+            <a href="{{ url_for('landing') }}" class="btn btn-home" aria-label="{{ translations['Return to Home'] }}">{{ translations['Home'] }}</a>
+        </footer>
     </div>
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}" onerror="console.error('Failed to load bootstrap.bundle.min.js.');"></script>
@@ -435,7 +528,8 @@
         document.addEventListener('DOMContentLoaded', function () {
             // Tooltip functionality for mobile devices
             document.querySelectorAll('.info-icon').forEach(icon => {
-                icon.addEventListener('click', function() {
+                icon.addEventListener('click', function(e) {
+                    e.preventDefault();
                     const targetId = this.getAttribute('data-tooltip-target');
                     const tooltip = document.getElementById(targetId);
                     const isActive = tooltip.classList.contains('active');
@@ -452,6 +546,15 @@
                     this.parentElement.classList.remove('active');
                 });
             });
+
+            // Prevent hover tooltip on mobile
+            if (window.matchMedia("(max-width: 600px)").matches) {
+                document.querySelectorAll('.card').forEach(card => {
+                    card.addEventListener('mouseenter', function(e) {
+                        e.preventDefault();
+                    });
+                });
+            }
         });
     </script>
 </body>
