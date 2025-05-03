@@ -1,4 +1,43 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="{{ language }}">
 <head>
     <meta charset="UTF-8">
@@ -6,10 +45,16 @@
     <meta name="description" content="Welcome to Ficore Africa - Your financial growth passport for Africa. Access tools to calculate your financial health, net worth, emergency fund, and more.">
     <meta name="keywords" content="ficore africa, financial health, net worth, emergency fund, financial quiz, budget planner, expense tracker, bill planner">
     <meta name="author" content="Ficore Africa">
+    <!-- Open Graph and Twitter Card Tags -->
+    <meta property="og:title" content="Ficore Africa - {{ translations['Financial Growth Tools'] }}">
+    <meta property="og:description" content="{{ translations['Access essential tools and insights to understand, manage, and grow your finances across Africa'] }}">
+    <meta property="og:image" content="{{ url_for('static', filename='img/ficore_logo.png', _external=True) }}">
+    <meta property="og:url" content="https://ficore-ai.onrender.com">
+    <meta name="twitter:card" content="summary_large_image">
     <title>Ficore Africa - {{ translations['Financial Growth Tools'] }}</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="icon" href="{{ url_for('static', S:// Ensure favicon.ico exists in src/static/ -->
     <style>
         body {
             font-family: 'Open Sans', sans-serif;
@@ -108,7 +153,7 @@
         }
         .btn-primary:hover {
             transform: scale(1.05);
-            background: linear-gradient(135deg, #1B5E20, #01579B);
+            background: linear-gradient(135deg, #1B5E20, #1B5E20);
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
         }
         .btn-primary::after {
@@ -136,6 +181,19 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .btn-email:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .btn-go {
+            background: linear-gradient(135deg, #2E7D32, #0288D1);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 500;
+            border-radius: 8px;
+            color: #FFFFFF;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .btn-go:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
@@ -193,7 +251,7 @@
             color: #dc3545;
         }
         .language-selector {
-            max-width: 150px;
+            max-width: 200px;
         }
         .hero-cta {
             margin-top: 1.5rem;
@@ -226,6 +284,10 @@
             padding: 1rem;
             margin: 2rem 0;
             text-align: center;
+        }
+ Oldsmobile {
+            margin: 0;
+            padding: 0;
         }
         .daily-tip p {
             margin: 0;
@@ -279,7 +341,7 @@
                 font-size: 1.15rem;
             }
             .language-selector {
-                max-width: 120px;
+                max-width: 160px;
             }
             .hero-cta .lead {
                 font-size: 1rem;
@@ -302,10 +364,13 @@
         <nav>
             <div class="language-selector">
                 <form method="POST" action="{{ url_for('set_language') }}">
-                    <select name="language" class="form-select" onchange="this.form.submit()" aria-label="{{ translations['Select Language'] }}">
-                        <option value="English" {% if language == 'English' %}selected{% endif %}>English</option>
-                        <option value="Hausa" {% if language == 'Hausa' %}selected{% endif %}>Hausa</option>
-                    </select>
+                    <div class="input-group">
+                        <select name="language" class="form-select" aria-label="{{ translations['Select Language'] }}">
+                            <option value="English" {% if language == 'English' %}selected{% endif %}>English</option>
+                            <option value="Hausa" {% if language == 'Hausa' %}selected{% endif %}>Hausa</option>
+                        </select>
+                        <button type="submit" class="btn btn-go" aria-label="{{ translations['Change Language'] }}">{{ translations['Go'] }}</button>
+                    </div>
                 </form>
             </div>
         </nav>
@@ -365,7 +430,7 @@
                         <p class="feature-label">{{ translations['Evaluate your financial wellness'] }}</p>
                         <div class="tooltip-fallback" id="health-score-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
-                            <span></span>
+                            <span>{{ translations['Evaluates income, expenses, and debt for a health score'] }}</span>
                         </div>
                     </div>
                 </div>
@@ -386,7 +451,7 @@
                         <p class="feature-label">{{ translations['Measure your financial position'] }}</p>
                         <div class="tooltip-fallback" id="net-worth-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
-                            <span></span>
+                            <span>{{ translations['Net worth is assets minus liabilities'] }}</span>
                         </div>
                     </div>
                 </div>
@@ -400,14 +465,14 @@
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Plan an emergency fund for unexpected expenses'] }}
+                            {{ herr="{{ translations['Plan an emergency fund for unexpected expenses'] }}"
                             <span class="info-icon" data-tooltip-target="emergency-fund-tooltip" title="{{ translations['Covers 3-6 months of expenses for security'] }}" aria-label="More info">ℹ️</span>
                         </p>
                         <a href="{{ url_for('emergency_fund') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Emergency Fund Calculator'] }}">{{ translations['Get Started'] }}</a>
                         <p class="feature-label">{{ translations['Prepare for financial emergencies'] }}</p>
                         <div class="tooltip-fallback" id="emergency-fund-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
-                            <span></span>
+                            <span>{{ translations['Covers 3-6 months of expenses for security'] }}</span>
                         </div>
                     </div>
                 </div>
@@ -430,7 +495,7 @@
                         <p class="feature-label">{{ translations['Plan your weekly spending'] }}</p>
                         <div class="tooltip-fallback" id="budget-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
-                            <span></span>
+                            <span>{{ translations['Allocate income across expense categories'] }}</span>
                         </div>
                     </div>
                 </div>
@@ -451,7 +516,7 @@
                         <p class="feature-label">{{ translations['Monitor your spending habits'] }}</p>
                         <div class="tooltip-fallback" id="expense-tracker-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
-                            <span></span>
+                            <span>{{ translations['Log and edit expenses for spending insights'] }}</span>
                         </div>
                     </div>
                 </div>
@@ -472,7 +537,7 @@
                         <p class="feature-label">{{ translations['Stay on top of bills'] }}</p>
                         <div class="tooltip-fallback" id="bill-planner-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
-                            <span></span>
+                            <span>{{ translations['Manage and mark bills as paid'] }}</span>
                         </div>
                     </div>
                 </div>
@@ -495,7 +560,7 @@
                         <p class="feature-label">{{ translations['Discover your financial personality'] }}</p>
                         <div class="tooltip-fallback" id="quiz-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
-                            <span></span>
+                            <span>{{ translations['Answer questions to assess financial literacy'] }}</span>
                         </div>
                     </div>
                 </div>
@@ -509,7 +574,7 @@
 
         <!-- Contact Information -->
         <div class="text-center my-4">
-            <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com" class="btn btn-email" aria-label="{{ translations['Email Ficore Africa Support'] }}">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}.</p>
+            <p>{{ translations['Contact Us'] }} <a href="/cdn-cgi/l/email-protection#2f6966606c71660d626a0d6266716c2f68646c6065226f6361" class="btn btn-email" aria-label="{{ translations['Email Ficore Africa Support'] }}">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}.</p>
         </div>
 
         <!-- Feedback Link -->
@@ -519,10 +584,11 @@
 
         <!-- Footer -->
         <footer>
-            <a href="{{ url_for('landing') }}" class="btn btn-home" aria-label="{{ translations['Return to Home'] }}">{{ translations['Home'] }}</a>
+            <a href="{{ url_for('index') }}" class="btn btn-home" aria-label="{{ translations['Return to Home'] }}">{{ translations['Home'] }}</a>
         </footer>
     </div>
 
+    <script data-cfasync="false" defer src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}" onerror="console.error('Failed to load bootstrap.bundle.min.js.');"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -557,5 +623,6 @@
             }
         });
     </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93a278f53bf432ed',t:'MTc0NjMwMzc2Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
