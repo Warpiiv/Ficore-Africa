@@ -249,7 +249,7 @@ translations = {
         'Strong Financial Health': 'Makin ka yana nuna lafiyar kuɗi mai ƙarfi. Mai da hankali kan saka hannun jari don haɓaka dukiyarka.',
         'Stable Finances': 'Kuɗin ka na da kwanciyar hankali amma yana iya inganta. Yi la’akari da ajiyar kuɗi ko rage kashe kuɗin ka.',
         'Financial Strain': 'Makin ka yana nuna matsi na kuɗi. Fifita biyan bashi da sarrafa kashe kuɗin ka.',
-        'Urgent Attention Needed': 'Kuɗin ka na buƙatar kulawa cikin gaggawa. Nemi shawarar ƙwararru kuma bincika dabarun farfado da kuɗi.',
+        'Urgent Attention Needed': 'Kuɗin ka na buƙatar kulawa cikin gaggaga. Nemi shawarar ƙwararru kuma bincika dabarun farfado da kuɗi.',
         'Score Breakdown': 'Rarraba Maki',
         'Chart Unavailable': 'Chart ba ya samuwa a wannan lokacin.',
         'Asset-Liability Breakdown': 'Rarraba Dukiya-Basussuka',
@@ -336,8 +336,7 @@ translations = {
                 </p>
             </body>
             </html>
-    }
-    {    
+        ''',
         'Get Your Score': 'Sami Makin Ka',
         'Getting Started with Ficore Africa': 'Fara da Ficore Africa',
         'Fill in your name, email, and phone number. Choose your language—English or Hausa.': 'Cika sunan ka, imel, da lambar waya. Zaɓi harshen ka—Turanici ko Hausa.',
@@ -362,7 +361,7 @@ translations = {
         'Valid percentage!': 'Kason da ya dace!',
         'Emails match!': 'Imel sun dace!',
         'Language selected!': 'An zaɓi harshe!',
-        'User type selected!': 'An zaɓi nau’in mai amfani!',
+        'User type selected!': 'An zaɡi nau’in mai amfani!',
         'Business name required': 'Ana buƙatar sunan kasuwanci.',
         'Next': 'Na Gaba',
         'Previous': 'Na Baya',
