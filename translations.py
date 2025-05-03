@@ -336,7 +336,8 @@ translations = {
                 </p>
             </body>
             </html>
-        ''',
+    }
+    {    
         'Get Your Score': 'Sami Makin Ka',
         'Getting Started with Ficore Africa': 'Fara da Ficore Africa',
         'Fill in your name, email, and phone number. Choose your language—English or Hausa.': 'Cika sunan ka, imel, da lambar waya. Zaɓi harshen ka—Turanici ko Hausa.',
