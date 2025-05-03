@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ translations['Emergency Fund Calculator'] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        .info-icon {
+            cursor: pointer;
+            color: #0288D1;
+            margin-left: 5px;
+            font-size: 0.9rem;
+        }
+        .info-icon:hover {
+            color: #2E7D32;
+        }
+        .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .info-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        .form-control, .form-select {
+            min-height: 48px;
+            font-size: 1rem;
+        }
+        .btn-primary, .btn-secondary {
+            min-height: 48px;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <header class="text-center mb-4">
+            <img src="{{ url_for('static', filename='img/ficore_logo.png') }}" alt="FiCore Logo" class="img-fluid" style="max-width: 200px;">
+            <h1><i class="fas fa-shield-alt icon"></i> <strong>{{ translations['Emergency Fund Calculator'] }}</strong></h1>
+            <p class="lead">{{ translations['Protect your financial well-being from unexpected events. Calculate your ideal safety net.'] }}</p>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('emergency_fund') }}" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.first_name.label(class="form-label") }}
+                {{ form.first_name(class="form-control", id="first_name", placeholder=translations['Enter your first name'], **{'aria-required': 'true'}) }}
+                {% for error in form.first_name.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control", id="email", placeholder=translations['Enter your email'], **{'aria-required': 'true'}) }}
+                {% for error in form.email.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.language.label(class="form-label") }}
+                {{ form.language(class="form-control", id="language", **{'aria-required': 'true'}) }}
+                {% for error in form.language.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.monthly_expenses.label(class="form-label") }}
+                <div class="input-group">
+                    <span class="input-group-text">₦</span>
+                    {{ form.monthly_expenses(class="form-control", id="monthly_expenses", type="number", min="0", step="0.01", placeholder=translations['e.g. 50,000'], **{'aria-required': 'true'}) }}
+                    <span class="input-group-text info-icon" aria-label="Monthly Expenses Info">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text">{{ translations['Enter the total amount you spend monthly on essentials like food, rent, transport, etc.'] }}</span>
+                    </span>
+                </div>
+                <small class="form-text text-muted">{{ translations['Enter amounts in Naira (₦).'] }}</small>
+                <p id="fund-preview" class="form-text text-info" style="display: none;">
+                    {{ translations['Recommended fund size: ₦'] }}<span id="fund-amount">0</span>
+                </p>
+                {% for error in form.monthly_expenses.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3 text-center">
+                {{ form.submit(class="btn btn-primary btn-lg", value=translations['Calculate Your Recommended Fund Size'], id="submit-btn", **{'aria-label': translations['Submit emergency fund form']}) }}
+                <p class="mt-2 text-muted">{{ translations['Find your safety net amount now!'] }}</p>
+            </div>
+        </form>
+
+        <footer class="text-center mt-4">
+            <p>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">{{ translations['Back'] }}</a>
+            </p>
+            <p>
+                <a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a> |
+                <a href="https://ficore.africa" target="_blank">{{ translations['FiCore Africa Home'] }}</a>
+            </p>
+            <p>© 2025 FiCore Africa</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        // Enable tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('.info-icon'))
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl, {
+                trigger: 'hover',
+                customClass: 'tooltip-text'
+            });
+        });
+
+        // Emergency Fund Preview
+        const monthlyExpensesInput = document.getElementById('monthly_expenses');
+        const fundPreview = document.getElementById('fund-preview');
+        const fundAmount = document.getElementById('fund-amount');
+
+        monthlyExpensesInput.addEventListener('input', function() {
+            const value = parseFloat(this.value.replace(/,/g, '')) || 0;
+            if (value > 0) {
+                const recommendedFund = (value * 6).toFixed(2);
+                fundAmount.textContent = recommendedFund.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                fundPreview.style.display = 'block';
+            } else {
+                fundPreview.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

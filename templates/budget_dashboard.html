@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="View your budget breakdown with Ficore Africa, including expense categories and personalized advice.">
+    <meta name="keywords" content="ficore africa, budget dashboard, income, expenses, financial planning">
+    <meta name="author" content="Ficore Africa">
+    <title>Ficore Africa - {{ translations['Budget Dashboard'] }}</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <script src="https://cdn.plotly.com/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: linear-gradient(135deg, #E3F2FD, #F5F7FA);
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+        header {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .logo-container {
+            margin-bottom: 1rem;
+        }
+        .logo-container img {
+            max-width: 200px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #E0E0E0;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #28A745, #1E88E5);
+            color: #fff;
+            padding: 1rem;
+            border-radius: 12px 12px 0 0;
+            font-weight: 600;
+            font-size: 1.75rem;
+            white-space: nowrap;
+            margin-bottom: 1rem;
+            border: 2px solid #1565C0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .card-body {
+            padding: 1.25rem;
+        }
+        h2 {
+            color: #28A745;
+            font-weight: 600;
+        }
+        .budget-value {
+            font-size: 2.5rem;
+            color: #2E7D32;
+            font-weight: 700;
+        }
+        .deficit {
+            color: #D32F2F;
+        }
+        .badge-item {
+            background: #FFD700;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            display: inline-block;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+        .badge-item:hover {
+            transform: scale(1.05);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2E7D32, #0288D1);
+            border: none;
+            padding: 12px 24px;
+            font-weight: 600;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            color: white;
+            transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary:hover {
+            transform: scale(1.05);
+            background: linear-gradient(135deg, #1E88E5, #0288D1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+        .btn-primary.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #fff;
+            border-top: 3px solid #0288D1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .btn-primary.loading span {
+            visibility: hidden;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #F57C00, #FF9800);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .btn-email {
+            background: linear-gradient(135deg, #FF5722, #D81B60);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .btn-email:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .alert {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .chart-container {
+            height: 300px;
+            width: 100%;
+            position: relative;
+        }
+        .chart-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #0288D1;
+        }
+        .empty-state {
+            font-size: 2rem;
+            color: #666;
+            text-align: center;
+            padding: 2rem;
+        }
+        .empty-state a {
+            color: #0288D1;
+            text-decoration: underline;
+        }
+        @media (max-width: 600px) {
+            .card {
+                margin-bottom: 1rem;
+            }
+            .budget-value {
+                font-size: 2rem;
+            }
+            .chart-container {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="my-4">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='img/ficore_logo.png') }}" alt="Ficore Africa Logo" class="img-fluid">
+            </div>
+            <h2>{{ translations['Ficore Africa Budget Dashboard'] }}</h2>
+            <p class="lead">{{ translations['Your Budget Insights'] }}</p>
+        </header>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alert-container my-3">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Welcome and Budget Overview -->
+        <div class="card" role="region" aria-label="{{ translations['Budget Overview'] }}">
+            <div class="card-header">
+                <span class="emoji">👋</span> {{ translations['Welcome'] }}, {{ full_name }}!
+            </div>
+            <div class="card-body">
+                <p>{{ translations['Monthly Income'] }}: {{ '{:,.2f}'.format(monthly_income) }} NGN</p>
+                <p>{{ translations['Total Expenses'] }}: {{ '{:,.2f}'.format(total_expenses) }} NGN</p>
+                <p>{{ translations['Surplus/Deficit'] }}: <span class="budget-value {{ 'deficit' if surplus_deficit < 0 else '' }}">{{ '{:,.2f}'.format(surplus_deficit) }} NGN</span></p>
+                <p>{{ translations['Rank'] }}: {{ rank }}%</p>
+                <p>{{ translations['Advice'] }}: {{ advice }}</p>
+            </div>
+        </div>
+
+        <!-- Badges -->
+        <div class="card" role="region" aria-label="{{ translations['Badges Section'] }}">
+            <div class="card-header">
+                <span class="emoji">🏅</span> {{ translations['Your Badges'] }}
+            </div>
+            <div class="card-body">
+                {% if badges %}
+                    {% for badge in badges %}
+                        <span class="badge-item" role="img" aria-label="{{ badge }}">{{ badge }}</span>
+                    {% endfor %}
+                {% else %}
+                    <p>{{ translations['No badges yet.'] }} <a href="{{ url_for('budget_submit') }}">{{ translations['Submit more data to earn badges!'] }}</a></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Chart: Expense Breakdown -->
+        <div class="card" role="region" aria-label="{{ translations['Expense Breakdown Chart'] }}">
+            <div class="card-header">
+                <span class="emoji">📊</span> {{ translations['Expense Breakdown'] }}
+            </div>
+            <div class="card-body">
+                {% if chart_html %}
+                    <div class="chart-container" id="budget-chart">
+                        <div class="chart-loading" aria-live="polite" id="chart-loading">{{ translations['Loading chart...'] }}</div>
+                    </div>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const chartDiv = document.getElementById('budget-chart');
+                            const chartLoading = document.getElementById('chart-loading');
+                            try {
+                                const chartData = JSON.parse('{{ chart_html | tojson | safe }}');
+                                if (chartDiv && typeof Plotly !== 'undefined' && chartData) {
+                                    Plotly.newPlot('budget-chart', chartData.data, chartData.layout || {}, {responsive: true});
+                                    chartLoading.style.display = 'none';
+                                } else {
+                                    throw new Error('Plotly or chart data unavailable');
+                                }
+                            } catch (error) {
+                                console.error('Error rendering chart:', error);
+                                chartDiv.innerHTML = '<div class="empty-state">📊 {{ translations["Error loading chart."] }} <a href="{{ url_for('budget_submit') }}">{{ translations["Try again"] }}</a></div>';
+                            }
+                        });
+                    </script>
+                {% else %}
+                    <div class="empty-state">📊 <a href="{{ url_for('budget_submit') }}">{{ translations['No data available. Go back to form to submit data.'] }}</a></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Comparison Chart -->
+        <div class="card" role="region" aria-label="{{ translations['Peer Comparison Chart'] }}">
+            <div class="card-header">
+                <span class="emoji">📉</span> {{ translations['Comparison to Peers'] }} <small>({{ translations['Based on aggregated user data'] }})</small>
+            </div>
+            <div class="card-body">
+                {% if comparison_chart_html %}
+                    <div class="chart-container" id="budget-comparison">
+                        <div class="chart-loading" aria-live="polite" id="comparison-loading">{{ translations['Loading chart...'] }}</div>
+                    </div>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const comparisonDiv = document.getElementById('budget-comparison');
+                            const comparisonLoading = document.getElementById('comparison-loading');
+                            try {
+                                const comparisonData = JSON.parse('{{ comparison_chart_html | tojson | safe }}');
+                                if (comparisonDiv && typeof Plotly !== 'undefined' && comparisonData) {
+                                    Plotly.newPlot('budget-comparison', comparisonData.data, comparisonData.layout || {}, {responsive: true});
+                                    comparisonLoading.style.display = 'none';
+                                } else {
+                                    throw new Error('Plotly or comparison data unavailable');
+                                }
+                            } catch (error) {
+                                console.error('Error rendering comparison chart:', error);
+                                comparisonDiv.innerHTML = '<div class="empty-state">📉 {{ translations["Error loading chart."] }} <a href="{{ url_for('budget_submit') }}">{{ translations["Try again"] }}</a></div>';
+                            }
+                        });
+                    </script>
+                {% else %}
+                    <div class="empty-state">📉 <a href="{{ url_for('budget_submit') }}">{{ translations['No data available. Go back to form to submit data.'] }}</a></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Tips -->
+        <div class="card" role="region" aria-label="{{ translations['Quick Tips Section'] }}">
+            <div class="card-header">
+                <span class="emoji">💡</span> {{ translations['Quick Tips'] }}
+            </div>
+            <div class="card-body">
+                <ul>
+                    {% if tips %}
+                        {% for tip in tips %}
+                            <li>{{ tip }}</li>
+                        {% endfor %}
+                    {% else %}
+                        <li>{{ translations['Track daily spending.'] }}</li>
+                        <li>{{ translations['Set a savings goal.'] }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Recommended Courses -->
+        <div class="card" role="region" aria-label="{{ translations['Recommended Courses Section'] }}">
+            <div class="card-header">
+                <span class="emoji">🎓</span> {{ translations['Recommended Courses'] }}
+            </div>
+            <div class="card-body">
+                {% if courses %}
+                    {% for course in courses %}
+                        <p><a href="{{ course.link }}" target="_blank" aria-label="{{ translations['Open course'] }} {{ course.title }}">{{ course.title }}</a></p>
+                    {% endfor %}
+                {% else %}
+                    <p><a href="https://example.com/budgeting" target="_blank" aria-label="{{ translations['Open course'] }} Budgeting 101">Budgeting 101</a></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="d-flex justify-content-between flex-wrap my-4">
+            <a href="{{ url_for('landing') }}" class="btn btn-primary" aria-label="{{ translations['Back to Home'] }}">{{ translations['Back to Home'] }}</a>
+            <a href="{{ WAITLIST_FORM_URL }}" class="btn btn-secondary" aria-label="{{ translations['Join Waitlist'] }}">{{ translations['Join Waitlist'] }}</a>
+            <a href="{{ CONSULTANCY_FORM_URL }}" class="btn btn-secondary" aria-label="{{ translations['Book Consultancy'] }}">{{ translations['Book Consultancy'] }}</a>
+            <a href="{{ FEEDBACK_FORM_URL }}" class="btn btn-secondary" aria-label="{{ translations['Provide Feedback'] }}">{{ translations['Provide Feedback'] }}</a>
+            <button class="btn btn-primary" id="share-btn" aria-label="{{ translations['Share Your Results'] }}"><span>{{ translations['Share Your Results'] }}</span></button>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="text-center my-4">
+            <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com" class="btn btn-email" aria-label="{{ translations['Email Ficore Africa Support'] }}">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}.</p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}" onerror="console.error('Failed to load bootstrap.bundle.min.js.');"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Share functionality
+            const shareBtn = document.getElementById('share-btn');
+            if (shareBtn) {
+                shareBtn.addEventListener('click', function() {
+                    const shareText = `My Budget Insights from Ficore Africa:\nIncome: {{ '{:,.2f}'.format(monthly_income) }} NGN\nExpenses: {{ '{:,.2f}'.format(total_expenses) }} NGN\nSurplus/Deficit: {{ '{:,.2f}'.format(surplus_deficit) }} NGN\nRank: {{ rank }}%\nCheck out my results: ${window.location.href}`;
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        shareBtn.querySelector('span').textContent = '{{ translations['Copied!'] }}';
+                        setTimeout(() => {
+                            shareBtn.querySelector('span').textContent = '{{ translations['Share Your Results'] }}';
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy: ', err);
+                        alert('Failed to copy results. Please copy manually.');
+                    });
+                });
+                shareBtn.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        shareBtn.click();
+                    }
+                });
+            }
+
+            // Keyboard navigation for buttons
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(button => {
+                button.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        button.click();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

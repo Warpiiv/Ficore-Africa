@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ translations['Monthly Budget Planner'] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        .info-icon {
+            cursor: pointer;
+            color: #0288D1;
+            margin-left: 5px;
+            font-size: 0.9rem;
+        }
+        .info-icon:hover {
+            color: #2E7D32;
+        }
+        .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .info-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        .form-control, .form-select {
+            min-height: 48px;
+            font-size: 1rem;
+        }
+        .btn-primary, .btn-secondary {
+            min-height: 48px;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <header class="text-center mb-4">
+            <img src="{{ url_for('static', filename='img/ficore_logo.png') }}" alt="FiCore Logo" class="img-fluid" style="max-width: 200px;">
+            <h1><i class="fas fa-chart-pie icon"></i> <strong>{{ translations['Monthly Budget Planner'] }}</strong></h1>
+            <p class="lead">{{ translations['Take control of your finances and achieve your goals by creating a monthly budget.'] }}</p>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('budget') }}" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.first_name.label(class="form-label") }}
+                {{ form.first_name(class="form-control", id="first_name", placeholder=translations['Enter your first name'], **{'aria-required': 'true'}) }}
+                {% for error in form.first_name.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control", id="email", placeholder=translations['Enter your email'], **{'aria-required': 'true'}) }}
+                <span class="info-icon" aria-label="Email Info">
+                    <i class="fas fa-info-circle"></i>
+                    <span class="tooltip-text">{{ translations['Get budgeting tips in your inbox.'] }}</span>
+                </span>
+                {% for error in form.email.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.auto_email.label(class="form-label") }}
+                {{ form.auto_email(class="form-control", id="auto_email", placeholder=translations['Confirm your email'], **{'aria-required': 'true'}) }}
+                {% for error in form.auto_email.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.language.label(class="form-label") }}
+                {{ form.language(class="form-control", id="language", **{'aria-required': 'true'}) }}
+                {% for error in form.language.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.monthly_income.label(class="form-label") }}
+                <div class="input-group">
+                    <span class="input-group-text">₦</span>
+                    {{ form.monthly_income(class="form-control", id="monthly_income", type="number", min="0", step="0.01", placeholder=translations['e.g. 150,000'], **{'aria-required': 'true'}) }}
+                    <span class="input-group-text info-icon" aria-label="Monthly Income Info">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text">{{ translations['Enter your total monthly earnings, including salary and side income.'] }}</span>
+                    </span>
+                </div>
+                <small class="form-text text-muted">{{ translations['Enter amounts in Naira (₦).'] }}</small>
+                {% for error in form.monthly_income.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.housing_expenses.label(class="form-label") }}
+                <div class="input-group">
+                    <span class="input-group-text">₦</span>
+                    {{ form.housing_expenses(class="form-control", id="housing_expenses", type="number", min="0", step="0.01", placeholder=translations['e.g. 30,000'], **{'aria-required': 'true'}) }}
+                    <span class="input-group-text info-icon" aria-label="Housing Expenses Info">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text">{{ translations['Include rent, electricity, water, and related housing bills.'] }}</span>
+                    </span>
+                </div>
+                <small class="form-text text-muted">{{ translations['Enter amounts in Naira (₦).'] }}</small>
+                {% for error in form.housing_expenses.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.food_expenses.label(class="form-label") }}
+                <div class="input-group">
+                    <span class="input-group-text">₦</span>
+                    {{ form.food_expenses(class="form-control", id="food_expenses", type="number", min="0", step="0.01", placeholder=translations['e.g. 45,000'], **{'aria-required': 'true'}) }}
+                    <span class="input-group-text info-icon" aria-label="Food Expenses Info">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text">{{ translations['Estimate how much you spend on food monthly.'] }}</span>
+                    </span>
+                </div>
+                <small class="form-text text-muted">{{ translations['Enter amounts in Naira (₦).'] }}</small>
+                {% for error in form.food_expenses.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.transport_expenses.label(class="form-label") }}
+                <div class="input-group">
+                    <span class="input-group-text">₦</span>
+                    {{ form.transport_expenses(class="form-control", id="transport_expenses", type="number", min="0", step="0.01", placeholder=translations['e.g. 10,000'], **{'aria-required': 'true'}) }}
+                    <span class="input-group-text info-icon" aria-label="Transport Expenses Info">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text">{{ translations['Monthly cost of transport—bus, bike, taxi, or fuel.'] }}</span>
+                    </span>
+                </div>
+                <small class="form-text text-muted">{{ translations['Enter amounts in Naira (₦).'] }}</small>
+                {% for error in form.transport_expenses.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.other_expenses.label(class="form-label") }}
+                <div class="input-group">
+                    <span class="input-group-text">₦</span>
+                    {{ form.other_expenses(class="form-control", id="other_expenses", type="number", min="0", step="0.01", placeholder=translations['e.g. 20,000'], **{'aria-required': 'true'}) }}
+                    <span class="input-group-text info-icon" aria-label="Other Expenses Info">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text">{{ translations['Include internet, airtime, clothes, or personal spending.'] }}</span>
+                    </span>
+                </div>
+                <small class="form-text text-muted">{{ translations['Enter amounts in Naira (₦).'] }}</small>
+                {% for error in form.other_expenses.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3 text-center">
+                {{ form.submit(class="btn btn-primary btn-lg", value=translations['Start Planning Your Budget!'], id="submit-btn", **{'aria-label': translations['Submit budget form']}) }}
+                <p class="mt-2 text-muted">{{ translations['Create your monthly budget now!'] }}</p>
+            </div>
+        </form>
+
+        <footer class="text-center mt-4">
+            <p>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">{{ translations['Back'] }}</a>
+            </p>
+            <p>
+                <a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a> |
+                <a href="https://ficore.africa" target="_blank">{{ translations['FiCore Africa Home'] }}</a>
+            </p>
+            <p>© 2025 FiCore Africa</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

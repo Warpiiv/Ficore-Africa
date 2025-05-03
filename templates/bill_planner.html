@@ -1,0 +1,204 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ translations['Bill Planner'] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <style>
+        .pending { color: blue; }
+        .completed { color: green; }
+        .overdue { color: red; }
+        .flash-message { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>{{ translations['Bill Planner'] }}</h1>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} flash-message">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Task Form -->
+        <h3>{{ translations['Add Task'] }}</h3>
+        <form method="POST" action="{{ url_for('bill_submit') }}">
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+                <label for="first_name" class="form-label">{{ translations['First Name'] }}</label>
+                {{ form.first_name(class="form-control", placeholder=translations['Enter your first name']) }}
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">{{ translations['Enter your email'] }}</label>
+                {{ form.email(class="form-control", placeholder=translations['Enter your email']) }}
+            </div>
+            <div class="mb-3">
+                <label for="language" class="form-label">{{ translations['Language'] }}</label>
+                {{ form.language(class="form-select") }}
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">{{ translations['Description'] }}</label>
+                {{ form.description(class="form-control", placeholder="e.g. Pay ₦2000 for electricity next Tuesday") }}
+            </div>
+            <div class="mb-3">
+                <label for="amount" class="form-label">{{ translations['Amount'] }} (₦)</label>
+                {{ form.amount(class="form-control", placeholder="e.g. 2000") }}
+            </div>
+            <div class="mb-3">
+                <label for="due_date" class="form-label">{{ translations['Due Date'] }}</label>
+                {{ form.due_date(class="form-control", placeholder="e.g. 2025-05-10 or next Tuesday") }}
+            </div>
+            <div class="mb-3">
+                <label for="category" class="form-label">{{ translations['Category'] }}</label>
+                {{ form.category(class="form-select") }}
+            </div>
+            <div class="mb-3">
+                <label for="recurrence" class="form-label">{{ translations['Recurrence'] }}</label>
+                {{ form.recurrence(class="form-select") }}
+            </div>
+            <button type="submit" class="btn btn-primary">{{ translations['Add Task'] }}</button>
+        </form>
+        
+        <!-- Task List -->
+        <h3 class="mt-5">{{ translations['Task List'] }}</h3>
+        {% if tasks %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>{{ translations['Date'] }}</th>
+                        <th>{{ translations['Description'] }}</th>
+                        <th>{{ translations['Category'] }}</th>
+                        <th>{{ translations['Amount'] }} (₦)</th>
+                        <th>{{ translations['Due Date'] }}</th>
+                        <th>{{ translations['Recurrence'] }}</th>
+                        <th>{{ translations['Status'] }}</th>
+                        <th>{{ translations['Edit'] }}</th>
+                        <th>{{ translations['Complete'] }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                        <tr>
+                            <td>{{ task['Timestamp'] }}</td>
+                            <td>{{ task['Description'] }}</td>
+                            <td>{{ task['Category'] }}</td>
+                            <td>{{ task['Amount'] | float | round(2) }}</td>
+                            <td>{{ task['DueDate'] }}</td>
+                            <td>{{ translations[task['Recurrence']] }}</td>
+                            <td class="{{ task['Status'] | lower }}">{{ translations[task['Status']] }}</td>
+                            <td>
+                                <a href="{{ url_for('bill_edit', id=loop.index0) }}" class="btn btn-sm btn-warning">
+                                    {{ translations['Edit'] }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if task['Status'] != 'Completed' %}
+                                    <a href="{{ url_for('bill_complete', id=loop.index0) }}" class="btn btn-sm btn-success">
+                                        {{ translations['Complete'] }}
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>{{ translations['No Tasks'] }}</p>
+        {% endif %}
+        
+        <a href="{{ url_for('landing') }}" class="btn btn-primary mt-3">{{ translations['Back to Home'] }}</a>
+        <p class="mt-3"><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        // Basic natural language parsing and category suggestion
+        document.getElementById('description').addEventListener('input', function() {
+            const desc = this.value.toLowerCase();
+            const category = document.getElementById('category');
+            const dueDate = document.getElementById('due_date');
+            
+            // Category suggestion
+            if (desc.includes('electricity') || desc.includes('utility') || desc.includes('bill')) {
+                category.value = 'Utilities';
+            } else if (desc.includes('rent') || desc.includes('mortgage')) {
+                category.value = 'Housing';
+            } else if (desc.includes('transport') || desc.includes('fuel')) {
+                category.value = 'Transport';
+            } else if (desc.includes('food') || desc.includes('groceries')) {
+                category.value = 'Food';
+            } else {
+                category.value = '';
+            }
+            
+            // Due date suggestion
+            const dateMatch = desc.match(/(next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)|tomorrow|in\s+\d+\s+days)/i);
+            if (dateMatch) {
+                const today = new Date();
+                let targetDate;
+                if (dateMatch[0].includes('next')) {
+                    const day = dateMatch[0].split('next ')[1].toLowerCase();
+                    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    const targetDay = days.indexOf(day);
+                    const currentDay = today.getDay();
+                    const daysUntil = (targetDay - currentDay + 7) % 7 || 7;
+                    targetDate = new Date(today.setDate(today.getDate() + daysUntil));
+                } else if (dateMatch[0].includes('tomorrow')) {
+                    targetDate = new Date(today.setDate(today.getDate() + 1));
+                } else if (dateMatch[0].includes('in')) {
+                    const days = parseInt(dateMatch[0].match(/\d+/)[0]);
+                    targetDate = new Date(today.setDate(today.getDate() + days));
+                }
+                dueDate.value = targetDate.toISOString().split('T')[0];
+            }
+        });
+    </script>
+</body>
+</html>
