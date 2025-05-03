@@ -68,10 +68,14 @@
             margin: auto;
             position: relative;
         }
-        nav {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
+        .navbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .logo-container {
+            margin-right: auto;
         }
         header {
             background: #fff;
@@ -80,9 +84,6 @@
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
             margin-bottom: 2rem;
             text-align: center;
-        }
-        .logo-container {
-            margin-bottom: 1rem;
         }
         .logo-container img {
             max-width: 200px;
@@ -95,13 +96,30 @@
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             border: 1px solid #E0E0E0;
             position: relative;
+            overflow: hidden;
         }
         .card:hover {
             transform: translateY(-5px);
             box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
         }
+        .card .tooltip-fallback {
+            display: none;
+            background: #E3F2FD;
+            border: 1px solid #0288D1;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 4px;
+            font-size: 0.9rem;
+            color: #333;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            position: absolute;
+            z-index: 10;
+            width: 90%;
+            left: 5%;
+            top: 100%;
+        }
         .card:hover .tooltip-fallback {
-            display: block; /* Show tooltip on hover for desktop */
+            display: block;
         }
         .card-header {
             background: linear-gradient(135deg, #28A745, #1E88E5);
@@ -132,6 +150,11 @@
         h4 {
             font-size: 1.2rem;
             margin: 1.5rem 0;
+            display: flex;
+            align-items: center;
+        }
+        h4 .emoji {
+            margin-right: 0.5rem;
         }
         .lead {
             font-size: 1.25rem;
@@ -277,7 +300,7 @@
             color: #28A745;
             margin-right: 0.5rem;
         }
-        .daily-tip {
+        .daily-tip-spotlight {
             background: #E3F2FD;
             border: 1px solid #0288D1;
             border-radius: 12px;
@@ -285,12 +308,12 @@
             margin: 2rem 0;
             text-align: center;
         }
-        .daily-tip p {
+        .daily-tip-spotlight p {
             margin: 0;
             font-size: 1rem;
             color: #333;
         }
-        .daily-tip .emoji {
+        .daily-tip-spotlight .emoji {
             font-size: 1.2rem;
             margin-right: 0.5rem;
         }
@@ -308,6 +331,20 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         footer .btn-home:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .btn-back {
+            background: linear-gradient(135deg, #0288D1, #1565C0);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 500;
+            border-radius: 8px;
+            color: #FFFFFF;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-right: 1rem;
+        }
+        .btn-back:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
@@ -342,22 +379,27 @@
             .hero-cta .lead {
                 font-size: 1rem;
             }
-            nav {
-                position: static;
-                text-align: center;
-                margin-bottom: 1rem;
+            .navbar {
+                flex-direction: column;
+                align-items: center;
             }
             .tooltip-fallback {
                 width: 80%;
                 left: 10%;
+            }
+            footer .btn-back, footer .btn-home {
+                margin-bottom: 1rem;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Language Selector -->
-        <nav>
+        <!-- Navbar with Language Selector and Logo -->
+        <div class="navbar">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='img/ficore_logo.png') }}" alt="Ficore Africa Logo" class="img-fluid">
+            </div>
             <div class="language-selector">
                 <form method="POST" action="{{ url_for('set_language') }}">
                     <div class="input-group">
@@ -369,13 +411,10 @@
                     </div>
                 </form>
             </div>
-        </nav>
+        </div>
 
         <!-- Hero Section -->
         <header class="my-4">
-            <div class="logo-container">
-                <img src="{{ url_for('static', filename='img/ficore_logo.png') }}" alt="Ficore Africa Logo" class="img-fluid">
-            </div>
             <h1>{{ translations['Unlock Your Financial Freedom'] }}</h1>
             <p class="lead">{{ translations['Access essential tools and insights to understand, manage, and grow your finances across Africa'] }}</p>
             <div class="hero-cta">
@@ -563,9 +602,10 @@
             </div>
         </div>
 
-        <!-- Daily Tip Section -->
-        <section class="daily-tip">
+        <!-- Daily Tip/Feature Spotlight -->
+        <section class="daily-tip-spotlight">
             <p><span class="emoji">💡</span> {{ translations['Daily Tip: Pay yourself first before expenses'] }}</p>
+            <p><span class="emoji">📌</span> {{ translations['Feature Spotlight: Try our Net Worth Calculator!'] }}</p>
         </section>
 
         <!-- Contact Information -->
@@ -580,6 +620,7 @@
 
         <!-- Footer -->
         <footer>
+            <a href="{{ url_for('index') }}" class="btn btn-back" aria-label="{{ translations['Go Back'] }}">{{ translations['Back'] }}</a>
             <a href="{{ url_for('index') }}" class="btn btn-home" aria-label="{{ translations['Return to Home'] }}">{{ translations['Home'] }}</a>
         </footer>
     </div>
@@ -588,7 +629,7 @@
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}" onerror="console.error('Failed to load bootstrap.bundle.min.js.');"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Tooltip functionality for mobile devices
+            // Tooltip functionality for mobile and desktop
             document.querySelectorAll('.info-icon').forEach(icon => {
                 icon.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -608,6 +649,20 @@
                     this.parentElement.classList.remove('active');
                 });
             });
+
+            // Hover tooltip for desktop
+            if (window.matchMedia("(min-width: 601px)").matches) {
+                document.querySelectorAll('.card').forEach(card => {
+                    card.addEventListener('mouseenter', function() {
+                        const tooltip = this.querySelector('.tooltip-fallback');
+                        if (tooltip) tooltip.style.display = 'block';
+                    });
+                    card.addEventListener('mouseleave', function() {
+                        const tooltip = this.querySelector('.tooltip-fallback');
+                        if (tooltip) tooltip.style.display = 'none';
+                    });
+                });
+            }
 
             // Prevent hover tooltip on mobile
             if (window.matchMedia("(max-width: 600px)").matches) {
