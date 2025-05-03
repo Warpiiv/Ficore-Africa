@@ -187,7 +187,7 @@ def assign_badges(score, debt, income):
 @app.route('/', methods=['GET'])
 def landing():
     language = session.get('language', 'English')
-    return render_template('landing.html', translations=translations[language])
+    return render_template('landing.html', translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/submit', methods=['GET', 'POST'])
 def submit():
@@ -196,7 +196,7 @@ def submit():
     if form.validate_on_submit():
         if form.email.data != form.confirm_email.data:
             flash(translations[language]['Emails Do Not Match'], 'error')
-            return render_template('landing.html', form=form, translations=translations[language])
+            return render_template('landing.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
         session['language'] = form.language.data
         health_score = calculate_health_score(
             form.income.data, form.expenses.data, form.debt.data, form.interest_rate.data
@@ -251,7 +251,7 @@ def submit():
         session['user_data'] = user_data
         session['badges'] = badges
         return redirect(url_for('health_score_dashboard'))
-    return render_template('landing.html', form=form, translations=translations[language])
+    return render_template('landing.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/net_worth', methods=['GET', 'POST'])
 def net_worth():
@@ -366,7 +366,7 @@ def bill_planner():
         session['bills'] = bills
         flash(translations[language]['Submission Success'], 'success')
         return redirect(url_for('bill_planner'))
-    return render_template('bill_planner_form.html', form=form, bills=bills, translations=translations[language])
+    rreturn render_template('bill_planner_form.html', form=form, bills=bills, translations=translations[language])
 
 @app.route('/edit_bill/<bill_id>', methods=['GET', 'POST'])
 def edit_bill(bill_id):
