@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Welcome to Ficore Africa - Your financial growth passport for Africa. Access tools to calculate your financial health, net worth, emergency fund, and more.">
-    <meta name="keywords" content="ficore africa, financial health, net worth, emergency fund, financial quiz, budget planner">
+    <meta name="keywords" content="ficore africa, financial health, net worth, emergency fund, financial quiz, budget planner, expense tracker, bill planner">
     <meta name="author" content="Ficore Africa">
     <title>Ficore Africa - {{ translations['Financial Growth Tools'] }}</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
@@ -40,7 +40,7 @@
             background: #fff;
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem; /* Increased spacing for better balance */
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             border: 1px solid #E0E0E0;
         }
@@ -81,18 +81,25 @@
         .btn-primary {
             background: linear-gradient(135deg, #2E7D32, #0288D1);
             border: none;
-            padding: 12px 24px;
-            font-weight: 600;
+            padding: 16px 32px; /* Larger buttons for better clickability */
+            font-weight: 700; /* Bolder text */
             border-radius: 8px;
-            font-size: 1.1rem;
-            color: white;
+            font-size: 1.25rem; /* Slightly larger font */
+            color: #FFFFFF; /* High contrast */
             transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px; /* Space for icon */
         }
         .btn-primary:hover {
             transform: scale(1.05);
             background: linear-gradient(135deg, #1B5E20, #01579B);
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+        .btn-primary::after {
+            content: "➔"; /* Arrow icon for CTA */
+            font-size: 1rem;
         }
         .btn-secondary {
             background: linear-gradient(135deg, #F57C00, #FF9800);
@@ -129,6 +136,7 @@
             line-height: 1.6;
             margin-top: 0.5rem;
             position: relative;
+            min-height: 3.2rem; /* Standardize description height */
         }
         .tool-description .info-icon {
             margin-left: 5px;
@@ -191,7 +199,7 @@
         }
         @media (max-width: 600px) {
             .card {
-                margin-bottom: 1rem;
+                margin-bottom: 1.5rem;
             }
             .card-header {
                 font-size: 1.25rem;
@@ -208,15 +216,14 @@
                 font-size: 1rem;
             }
             .btn-primary {
-                padding: 10px 20px;
-                font-size: 1rem;
+                padding: 14px 28px; /* Slightly smaller for mobile */
+                font-size: 1.15rem; /* Adjusted for mobile */
             }
             .language-selector {
                 max-width: 150px;
             }
-            .hero-cta .btn-primary {
-                width: 100%;
-                max-width: 300px;
+            .hero-cta .lead {
+                font-size: 1rem;
             }
         }
     </style>
@@ -241,7 +248,7 @@
             <h1>{{ translations['Unlock Your Financial Freedom'] }}</h1>
             <p class="lead">{{ translations['Access essential tools and insights to understand, manage, and grow your finances across Africa'] }}</p>
             <div class="hero-cta">
-                <a href="{{ url_for('financial_health') }}" class="btn btn-primary" aria-label="{{ translations['Get Your Financial Health Score'] }}">{{ translations['Get Started'] }}</a>
+                <p class="lead" style="font-weight: 600; color: #0288D1;">{{ translations['Discover Your Financial Tools Below'] }}</p>
             </div>
         </header>
 
@@ -279,10 +286,10 @@
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Assess your financial health with a personalized score and insights'] }}
-                            <span class="info-icon" data-tooltip-target="health-score-tooltip" title="{{ translations['This tool evaluates your income, expenses, and debt to provide a health score'] }}" aria-label="More info">ℹ️</span>
+                            {{ translations['Assess your financial health with a personalized score'] }}
+                            <span class="info-icon" data-tooltip-target="health-score-tooltip" title="{{ translations['Evaluates income, expenses, and debt for a health score'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('financial_health') }}" class="btn btn-primary" aria-label="{{ translations['Get Started with Financial Health Score'] }}">{{ translations['Get Started'] }}</a>
+                        <a href="{{ url_for('financial_health') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Health Score Assessment'] }}">{{ translations['Get Started'] }}</a>
                         <div class="tooltip-fallback" id="health-score-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span></span>
@@ -299,10 +306,10 @@
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Calculate your net worth by evaluating your assets and liabilities'] }}
-                            <span class="info-icon" data-tooltip-target="net-worth-tooltip" title="{{ translations['Net worth is calculated as assets minus liabilities'] }}" aria-label="More info">ℹ️</span>
+                            {{ translations['Calculate your net worth from assets and liabilities'] }}
+                            <span class="info-icon" data-tooltip-target="net-worth-tooltip" title="{{ translations['Net worth is assets minus liabilities'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('net_worth') }}" class="btn btn-primary" aria-label="{{ translations['Get Started with Net Worth Calculator'] }}">{{ translations['Get Started'] }}</a>
+                        <a href="{{ url_for('net_worth') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Net Worth Calculator'] }}">{{ translations['Get Started'] }}</a>
                         <div class="tooltip-fallback" id="net-worth-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span></span>
@@ -319,10 +326,10 @@
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Plan your emergency fund to cover unexpected expenses'] }}
-                            <span class="info-icon" data-tooltip-target="emergency-fund-tooltip" title="{{ translations['Aims to cover 3-6 months of expenses for financial security'] }}" aria-label="More info">ℹ️</span>
+                            {{ translations['Plan an emergency fund for unexpected expenses'] }}
+                            <span class="info-icon" data-tooltip-target="emergency-fund-tooltip" title="{{ translations['Covers 3-6 months of expenses for security'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('emergency_fund') }}" class="btn btn-primary" aria-label="{{ translations['Get Started with Emergency Fund Calculator'] }}">{{ translations['Get Started'] }}</a>
+                        <a href="{{ url_for('emergency_fund') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Emergency Fund Calculator'] }}">{{ translations['Get Started'] }}</a>
                         <div class="tooltip-fallback" id="emergency-fund-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span></span>
@@ -339,10 +346,10 @@
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Test your financial knowledge and get personalized tips'] }}
-                            <span class="info-icon" data-tooltip-target="quiz-tooltip" title="{{ translations['Answer a series of questions to assess your financial literacy'] }}" aria-label="More info">ℹ️</span>
+                            {{ translations['Test your financial knowledge with a quiz'] }}
+                            <span class="info-icon" data-tooltip-target="quiz-tooltip" title="{{ translations['Answer questions to assess financial literacy'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('quiz') }}" class="btn btn-primary" aria-label="{{ translations['Get Started with Financial Personality Quiz'] }}">{{ translations['Get Started'] }}</a>
+                        <a href="{{ url_for('quiz') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Personality Quiz'] }}">{{ translations['Get Started'] }}</a>
                         <div class="tooltip-fallback" id="quiz-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span></span>
@@ -359,11 +366,51 @@
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Create a budget to manage your income and expenses effectively'] }}
-                            <span class="info-icon" data-tooltip-target="budget-tooltip" title="{{ translations['Helps you allocate your income across various expense categories'] }}" aria-label="More info">ℹ️</span>
+                            {{ translations['Manage income and expenses with a budget'] }}
+                            <span class="info-icon" data-tooltip-target="budget-tooltip" title="{{ translations['Allocate income across expense categories'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('budget') }}" class="btn btn-primary" aria-label="{{ translations['Get Started with Weekly Budget Planner'] }}">{{ translations['Get Started'] }}</a>
+                        <a href="{{ url_for('budget') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Weekly Budget Planner'] }}">{{ translations['Get Started'] }}</a>
                         <div class="tooltip-fallback" id="budget-tooltip">
+                            <button class="close-btn" aria-label="Close tooltip">×</button>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expense Tracker -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="emoji">💸</span> {{ translations['Expense Tracker'] }}
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">
+                            {{ translations['Track expenses by category and date'] }}
+                            <span class="info-icon" data-tooltip-target="expense-tracker-tooltip" title="{{ translations['Log and edit expenses for spending insights'] }}" aria-label="More info">ℹ️</span>
+                        </p>
+                        <a href="{{ url_for('expense_tracker') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Expense Tracker'] }}">{{ translations['Get Started'] }}</a>
+                        <div class="tooltip-fallback" id="expense-tracker-tooltip">
+                            <button class="close-btn" aria-label="Close tooltip">×</button>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bill Planner -->
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="emoji">📋</span> {{ translations['Bill Planner'] }}
+                    </div>
+                    <div class="card-body">
+                        <p class="tool-description">
+                            {{ translations['Organize bills by amount and due date'] }}
+                            <span class="info-icon" data-tooltip-target="bill-planner-tooltip" title="{{ translations['Manage and mark bills as paid'] }}" aria-label="More info">ℹ️</span>
+                        </p>
+                        <a href="{{ url_for('bill_planner') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Bill Planner'] }}">{{ translations['Get Started'] }}</a>
+                        <div class="tooltip-fallback" id="bill-planner-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span></span>
                         </div>
@@ -372,7 +419,7 @@
             </div>
         </div>
 
-        <!-- Contact Information -->
+       <!-- Contact Information -->
         <div class="text-center my-4">
             <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com" class="btn btn-email" aria-label="{{ translations['Email Ficore Africa Support'] }}">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}.</p>
         </div>
