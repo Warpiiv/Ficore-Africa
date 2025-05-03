@@ -70,12 +70,29 @@
         }
         .navbar {
             display: flex;
-            justify-content: flex-end;
+            flex-direction: column;
             align-items: center;
             margin-bottom: 1rem;
+            background: #fff;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         .logo-container {
-            margin-right: auto;
+            margin-bottom: 1rem;
+        }
+        .logo-container img {
+            max-width: 180px;
+        }
+        .language-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .language-label {
+            font-size: 1rem;
+            color: #333;
+            font-weight: 500;
         }
         header {
             background: #fff;
@@ -84,9 +101,6 @@
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
             margin-bottom: 2rem;
             text-align: center;
-        }
-        .logo-container img {
-            max-width: 200px;
         }
         .card {
             background: #fff;
@@ -97,6 +111,7 @@
             border: 1px solid #E0E0E0;
             position: relative;
             overflow: hidden;
+            height: 100%;
         }
         .card:hover {
             transform: translateY(-5px);
@@ -133,9 +148,28 @@
             border: 2px solid #1565C0;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
         .card-body {
             padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+        .start-here-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #FFD700;
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-weight: 600;
         }
         h1, h3, h4 {
             color: #28A745;
@@ -149,12 +183,10 @@
         }
         h4 {
             font-size: 1.2rem;
-            margin: 1.5rem 0;
+            margin: 2rem 0 1rem;
             display: flex;
             align-items: center;
-        }
-        h4 .emoji {
-            margin-right: 0.5rem;
+            gap: 0.5rem;
         }
         .lead {
             font-size: 1.25rem;
@@ -163,10 +195,10 @@
         .btn-primary {
             background: linear-gradient(135deg, #2E7D32, #0288D1);
             border: none;
-            padding: 16px 32px;
-            font-weight: 700;
+            padding: 12px 24px;
+            font-weight: 600;
             border-radius: 8px;
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             color: #FFFFFF;
             transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -180,7 +212,7 @@
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
         }
         .btn-primary::after {
-            content: "➔";
+            content: "➡️";
             font-size: 1rem;
         }
         .btn-secondary {
@@ -220,6 +252,20 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
+        .btn-back {
+            background: linear-gradient(135deg, #0288D1, #1565C0);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 500;
+            border-radius: 8px;
+            color: #FFFFFF;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-right: 1rem;
+        }
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
         .flash-message {
             border-radius: 8px;
             font-weight: 500;
@@ -230,8 +276,7 @@
             font-size: 0.95rem;
             line-height: 1.6;
             margin-top: 0.5rem;
-            position: relative;
-            min-height: 3.2rem;
+            flex-grow: 1;
         }
         .feature-label {
             color: #333;
@@ -273,9 +318,6 @@
             cursor: pointer;
             color: #dc3545;
         }
-        .language-selector {
-            max-width: 200px;
-        }
         .hero-cta {
             margin-top: 1.5rem;
         }
@@ -292,13 +334,32 @@
         }
         .why-ficore li {
             margin-bottom: 1rem;
-            font-size: 1rem;
+            font-size: 1.1rem;
             color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #F5F7FA;
+            padding: 0.5rem;
+            border-radius: 8px;
         }
         .why-ficore li::before {
             content: "✔";
             color: #28A745;
-            margin-right: 0.5rem;
+            font-size: 1.2rem;
+        }
+        .cta-section {
+            text-align: center;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #E3F2FD, #F5F7FA);
+            border-radius: 12px;
+            border: 1px solid #0288D1;
+        }
+        .cta-section p {
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 1rem;
         }
         .daily-tip-spotlight {
             background: #E3F2FD;
@@ -309,7 +370,7 @@
             text-align: center;
         }
         .daily-tip-spotlight p {
-            margin: 0;
+            margin: 0.5rem 0;
             font-size: 1rem;
             color: #333;
         }
@@ -320,6 +381,10 @@
         footer {
             text-align: center;
             margin: 2rem 0;
+            padding: 1rem;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         footer .btn-home {
             background: linear-gradient(135deg, #2E7D32, #0288D1);
@@ -334,21 +399,28 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
-        .btn-back {
-            background: linear-gradient(135deg, #0288D1, #1565C0);
-            border: none;
-            padding: 10px 20px;
-            font-weight: 500;
-            border-radius: 8px;
-            color: #FFFFFF;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            margin-right: 1rem;
+        .social-links {
+            margin-top: 1rem;
         }
-        .btn-back:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        .social-links a {
+            margin: 0 0.5rem;
+            color: #0288D1;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: color 0.3s ease;
+        }
+        .social-links a:hover {
+            color: #2E7D32;
+        }
+        .about-tagline {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #666;
         }
         @media (max-width: 600px) {
+            .col-md-4 {
+                width: 100%;
+            }
             .card {
                 margin-bottom: 1.5rem;
             }
@@ -370,22 +442,21 @@
                 font-size: 1rem;
             }
             .btn-primary {
-                padding: 14px 28px;
-                font-size: 1.15rem;
+                padding: 10px 20px;
+                font-size: 1rem;
             }
             .language-selector {
                 max-width: 160px;
             }
-            .hero-cta .lead {
-                font-size: 1rem;
-            }
-            .navbar {
-                flex-direction: column;
-                align-items: center;
+            .logo-container img {
+                max-width: 150px;
             }
             .tooltip-fallback {
                 width: 80%;
                 left: 10%;
+            }
+            .why-ficore li {
+                font-size: 1rem;
             }
             footer .btn-back, footer .btn-home {
                 margin-bottom: 1rem;
@@ -395,12 +466,13 @@
 </head>
 <body>
     <div class="container">
-        <!-- Navbar with Language Selector and Logo -->
+        <!-- Navbar with Centered Logo and Language Selector -->
         <div class="navbar">
             <div class="logo-container">
                 <img src="{{ url_for('static', filename='img/ficore_logo.png') }}" alt="Ficore Africa Logo" class="img-fluid">
             </div>
             <div class="language-selector">
+                <span class="language-label">🌍 {{ translations['Language'] }}:</span>
                 <form method="POST" action="{{ url_for('set_language') }}">
                     <div class="input-group">
                         <select name="language" class="form-select" aria-label="{{ translations['Select Language'] }}">
@@ -432,6 +504,12 @@
             </ul>
         </section>
 
+        <!-- Call to Action Section -->
+        <section class="cta-section">
+            <p><span class="emoji">🎯</span> {{ translations['New here? Start with your Financial Health Score to get personalized recommendations.'] }}</p>
+            <a href="{{ url_for('financial_health') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Begin Financial Health Score Assessment'] }}">{{ translations['Begin Now'] }}</a>
+        </section>
+
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -448,8 +526,8 @@
 
         <!-- Tools Grid -->
         <div class="row">
-            <!-- Core Tools Section -->
-            <h4><span class="emoji">🧮</span> {{ translations['Core Tools'] }}</h4>
+            <!-- Track Your Finances Section -->
+            <h4><span class="emoji">🔍</span> {{ translations['Track Your Finances'] }}</h4>
             <!-- Financial Health Score -->
             <div class="col-md-4 mb-4">
                 <div class="card">
@@ -461,12 +539,12 @@
                             {{ translations['Assess your financial health with a personalized score'] }}
                             <span class="info-icon" data-tooltip-target="health-score-tooltip" title="{{ translations['Evaluates income, expenses, and debt for a health score'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('financial_health') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Health Score Assessment'] }}">{{ translations['Get Started'] }}</a>
-                        <p class="feature-label">{{ translations['Evaluate your financial wellness'] }}</p>
+                        <a href="{{ url_for('financial_health') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Health Score Assessment'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="health-score-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Evaluates income, expenses, and debt for a health score'] }}</span>
                         </div>
+                        <span class="start-here-tag">{{ translations['Start Here'] }}</span>
                     </div>
                 </div>
             </div>
@@ -482,8 +560,7 @@
                             {{ translations['Calculate your net worth from assets and liabilities'] }}
                             <span class="info-icon" data-tooltip-target="net-worth-tooltip" title="{{ translations['Net worth is assets minus liabilities'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('net_worth') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Net Worth Calculator'] }}">{{ translations['Get Started'] }}</a>
-                        <p class="feature-label">{{ translations['Measure your financial position'] }}</p>
+                        <a href="{{ url_for('net_worth') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Net Worth Calculator'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="net-worth-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Net worth is assets minus liabilities'] }}</span>
@@ -503,8 +580,7 @@
                             {{ translations['Plan an emergency fund for unexpected expenses'] }}
                             <span class="info-icon" data-tooltip-target="emergency-fund-tooltip" title="{{ translations['Covers 3-6 months of expenses for security'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('emergency_fund') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Emergency Fund Calculator'] }}">{{ translations['Get Started'] }}</a>
-                        <p class="feature-label">{{ translations['Prepare for financial emergencies'] }}</p>
+                        <a href="{{ url_for('emergency_fund') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Emergency Fund Calculator'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="emergency-fund-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Covers 3-6 months of expenses for security'] }}</span>
@@ -513,8 +589,8 @@
                 </div>
             </div>
 
-            <!-- Planning Tools Section -->
-            <h4><span class="emoji">📊</span> {{ translations['Planning Tools'] }}</h4>
+            <!-- Plan & Budget Section -->
+            <h4><span class="emoji">💡</span> {{ translations['Plan & Budget'] }}</h4>
             <!-- Weekly Budget Planner -->
             <div class="col-md-4 mb-4">
                 <div class="card">
@@ -526,8 +602,7 @@
                             {{ translations['Manage income and expenses with a budget'] }}
                             <span class="info-icon" data-tooltip-target="budget-tooltip" title="{{ translations['Allocate income across expense categories'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('budget') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Weekly Budget Planner'] }}">{{ translations['Get Started'] }}</a>
-                        <p class="feature-label">{{ translations['Plan your weekly spending'] }}</p>
+                        <a href="{{ url_for('budget') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Weekly Budget Planner'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="budget-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Allocate income across expense categories'] }}</span>
@@ -547,8 +622,7 @@
                             {{ translations['Track expenses by category and date'] }}
                             <span class="info-icon" data-tooltip-target="expense-tracker-tooltip" title="{{ translations['Log and edit expenses for spending insights'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('expense_tracker') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Expense Tracker'] }}">{{ translations['Get Started'] }}</a>
-                        <p class="feature-label">{{ translations['Monitor your spending habits'] }}</p>
+                        <a href="{{ url_for('expense_tracker') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Expense Tracker'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="expense-tracker-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Log and edit expenses for spending insights'] }}</span>
@@ -568,8 +642,7 @@
                             {{ translations['Organize bills by amount and due date'] }}
                             <span class="info-icon" data-tooltip-target="bill-planner-tooltip" title="{{ translations['Manage and mark bills as paid'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('bill_planner') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Bill Planner'] }}">{{ translations['Get Started'] }}</a>
-                        <p class="feature-label">{{ translations['Stay on top of bills'] }}</p>
+                        <a href="{{ url_for('bill_planner') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Bill Planner'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="bill-planner-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Manage and mark bills as paid'] }}</span>
@@ -578,8 +651,8 @@
                 </div>
             </div>
 
-            <!-- Self-Awareness Tools Section -->
-            <h4><span class="emoji">🤔</span> {{ translations['Self-Awareness Tools'] }}</h4>
+            <!-- Know Yourself Section -->
+            <h4><span class="emoji">👤</span> {{ translations['Know Yourself'] }}</h4>
             <!-- Financial Personality Quiz -->
             <div class="col-md-4 mb-4">
                 <div class="card">
@@ -591,8 +664,7 @@
                             {{ translations['Test your financial knowledge with a quiz'] }}
                             <span class="info-icon" data-tooltip-target="quiz-tooltip" title="{{ translations['Answer questions to assess financial literacy'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('quiz') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Personality Quiz'] }}">{{ translations['Get Started'] }}</a>
-                        <p class="feature-label">{{ translations['Discover your financial personality'] }}</p>
+                        <a href="{{ url_for('quiz') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Personality Quiz'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="quiz-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Answer questions to assess financial literacy'] }}</span>
@@ -620,8 +692,14 @@
 
         <!-- Footer -->
         <footer>
-            <a href="{{ url_for('index') }}" class="btn btn-back" aria-label="{{ translations['Go Back'] }}">{{ translations['Back'] }}</a>
+            <a href="javascript:history.back()" class="btn btn-back" aria-label="{{ translations['Go Back'] }}">{{ translations['Back'] }}</a>
             <a href="{{ url_for('index') }}" class="btn btn-home" aria-label="{{ translations['Return to Home'] }}">{{ translations['Home'] }}</a>
+            <div class="social-links">
+                <a href="https://twitter.com/ficoreafrica" target="_blank" aria-label="Follow us on Twitter">Twitter</a>
+                <a href="https://facebook.com/ficoreafrica" target="_blank" aria-label="Follow us on Facebook">Facebook</a>
+                <a href="https://linkedin.com/company/ficoreafrica" target="_blank" aria-label="Follow us on LinkedIn">LinkedIn</a>
+            </div>
+            <p class="about-tagline">{{ translations['About Ficore Africa: Empowering financial growth across Africa since 2023'] }}</p>
         </footer>
     </div>
 
