@@ -16,7 +16,7 @@ import random
 from translations import translations  # Import translations from translations.py
 
 # Initialize Flask app with custom template and static folders
-app = Flask(__name__, template_folder='templates', static_folder='static')
+app = Flask(__name__, template_folder='ficore_templates', static_folder='static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'NEscD7rN4cuYR3o3VLZZuSj3myhwAX7')
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -184,14 +184,19 @@ def assign_badges(score, debt, income):
         badges.append(translations[session.get('language', 'English')]['Positive Value Badge'])
     return badges
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
+@app.route('/', methods=['GET'])
+def landing():
+    language = session.get('language', 'English')
+    return render_template('landing.html', translations=translations[language])
+
+@app.route('/submit', methods=['GET', 'POST'])
+def submit():
     form = UserForm()
     language = session.get('language', 'English')
     if form.validate_on_submit():
         if form.email.data != form.confirm_email.data:
             flash(translations[language]['Emails Do Not Match'], 'error')
-            return render_template('index.html', form=form, translations=translations[language])
+            return render_template('landing.html', form=form, translations=translations[language])
         session['language'] = form.language.data
         health_score = calculate_health_score(
             form.income.data, form.expenses.data, form.debt.data, form.interest_rate.data
@@ -245,26 +250,8 @@ def index():
             flash(translations[language]['Failed to send email or save data'], 'error')
         session['user_data'] = user_data
         session['badges'] = badges
-        return redirect(url_for('dashboard'))
-    return render_template('index.html', form=form, translations=translations[language])
-
-@app.route('/dashboard')
-def dashboard():
-    language = session.get('language', 'English')
-    user_data = session.get('user_data', {})
-    badges = session.get('badges', [])
-    if not user_data:
-        return redirect(url_for('index'))
-    return render_template(
-        'dashboard.html',
-        user_data=user_data,
-        badges=badges,
-        translations=translations[language],
-        feedback_url='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-        waitlist_url='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-        consultancy_url='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
-        course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'
-    )
+        return redirect(url_for('health_score_dashboard'))
+    return render_template('landing.html', form=form, translations=translations[language])
 
 @app.route('/net_worth', methods=['GET', 'POST'])
 def net_worth():
@@ -274,12 +261,7 @@ def net_worth():
     if form.validate_on_submit():
         net_worth = form.assets.data - form.liabilities.data
         flash(translations[language]['Submission Success'], 'success')
-    return render_template(
-        'net_worth.html',
-        form=form,
-        net_worth=net_worth,
-        translations=translations[language]
-    )
+    return render_template('net_worth_form.html', form=form, net_worth=net_worth, translations=translations[language])
 
 @app.route('/quiz', methods=['GET', 'POST'])
 def quiz():
@@ -295,12 +277,7 @@ def quiz():
         else:
             result = "Time to brush up on your financial skills!"
         flash(translations[language]['Submission Success'], 'success')
-    return render_template(
-        'quiz.html',
-        form=form,
-        result=result,
-        translations=translations[language]
-    )
+    return render_template('quiz_form.html', form=form, result=result, translations=translations[language])
 
 @app.route('/emergency_fund', methods=['GET', 'POST'])
 def emergency_fund():
@@ -310,12 +287,7 @@ def emergency_fund():
     if form.validate_on_submit():
         recommended_fund = form.monthly_expenses.data * 4.5  # Average of 3-6 months
         flash(translations[language]['Submission Success'], 'success')
-    return render_template(
-        'emergency_fund.html',
-        form=form,
-        recommended_fund=recommended_fund,
-        translations=translations[language]
-    )
+    return render_template('emergency_fund_form.html', form=form, recommended_fund=recommended_fund, translations=translations[language])
 
 @app.route('/budget', methods=['GET', 'POST'])
 def budget():
@@ -335,12 +307,7 @@ def budget():
             'savings': savings
         }
         flash(translations[language]['Submission Success'], 'success')
-    return render_template(
-        'budget.html',
-        form=form,
-        budget_summary=budget_summary,
-        translations=translations[language]
-    )
+    return render_template('budget_form.html', form=form, budget_summary=budget_summary, translations=translations[language])
 
 @app.route('/expense_tracker', methods=['GET', 'POST'])
 def expense_tracker():
@@ -359,12 +326,7 @@ def expense_tracker():
         session['expenses'] = expenses
         flash(translations[language]['Submission Success'], 'success')
         return redirect(url_for('expense_tracker'))
-    return render_template(
-        'expense_tracker.html',
-        form=form,
-        expenses=expenses,
-        translations=translations[language]
-    )
+    return render_template('expense_tracker_form.html', form=form, expenses=expenses, translations=translations[language])
 
 @app.route('/edit_expense/<expense_id>', methods=['GET', 'POST'])
 def edit_expense(expense_id):
@@ -385,12 +347,7 @@ def edit_expense(expense_id):
         session['expenses'] = expenses
         flash(translations[language]['Submission Success'], 'success')
         return redirect(url_for('expense_tracker'))
-    return render_template(
-        'edit_expense.html',
-        form=form,
-        expense_id=expense_id,
-        translations=translations[language]
-    )
+    return render_template('expense_edit_form.html', form=form, expense_id=expense_id, translations=translations[language])
 
 @app.route('/bill_planner', methods=['GET', 'POST'])
 def bill_planner():
@@ -409,12 +366,7 @@ def bill_planner():
         session['bills'] = bills
         flash(translations[language]['Submission Success'], 'success')
         return redirect(url_for('bill_planner'))
-    return render_template(
-        'bill_planner.html',
-        form=form,
-        bills=bills,
-        translations=translations[language]
-    )
+    return render_template('bill_planner_form.html', form=form, bills=bills, translations=translations[language])
 
 @app.route('/edit_bill/<bill_id>', methods=['GET', 'POST'])
 def edit_bill(bill_id):
@@ -435,12 +387,7 @@ def edit_bill(bill_id):
         session['bills'] = bills
         flash(translations[language]['Submission Success'], 'success')
         return redirect(url_for('bill_planner'))
-    return render_template(
-        'edit_bill.html',
-        form=form,
-        bill_id=bill_id,
-        translations=translations[language]
-    )
+    return render_template('bill_edit_form.html', form=form, bill_id=bill_id, translations=translations[language])
 
 @app.route('/complete_bill/<bill_id>')
 def complete_bill(bill_id):
@@ -461,6 +408,44 @@ def change_language():
     if data in ['English', 'Hausa']:
         session['language'] = data
     return jsonify({'status': 'success'})
+
+@app.route('/health_score_dashboard')
+def health_score_dashboard():
+    language = session.get('language', 'English')
+    user_data = session.get('user_data', {})
+    badges = session.get('badges', [])
+    if not user_data:
+        return redirect(url_for('landing'))
+    return render_template(
+        'health_score_dashboard.html',
+        user_data=user_data,
+        badges=badges,
+        translations=translations[language],
+        feedback_url='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+        waitlist_url='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+        consultancy_url='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
+        course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'
+    )
+
+@app.route('/net_worth_dashboard')
+def net_worth_dashboard():
+    language = session.get('language', 'English')
+    return render_template('net_worth_dashboard.html', translations=translations[language])
+
+@app.route('/quiz_dashboard')
+def quiz_dashboard():
+    language = session.get('language', 'English')
+    return render_template('quiz_dashboard.html', translations=translations[language])
+
+@app.route('/emergency_fund_dashboard')
+def emergency_fund_dashboard():
+    language = session.get('language', 'English')
+    return render_template('emergency_fund_dashboard.html', translations=translations[language])
+
+@app.route('/budget_dashboard')
+def budget_dashboard():
+    language = session.get('language', 'English')
+    return render_template('budget_dashboard.html', translations=translations[language])
 
 if __name__ == '__main__':
     app.run(debug=True)
