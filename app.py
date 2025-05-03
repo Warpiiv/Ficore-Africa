@@ -7,6 +7,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, SelectField, TextAreaField, EmailField, SubmitField
 from wtforms.validators import DataRequired, Email, Optional, NumberRange
+from flask_mail import Mail, Message
 from translations import translations
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -15,21 +16,26 @@ from dateutil import parser
 import random
 
 # Initialize Flask app with custom template and static folders
-# Set template_folder to 'ficore_templates' to match repository structure
-# Set static_folder to 'static' to point to the static assets directory
 app = Flask(__name__, template_folder='ficore_templates', static_folder='static')
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key')
+app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+# Flask-Mail configuration
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'ficore.ai.africa@gmail.com'
+app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASSWORD')
+mail = Mail(app)
+
 # Constants
 SCOPES = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-SPREADSHEET_ID = 'your-spreadsheet-id'
-CREDENTIALS_FILE = 'credentials.json'
-FEEDBACK_FORM_URL = 'https://forms.gle/your-feedback-form'
-WAITLIST_FORM_URL = 'https://forms.gle/your-waitlist-form'
-CONSULTANCY_FORM_URL = 'https://forms.gle/your-consultancy-form'
+SPREADSHEET_ID = '13hbiMTMRBHo9MHjWwcugngY_aSiuxII67HCf03MiZ8I'
+FEEDBACK_FORM_URL = 'https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ'
+WAITLIST_FORM_URL = 'https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo'
+CONSULTANCY_FORM_URL = 'https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
 SHEET_NAMES = {
     'submissions': 'Submissions',
     'net_worth': 'NetWorth',
@@ -59,7 +65,9 @@ CATEGORIES = [
 
 # Google Sheets Setup
 def get_sheets_client():
-    creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, SCOPES)
+    creds_json = os.environ.get('GOOGLE_CREDENTIALS_JSON')
+    creds_dict = json.loads(creds_json)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPES)
     client = gspread.authorize(creds)
     return client
 
@@ -151,7 +159,6 @@ def calculate_health_score(form_data):
     expenses = form_data.get('expenses_costs', 0)
     debt = form_data.get('debt_loan', 0)
     interest_rate = form_data.get('debt_interest_rate', 0)
-    
     savings_ratio = (income - expenses) / income if income > 0 else 0
     debt_to_income = debt / income if income > 0 else 1
     score = 100 * (0.5 * savings_ratio - 0.3 * debt_to_income - 0.2 * (interest_rate / 100))
@@ -235,15 +242,16 @@ def set_language():
 def financial_health():
     language = session.get('language', 'English')
     form = SubmissionForm()
-    return render_template('index.html', form=form, language=language, translations=translations[language])
+    return render_template('health_score_form.html', form=form, language=language, translations=translations[language])
 
 @app.route('/submit', methods=['POST'])
 def submit():
     form = SubmissionForm()
     language = session.get('language', 'English')
+    t = translations[language]
     if form.validate_on_submit():
         if form.email.data != form.auto_email.data:
-            flash(translations[language]['Emails Do Not Match'], 'error')
+            flash(t['Emails Do Not Match'], 'error')
             return redirect(url_for('financial_health'))
         worksheet = ensure_sheet_and_headers(SHEET_NAMES['submissions'], PREDETERMINED_HEADERS['Submissions'])
         submission_id = str(uuid.uuid4())
@@ -266,7 +274,32 @@ def submit():
         worksheet.append_row(data)
         health_score = calculate_health_score(form.data)
         score_description = get_score_description(health_score)
-        flash(translations[language]['Submission Success'], 'success')
+        
+        # Send Email
+        try:
+            msg = Message(
+                t['Score Report Subject'].format(user_name=form.first_name.data),
+                sender=app.config['MAIL_USERNAME'],
+                recipients=[form.email.data]
+            )
+            msg.html = t['Email Body'].format(
+                user_name=form.first_name.data,
+                health_score=health_score,
+                score_description=score_description,
+                rank=random.randint(1, 1000),
+                total_users=10000,
+                course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
+                course_title=t['Recommended Course'],
+                FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
+                WAITLIST_FORM_URL=WAITLIST_FORM_URL,
+                CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL
+            )
+            mail.send(msg)
+            flash(t['Email sent successfully'], 'success')
+        except Exception as e:
+            flash(t['Failed to send email'], 'error')
+
+        flash(t['Submission Success'], 'success')
         return redirect(url_for('dashboard', health_score=health_score, score_description=score_description))
     else:
         for field, errors in form.errors.items():
@@ -279,7 +312,7 @@ def dashboard():
     language = session.get('language', 'English')
     health_score = request.args.get('health_score', type=int, default=0)
     score_description = request.args.get('score_description', '')
-    return render_template('dashboard.html', health_score=health_score, score_description=score_description, language=language, translations=translations[language])
+    return render_template('health_score_dashboard.html', health_score=health_score, score_description=score_description, language=language, translations=translations[language])
 
 @app.route('/net_worth', methods=['GET', 'POST'])
 def net_worth():
@@ -474,64 +507,9 @@ def expense_submit():
         worksheet.append_row(list(expense.values()))
         
         flash(translations[language]['Submission Success'], 'success')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(error, 'error')
+        return redirect(url_for('expense_tracker'))
     
     return redirect(url_for('expense_tracker'))
-
-@app.route('/expense_edit/<id>', methods=['GET', 'POST'])
-def expense_edit(id):
-    language = session.get('language', 'English')
-    form = ExpenseForm()
-    user_email = session.get('user_email', '')
-    
-    worksheet = ensure_sheet_and_headers(SHEET_NAMES['expense_tracker'], PREDETERMINED_HEADERS['ExpenseTracker'])
-    records = worksheet.get_all_records()
-    expense = next((r for r in records if r['ID'] == id and r['User Email'] == user_email), None)
-    
-    if not expense:
-        flash('Expense not found or unauthorized access.', 'error')
-        return redirect(url_for('expense_tracker'))
-    
-    if request.method == 'GET':
-        form.amount.data = float(expense['Amount'])
-        form.category.data = expense['Category']
-        form.date.data = expense['Date']
-        form.description.data = expense['Description']
-    
-    if form.validate_on_submit():
-        parsed_date = parse_natural_date(form.date.data)
-        updated_expense = {
-            'ID': id,
-            'User Email': user_email,
-            'Amount': form.amount.data,
-            'Category': form.category.data,
-            'Date': parsed_date,
-            'Description': form.description.data or '',
-            'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        }
-        
-        # Update session cache
-        expenses = session.get('expenses', [])
-        for i, exp in enumerate(expenses):
-            if exp['ID'] == id:
-                expenses[i] = updated_expense
-                session['expenses'] = expenses
-                session.modified = True
-                break
-        
-        # Update Google Sheets
-        for row_idx, row in enumerate(records, start=2):
-            if row['ID'] == id:
-                worksheet.update(f'A{row_idx}:G{row_idx}', [list(updated_expense.values())])
-                break
-        
-        flash('Expense updated successfully!', 'success')
-        return redirect(url_for('expense_tracker'))
-    
-    return render_template('expense_edit_form.html', form=form, expense_id=id, language=language, translations=translations[language])
 
 @app.route('/bill_planner', methods=['GET', 'POST'])
 def bill_planner():
@@ -552,126 +530,29 @@ def bill_planner():
             'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         
+        # Cache in session
+        if 'bills' not in session:
+            session['bills'] = []
+        session['bills'].append(bill)
+        session.modified = True
+        
+        # Save to Google Sheets
         worksheet = ensure_sheet_and_headers(SHEET_NAMES['bill_planner'], PREDETERMINED_HEADERS['BillPlanner'])
         worksheet.append_row(list(bill.values()))
         
         flash(translations[language]['Submission Success'], 'success')
         return redirect(url_for('bill_planner'))
     
-    worksheet = ensure_sheet_and_headers(SHEET_NAMES['bill_planner'], PREDETERMINED_HEADERS['BillPlanner'])
-    records = worksheet.get_all_records()
-    bills = [r for r in records if r['User Email'] == user_email]
-    bills.sort(key=lambda x: datetime.strptime(x['Due Date'], '%Y-%m-%d'))
+    # Retrieve bills from session or Google Sheets
+    bills = session.get('bills', [])
+    if not bills and user_email:
+        worksheet = ensure_sheet_and_headers(SHEET_NAMES['bill_planner'], PREDETERMINED_HEADERS['BillPlanner'])
+        records = worksheet.get_all_records()
+        bills = [r for r in records if r['User Email'] == user_email]
+        session['bills'] = bills
+        session.modified = True
     
     return render_template('bill_planner_form.html', form=form, bills=bills, language=language, translations=translations[language])
-
-@app.route('/bill_submit', methods=['POST'])
-def bill_submit():
-    language = session.get('language', 'English')
-    form = BillForm()
-    user_email = session.get('user_email', '')
-    
-    if form.validate_on_submit():
-        parsed_due_date = parse_natural_date(form.due_date.data)
-        bill_id = str(uuid.uuid4())
-        bill = {
-            'ID': bill_id,
-            'User Email': user_email,
-            'Bill Name': form.bill_name.data,
-            'Amount': form.amount.data,
-            'Due Date': parsed_due_date,
-            'Status': form.status.data,
-            'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        }
-        
-        worksheet = ensure_sheet_and_headers(SHEET_NAMES['bill_planner'], PREDETERMINED_HEADERS['BillPlanner'])
-        worksheet.append_row(list(bill.values()))
-        
-        flash(translations[language]['Submission Success'], 'success')
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(error, 'error')
-    
-    return redirect(url_for('bill_planner'))
-
-@app.route('/bill_edit/<id>', methods=['GET', 'POST'])
-def bill_edit(id):
-    language = session.get('language', 'English')
-    form = BillForm()
-    user_email = session.get('user_email', '')
-    
-    worksheet = ensure_sheet_and_headers(SHEET_NAMES['bill_planner'], PREDETERMINED_HEADERS['BillPlanner'])
-    records = worksheet.get_all_records()
-    bill = next((r for r in records if r['ID'] == id and r['User Email'] == user_email), None)
-    
-    if not bill:
-        flash('Bill not found or unauthorized access.', 'error')
-        return redirect(url_for('bill_planner'))
-    
-    if request.method == 'GET':
-        form.bill_name.data = bill['Bill Name']
-        form.amount.data = float(bill['Amount'])
-        form.due_date.data = bill['Due Date']
-        form.status.data = bill['Status']
-    
-    if form.validate_on_submit():
-        parsed_due_date = parse_natural_date(form.due_date.data)
-        updated_bill = {
-            'ID': id,
-            'User Email': user_email,
-            'Bill Name': form.bill_name.data,
-            'Amount': form.amount.data,
-            'Due Date': parsed_due_date,
-            'Status': form.status.data,
-            'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        }
-        
-        for row_idx, row in enumerate(records, start=2):
-            if row['ID'] == id:
-                worksheet.update(f'A{row_idx}:G{row_idx}', [list(updated_bill.values())])
-                break
-        
-        flash('Bill updated successfully!', 'success')
-        return redirect(url_for('bill_planner'))
-    
-    return render_template('bill_edit_form.html', form=form, bill_id=id, language=language, translations=translations[language])
-
-@app.route('/bill_complete/<id>', methods=['POST'])
-def bill_complete(id):
-    language = session.get('language', 'English')
-    user_email = session.get('user_email', '')
-    
-    worksheet = ensure_sheet_and_headers(SHEET_NAMES['bill_planner'], PREDETERMINED_HEADERS['BillPlanner'])
-    records = worksheet.get_all_records()
-    bill = next((r for r in records if r['ID'] == id and r['User Email'] == user_email), None)
-    
-    if not bill:
-        flash('Bill not found or unauthorized access.', 'error')
-        return redirect(url_for('bill_planner'))
-    
-    bill['Status'] = 'Paid'
-    bill['Timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
-    for row_idx, row in enumerate(records, start=2):
-        if row['ID'] == id:
-            worksheet.update(f'A{row_idx}:G{row_idx}', [list(bill.values())])
-            break
-    
-    flash('Bill marked as paid!', 'success')
-    return redirect(url_for('bill_planner'))
-
-# Error Handling
-@app.errorhandler(404)
-def page_not_found(e):
-    language = session.get('language', 'English')
-    return render_template('404.html', language=language, translations=translations[language]), 404
-
-@app.errorhandler(500)
-def internal_server_error(e):
-    language = session.get('language', 'English')
-    flash(translations[language]['Error processing form'], 'error')
-    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(debug=True)
