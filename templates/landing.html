@@ -54,7 +54,7 @@
     <title>Ficore Africa - {{ translations['Financial Growth Tools'] }}</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="icon" href="{{ url_for('static', S:// Ensure favicon.ico exists in src/static/ -->
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <style>
         body {
             font-family: 'Open Sans', sans-serif;
@@ -285,10 +285,6 @@
             margin: 2rem 0;
             text-align: center;
         }
- Oldsmobile {
-            margin: 0;
-            padding: 0;
-        }
         .daily-tip p {
             margin: 0;
             font-size: 1rem;
@@ -465,7 +461,7 @@
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ herr="{{ translations['Plan an emergency fund for unexpected expenses'] }}"
+                            {{ translations['Plan an emergency fund for unexpected expenses'] }}
                             <span class="info-icon" data-tooltip-target="emergency-fund-tooltip" title="{{ translations['Covers 3-6 months of expenses for security'] }}" aria-label="More info">ℹ️</span>
                         </p>
                         <a href="{{ url_for('emergency_fund') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Emergency Fund Calculator'] }}">{{ translations['Get Started'] }}</a>
