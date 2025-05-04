@@ -56,6 +56,7 @@ translations = {
         'Error processing form': 'Error processing form. Please try again.',
         'Email sent successfully': 'Email sent successfully!',
         'Failed to send email': 'Failed to send email. Please try again later.',
+        'Failed to send email or save data: {}': 'Failed to send email or save data: {}.',
         'Score Report Subject': '📊 Your Ficore Score Report is Ready, {user_name}!',
         'Email Body': '''
             <html>
@@ -286,7 +287,31 @@ translations = {
         'Monthly': 'Monthly',
         'Pending': 'Pending',
         'Completed': 'Completed',
-        'Overdue': 'Overdue'
+        'Overdue': 'Overdue',
+        'No data available': 'No data available. Please submit the form first.',
+        'Invalid date format: {}': 'Invalid date format: {}.',
+        'Error adding task: {}': 'Error adding task: {}.',
+        'Error updating task: {}': 'Error updating task: {}.',
+        'Error completing task: {}': 'Error completing task: {}.',
+        'Email notification settings updated': 'Email notification settings updated.',
+        'Error parsing updates: {}': 'Error parsing updates: {}.',
+        'Error updating email settings: {}': 'Error updating email settings: {}.',
+        'Failed to send reminder email: {}': 'Failed to send reminder email: {}.',
+        'Bill Reminder Subject': 'Bill Reminder: {description}',
+        'Bill Reminder Body': '''
+            <h1>Bill Reminder</h1>
+            <p>Dear {first_name},</p>
+            <p>This is a reminder for your bill: {description}</p>
+            <p>Amount: {amount}</p>
+            <p>Due Date: {due_date}</p>
+        ''',
+        'Error calculating net worth: {}': 'Error calculating net worth: {}.',
+        'Error processing quiz: {}': 'Error processing quiz: {}.',
+        'Error calculating fund: {}': 'Error calculating fund: {}.',
+        'Error calculating budget: {}': 'Error calculating budget: {}.',
+        'Error adding expense: {}': 'Error adding expense: {}.',
+        'Error updating expense: {}': 'Error updating expense: {}.',
+        'No dashboard available for budget': 'No dashboard available for budget.'
     },
     'Hausa': {
         'Welcome': 'Barka da zuwa',
@@ -345,6 +370,7 @@ translations = {
         'Error processing form': 'Kuskure wajen sarrafa fom. Don Allah sake gwadawa.',
         'Email sent successfully': 'An aika imel cikin nasara!',
         'Failed to send email': 'An kasa aika imel. Don Allah sake gwadawa daga baya.',
+        'Failed to send email or save data: {}': 'An kasa aika imel ko ajiye bayanai: {}.',
         'Score Report Subject': '📊 Rahoton Makin Ficore ɗinka Ya Shida, {user_name}!',
         'Email Body': '''
             <html>
@@ -479,7 +505,7 @@ translations = {
         'e.g. Groceries at Market': 'misali Kayayyakin Kasuwa',
         'Submit Expense': 'Ƙaddamar da Kashe Kuɗi',
         'Add your expense now!': 'Ƙara kashe kuɗin ka yanzu!',
-        'Submit expense form': 'Ƙaddamar da fom na kashe kuɗi',
+        'Submit expense form': 'Ƙaddamar da fom na kashe kuɗin ka',
         'Edit Expense': 'Gyara Kashe Kuɗi',
         'Update your expense details': 'Sabunta bayanan kashe kuɗin ka',
         'Update Expense': 'Sabunta Kashe Kuɗi',
@@ -575,6 +601,30 @@ translations = {
         'Monthly': 'Kowane Wata',
         'Pending': 'Ana Jiran',
         'Completed': 'An Kammala',
-        'Overdue': 'Ya Wuce Lokaci'
+        'Overdue': 'Ya Wuce Lokaci',
+        'No data available': 'Babu bayanai. Da fatan za a cika fam din farko.',
+        'Invalid date format: {}': 'Tsarin kwanan wata mara inganci: {}.',
+        'Error adding task: {}': 'Kuskure wajen ƙara aiki: {}.',
+        'Error updating task: {}': 'Kuskure wajen sabunta aiki: {}.',
+        'Error completing task: {}': 'Kuskure wajen kammala aiki: {}.',
+        'Email notification settings updated': 'An sabunta saitunan sanarwar imel.',
+        'Error parsing updates: {}': 'Kuskure wajen tantance sabuntawa: {}.',
+        'Error updating email settings: {}': 'Kuskure wajen sabunta saitunan imel: {}.',
+        'Failed to send reminder email: {}': 'An kasa aika imel na tunatarwa: {}.',
+        'Bill Reminder Subject': 'Tunatarwar Lissafi: {description}',
+        'Bill Reminder Body': '''
+            <h1>Tunatarwar Lissafi</h1>
+            <p>Mai girma {first_name},</p>
+            <p>Wannan tunatarwa ce don lissafinka: {description}</p>
+            <p>Adadi: {amount}</p>
+            <p>Ranar Ƙarshe: {due_date}</p>
+        ''',
+        'Error calculating net worth: {}': 'Kuskure wajen ƙididdige net worth: {}.',
+        'Error processing quiz: {}': 'Kuskure wajen sarrafa gwaji: {}.',
+        'Error calculating fund: {}': 'Kuskure wajen ƙididdige asusu: {}.',
+        'Error calculating budget: {}': 'Kuskure wajen ƙididdige kasafi: {}.',
+        'Error adding expense: {}': 'Kuskure wajen ƙara kashe kuɗi: {}.',
+        'Error updating expense: {}': 'Kuskure wajen sabunta kashe kuɗi: {}.',
+        'No dashboard available for budget': 'Babu dashboard da aka samu don kasafi.'
     }
 }
