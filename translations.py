@@ -761,8 +761,8 @@ translations = {
         'Rank': 'Matsayi',
         'Top': 'Sama',
         'Your rank among users based on net worth': 'Matsayin ka a tsakanin masu amfani bisa net worth',
-        'More info on rank': 'Ƙarin bayani kan matsayi'
-        'Failed to send email due to authentication issue': 'Kasa aikawa da imel saboda matsalar tantancewa'
+        'More info on rank': 'Ƙarin bayani kan matsayi',
+        'Failed to send email due to authentication issue': 'Kasa aikawa da imel saboda matsalar tantancewa',
         'Failed to send email due to server issue': 'Kasa aikawa da imel saboda matsalar server',
         'Failed to save data due to Google Sheets error': 'Kasa adana bayanai saboda kuskuren Google Sheets',
         'Email reminders not available due to missing scheduler': 'Ba a samun tunatarwar imel saboda rashin mai tsara lokaci',
