@@ -461,10 +461,10 @@ def bill_complete(id):
 
 @app.route('/change_language', methods=['POST'])
 def change_language():
-    data = request.form.get('language')
-    if data in ['English', 'Hausa']:
-        session['language'] = data
-    return jsonify({'status': 'success'})
+    language = request.form.get('language')
+    if language in ['English', 'Hausa']:
+        session['language'] = language
+    return redirect(url_for('landing'))  # Redirect to the landing page to refresh with the new language
 
 @app.route('/health_score_dashboard')
 def health_score_dashboard():
