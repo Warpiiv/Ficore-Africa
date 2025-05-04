@@ -8,9 +8,11 @@
     <meta name="author" content="Ficore Africa">
     <title>Ficore Africa - {{ translations['Net Worth Dashboard'] }}</title>
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWixMBt+Ix3S88A8gQ6QUCuDjxF6Jsm3g9gLpgKpW8k8gq8b6zB6z5gL5gJ5z6kJ6z5g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-    <script src="https://cdn.plotly.com/plotly-2.35.2.min.js" onerror="console.error('Failed to load Plotly.');"></script>
+    <script src="https://cdn.plotly.com/plotly-2.36.0.min.js" onerror="console.error('Failed to load Plotly.');"></script>
     <style>
         body {
             font-family: 'Open Sans', sans-serif;
@@ -218,6 +220,17 @@
         .course-link:hover {
             transform: translateY(-2px);
         }
+        .language-toggle {
+            margin-top: 1rem;
+            display: inline-block;
+        }
+        .language-toggle select {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #B0C4DE;
+            background: #fff;
+            font-size: 0.9rem;
+        }
         @media (max-width: 600px) {
             .card {
                 margin-bottom: 1rem;
@@ -248,16 +261,24 @@
             </div>
             <h2>{{ translations['Ficore Africa Net Worth Dashboard'] }}</h2>
             <p class="lead">{{ translations['Your Net Worth Insights'] }}</p>
+            <div class="language-toggle">
+                <form action="{{ url_for('change_language') }}" method="POST" aria-label="{{ translations['Change Language'] }}">
+                    <select name="language" onchange="this.form.submit()" aria-label="{{ translations['Select Language'] }}">
+                        <option value="English" {% if language == 'English' %}selected{% endif %}>English</option>
+                        <option value="Hausa" {% if language == 'Hausa' %}selected{% endif %}>Hausa</option>
+                    </select>
+                </form>
+            </div>
         </header>
 
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="alert-container my-3">
+                <div class="alert-container my-3" aria-live="polite">
                     {% for category, message in messages %}
                         <div class="flash-message alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
                             {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ translations['Close'] }}"></button>
                         </div>
                     {% endfor %}
                 </div>
@@ -277,7 +298,7 @@
                             {{ net_worth | format_currency('NGN') }}
                         </span>
                     </p>
-                    <p>{{ translations['Rank'] }}: {{ rank }}% <span class="info-icon" data-bs-toggle="tooltip" data-bs-title="{{ translations['Your rank among users based on net worth'] }}" aria-label="{{ translations['More info on rank'] }}">ℹ️</span> ({{ translations['Top'] }} {{ 100 - rank }}%)</p>
+                    <p>{{ translations['Rank'] }}: {{ rank }}% <i class="fas fa-info-circle" data-bs-toggle="tooltip" data-bs-title="{{ translations['Your rank among users based on net worth'] }}" aria-label="{{ translations['More info on rank'] }}"></i> ({{ translations['Top'] }} {{ 100 - rank }}%)</p>
                     <p>{{ advice }}</p>
                 </div>
             </div>
@@ -362,7 +383,7 @@
         </div>
 
         <!-- Buttons -->
-        <div class="row row-cols-1 row-cols-md-5 g-2 my-4">
+        <div class="row row-cols-1 row-cols-md-3 g-2 my-4">
             <div class="col">
                 <a href="{{ url_for('landing') }}" class="btn btn-primary w-100" aria-label="{{ translations['Back to Home'] }}">{{ translations['Back to Home'] }}</a>
             </div>
@@ -385,7 +406,7 @@
 
         <!-- Contact Information -->
         <div class="text-center my-4">
-            <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com" class="btn btn-email" aria-label="{{ translations['Email Ficore Africa Support'] }}">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}.</p>
+            <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com" class="btn btn-secondary" aria-label="{{ translations['Email Ficore Africa Support'] }}">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}.</p>
         </div>
     </div>
 
@@ -411,247 +432,16 @@
                     chartContainer.classList.remove('loading');
                     errorDiv.style.display = 'block';
                 } else {
-                    chartContainer.classList.remove('loading');
-                    errorDiv.style.display = 'none';
-                    if (typeof Plotly !== 'undefined') {
-                        Plotly.relayout(chartId, { responsive: true });
-                    } else {
+                    try {
                         chartContainer.classList.remove('loading');
-                        errorDiv.style.display = 'block';
-                    }
-                }
-            }
-
-            handleChartRendering('net-worth-chart', 'net-worth-chart-container', 'breakdown-error');
-            handleChartRendering('net-worth-comparison', 'net-worth-comparison-container', 'comparison-error');
-
-            // Share Results Button with feedback
-            const shareButton = document.getElementById('share-button');
-            const flashContainer = document.querySelector('.alert-container');
-            if (shareButton && flashContainer) {
-                shareButton.addEventListener('click', function () {
-                    const netWorth = {{ net_worth | tojson }};
-                    const rank = {{ rank | tojson }};
-                    const shareText = `${translations['My Net Worth']}: ${netWorth.toLocaleString('en-US', { style: 'currency', currency: 'NGN' })}\n${translations['Rank']}: ${rank}% (${translations['Top']} ${100 - rank}%)\n${translations['Check yours at']}: ${window.location.origin}`;
-                    const shareData = {
-                        title: translations['My Net Worth Results'],
-                        text: shareText,
-                        url: window.location.origin
-                    };
-
-                    if (navigator.share) {
-                        navigator.share(shareData)
-                            .then(() => {
-                                const successMsg = document.createElement('div');
-                                successMsg.className = 'flash-message alert alert-success alert-dismissible fade show';
-                                successMsg.setAttribute('role', 'alert');
-                                successMsg.innerHTML = `${translations['Results shared successfully!']}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
-                                flashContainer.appendChild(successMsg);
-                            })
-                            .catch((error) => console.error('Error sharing:', error));
-                    } else {
-                        navigator.clipboard.writeText(shareText)
-                            .then(() => {
-                                const successMsg = document.createElement('div');
-                                successMsg.className = 'flash-message alert alert-success alert-dismissible fade show';
-                                successMsg.setAttribute('role', 'alert');
-                                successMsg.innerHTML = `${translations['Results copied to clipboard!']}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
-                                flashContainer.appendChild(successMsg);
-                            })
-                            .catch((error) => {
-                                console.error('Error copying to clipboard:', error);
-                                const errorMsg = document.createElement('div');
-                                errorMsg.className = 'flash-message alert alert-danger alert-dismissible fade show';
-                                errorMsg.setAttribute('role', 'alert');
-                                errorMsg.innerHTML = `${translations['Failed to copy results']}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
-                                flashContainer.appendChild(errorMsg);
-                            });
-                    }
-                });
-            }
-        });
-    </script>
-    {% macro format_currency(value, currency='NGN') %}
-        {{ '{:,.2f}'.format(abs(float(value))) | replace(',', ',') }} {{ currency }}
-        {% if value < 0 %}-{% endif %}
-    {% endmacro %}
-</head>
-<body>
-    <div class="container">
-        <header class="my-4">
-            <div class="logo-container">
-                <img src="{{ url_for('static', filename='img/ficore_logo.png') }}" alt="Ficore Africa Logo" class="img-fluid">
-            </div>
-            <h2>{{ translations['Ficore Africa Net Worth Dashboard'] }}</h2>
-            <p class="lead">{{ translations['Your Net Worth Insights'] }}</p>
-        </header>
-
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="alert-container my-3">
-                    {% for category, message in messages %}
-                        <div class="flash-message alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-
-        <!-- Welcome and Net Worth -->
-        <div class="card">
-            <div class="card-header">
-                <span class="emoji">🎉</span> {{ translations['Welcome'] }}, {{ full_name }}!
-            </div>
-            <div class="card-body">
-                <div class="header-subsection">
-                    <h3>{{ translations['Your Net Worth'] }}</h3>
-                    <p>
-                        <span class="score-value {{ 'positive' if net_worth >= 0 else 'negative' }}" role="region" aria-label="{{ translations['Your net worth is'] }} {{ net_worth | format_currency('NGN') }}">
-                            {{ net_worth | format_currency('NGN') }}
-                        </span>
-                    </p>
-                    <p>{{ translations['Rank'] }}: {{ rank }}% <span class="info-icon" data-bs-toggle="tooltip" data-bs-title="{{ translations['Your rank among users based on net worth'] }}" aria-label="{{ translations['More info on rank'] }}">ℹ️</span> ({{ translations['Top'] }} {{ 100 - rank }}%)</p>
-                    <p>{{ advice }}</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Badges -->
-        <div class="card">
-            <div class="card-header">
-                <span class="emoji">🏅</span> {{ translations['Your Badges'] }}
-            </div>
-            <div class="card-body">
-                <div class="header-subsection">
-                    {% if badges %}
-                        {% for badge in badges %}
-                            <span class="badge" role="img" aria-label="{{ translations['Badge'] }}: {{ badge }}">{{ badge }}</span>
-                        {% endfor %}
-                    {% else %}
-                        <p>{{ translations['No badges yet. Submit more data to earn badges!'] }}</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Chart: Asset-Liability Breakdown -->
-        <div class="card">
-            <div class="card-header">
-                <span class="emoji">📊</span> {{ translations['Asset-Liability Breakdown'] }}
-            </div>
-            <div class="card-body">
-                <div class="header-subsection">
-                    <div class="chart-container loading" id="net-worth-chart-container" role="img" aria-label="{{ translations['Asset-Liability Breakdown Chart'] }}">
-                        <div id="net-worth-chart">{{ chart_html | safe }}</div>
-                        <div class="chart-error" id="breakdown-error" style="display: none;">{{ translations['Chart Unavailable'] }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Comparison Chart -->
-        <div class="card">
-            <div class="card-header">
-                <span class="emoji">⚖️</span> {{ translations['Comparison to Peers'] }}
-            </div>
-            <div class="card-body">
-                <div class="header-subsection">
-                    <div class="chart-container loading" id="net-worth-comparison-container" role="img" aria-label="{{ translations['Comparison to Peers Chart'] }}">
-                        <div id="net-worth-comparison">{{ comparison_chart_html | safe }}</div>
-                        <div class="chart-error" id="comparison-error" style="display: none;">{{ translations['Chart Unavailable'] }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Tips -->
-        <div class="card">
-            <div class="card-header">
-                <span class="emoji">💡</span> {{ translations['Quick Tips'] }}
-            </div>
-            <div class="card-body">
-                <div class="header-subsection">
-                    <ul class="tips-list">
-                        {% for tip in tips %}
-                            <li>{{ tip }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recommended Courses -->
-        <div class="card">
-            <div class="card-header">
-                <span class="emoji">📚</span> {{ translations['Recommended Courses'] }}
-            </div>
-            <div class="card-body">
-                <div class="header-subsection">
-                    {% for course in courses %}
-                        <a href="{{ course.link }}" target="_blank" class="course-link" aria-label="{{ translations['Recommended Course'] }}: {{ course.title }}">{{ course.title }}</a>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Buttons -->
-        <div class="row row-cols-1 row-cols-md-5 g-2 my-4">
-            <div class="col">
-                <a href="{{ url_for('landing') }}" class="btn btn-primary w-100" aria-label="{{ translations['Back to Home'] }}">{{ translations['Back to Home'] }}</a>
-            </div>
-            <div class="col">
-                <a href="{{ WAITLIST_FORM_URL }}" class="btn btn-secondary w-100" target="_blank" aria-label="{{ translations['Join Waitlist'] }}">{{ translations['Join Waitlist'] }}</a>
-            </div>
-            <div class="col">
-                <a href="{{ CONSULTANCY_FORM_URL }}" class="btn btn-secondary w-100" target="_blank" aria-label="{{ translations['Book Consultancy'] }}">{{ translations['Book Consultancy'] }}</a>
-            </div>
-            <div class="col">
-                <a href="{{ FEEDBACK_FORM_URL }}" class="btn btn-secondary w-100" target="_blank" aria-label="{{ translations['Provide Feedback'] }}">{{ translations['Provide Feedback'] }}</a>
-            </div>
-            <div class="col">
-                <a href="{{ url_for('send_net_worth_email') }}" class="btn btn-primary w-100" aria-label="{{ translations['Send Email Report'] }}">{{ translations['Send Email Report'] }}</a>
-            </div>
-            <div class="col">
-                <button class="btn btn-share w-100" id="share-button" aria-label="{{ translations['Share Your Results'] }}">{{ translations['Share Your Results'] }}</button>
-            </div>
-        </div>
-
-        <!-- Contact Information -->
-        <div class="text-center my-4">
-            <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com" class="btn btn-email" aria-label="{{ translations['Email Ficore Africa Support'] }}">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}.</p>
-        </div>
-    </div>
-
-    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}" onerror="console.error('Failed to load bootstrap.bundle.min.js.');"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Initialize Bootstrap tooltips
-            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-            tooltipTriggerList.forEach(tooltipTriggerEl => {
-                new bootstrap.Tooltip(tooltipTriggerEl, {
-                    trigger: 'hover focus',
-                    placement: 'top'
-                });
-            });
-
-            // Chart loading and error handling
-            function handleChartRendering(chartId, containerId, errorId) {
-                const chartContainer = document.getElementById(containerId);
-                const chartDiv = document.getElementById(chartId);
-                const errorDiv = document.getElementById(errorId);
-
-                if (!chartDiv || chartDiv.innerHTML.trim() === '') {
-                    chartContainer.classList.remove('loading');
-                    errorDiv.style.display = 'block';
-                } else {
-                    chartContainer.classList.remove('loading');
-                    errorDiv.style.display = 'none';
-                    if (typeof Plotly !== 'undefined') {
-                        Plotly.relayout(chartId, { responsive: true });
-                    } else {
+                        errorDiv.style.display = 'none';
+                        if (typeof Plotly !== 'undefined') {
+                            Plotly.relayout(chartId, { responsive: true });
+                        } else {
+                            throw new Error('Plotly not loaded');
+                        }
+                    } catch (e) {
+                        console.error('Chart rendering error:', e);
                         chartContainer.classList.remove('loading');
                         errorDiv.style.display = 'block';
                     }
@@ -682,7 +472,7 @@
                                 successMsg.className = 'flash-message alert alert-success alert-dismissible fade show';
                                 successMsg.setAttribute('role', 'alert');
                                 successMsg.setAttribute('aria-live', 'polite');
-                                successMsg.innerHTML = `${translations['Results shared successfully!']}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+                                successMsg.innerHTML = `${translations['Results shared successfully!']}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${translations['Close']}"></button>`;
                                 flashContainer.appendChild(successMsg);
                             })
                             .catch((error) => console.error('Error sharing:', error));
@@ -693,7 +483,7 @@
                                 successMsg.className = 'flash-message alert alert-success alert-dismissible fade show';
                                 successMsg.setAttribute('role', 'alert');
                                 successMsg.setAttribute('aria-live', 'polite');
-                                successMsg.innerHTML = `${translations['Results copied to clipboard!']}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+                                successMsg.innerHTML = `${translations['Results copied to clipboard!']}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${translations['Close']}"></button>`;
                                 flashContainer.appendChild(successMsg);
                             })
                             .catch((error) => {
@@ -701,8 +491,8 @@
                                 const errorMsg = document.createElement('div');
                                 errorMsg.className = 'flash-message alert alert-danger alert-dismissible fade show';
                                 errorMsg.setAttribute('role', 'alert');
-                                errorMsg.setAttribute('aria-live', 'polite');
-                                errorMsg.innerHTML = `${translations['Failed to copy results']}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+                                successMsg.setAttribute('aria-live', 'polite');
+                                errorMsg.innerHTML = `${translations['Failed to copy results']}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${translations['Close']}"></button>`;
                                 flashContainer.appendChild(errorMsg);
                             });
                     }
