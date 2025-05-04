@@ -4,7 +4,6 @@ import json
 import re
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, SelectField, TextAreaField, EmailField, SubmitField
 from wtforms.validators import DataRequired, Email, Optional, NumberRange
 from flask_mail import Mail, Message
@@ -201,6 +200,10 @@ def assign_badges(score, debt, income):
     return badges
 
 @app.route('/', methods=['GET'])
+def index():
+    return redirect(url_for('landing'))
+
+@app.route('/landing')
 def landing():
     language = session.get('language', 'English')
     return render_template('landing.html', translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
@@ -212,10 +215,10 @@ def submit():
     if form.validate_on_submit():
         if form.email.data != form.confirm_email.data:
             flash(translations[language]['Emails Do Not Match'], 'error')
-            return render_template('landing.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+            return render_template('health_score_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
         session['language'] = form.language.data
         health_score = calculate_health_score(
-            form.income.data, form.expenses.data, form.debt.data, form.interest_rate.data
+            form.income.data, form.expenses.data, form.debt.data, form.interest_rate.data or 0
         )
         score_description = get_score_description(health_score)
         rank, total_users = assign_rank(health_score)
@@ -266,8 +269,8 @@ def submit():
             flash(translations[language]['Failed to send email or save data'], 'error')
         session['user_data'] = user_data
         session['badges'] = badges
-        return redirect(url_for('health_score_dashboard'))
-    return render_template('landing.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+        return redirect(url_for('health_score_dashboard') + '?success=true')
+    return render_template('health_score_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/net_worth', methods=['GET', 'POST'])
 def net_worth():
@@ -503,6 +506,10 @@ def emergency_fund_dashboard():
 def budget_dashboard():
     language = session.get('language', 'English')
     return render_template('budget_dashboard.html', translations=translations[language])
+
+@app.route('/dashboard')
+def dashboard():
+    return redirect(url_for('health_score_dashboard'))
 
 if __name__ == '__main__':
     app.run(debug=True)
