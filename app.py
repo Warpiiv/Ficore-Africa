@@ -4,6 +4,7 @@ import json
 import re
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, SelectField, TextAreaField, EmailField, SubmitField
 from wtforms.validators import DataRequired, Email, Optional, NumberRange
 from flask_mail import Mail, Message
