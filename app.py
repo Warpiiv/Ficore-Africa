@@ -12,7 +12,12 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from dateutil.parser import parse
 import random
-from apscheduler.schedulers.background import BackgroundScheduler
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+    APSCHEDULER_AVAILABLE = True
+except ImportError:
+    APSCHEDULER_AVAILABLE = False
+import atexit
 from translations import translations
 
 # Initialize Flask app with custom template and static folders
@@ -399,7 +404,7 @@ def bill_planner():
     form = BillForm()
     language = session.get('language', 'English')
     tasks = session.get('bills', [])
-    current_date = datetime.now().date()  # Use dynamic current date
+    current_date = datetime.now().date()
 
     # Update task status and check for email notifications
     for task in tasks:
@@ -409,13 +414,13 @@ def bill_planner():
                 task['status'] = 'Overdue'
             elif task['status'] != 'Completed' and due_date == current_date:
                 task['status'] = 'Pending'
-                if task.get('send_email', False):
+                if task.get('send_email', False) and APSCHEDULER_AVAILABLE:
                     send_bill_reminder(task)
             else:
                 task['status'] = task.get('status', 'Pending')
         except ValueError as e:
             task['status'] = 'Pending'
-            print(f"Date parsing error for task {task['id']}: {e}")
+            print(f"Date parsing error for task {task.get('id', 'unknown')}: {e}")
 
     if form.validate_on_submit():
         try:
@@ -534,10 +539,13 @@ def send_bill_reminder(task):
         mail.send(msg)
         print(f"Email sent to {task['email']} for {task['Description']}")
     except Exception as e:
-        print(f"Failed to send email for task {task['id']}: {e}")
+        print(f"Failed to send email for task {task.get('id', 'unknown')}: {e}")
         flash(translations[language]['Failed to send reminder email: {}'].format(str(e)), 'error')
 
 def check_bills():
+    if not APSCHEDULER_AVAILABLE:
+        print("APScheduler not available, skipping bill checks")
+        return
     tasks = session.get('bills', [])
     current_date = datetime.now().date()
     for task in tasks:
@@ -553,17 +561,16 @@ def check_bills():
                     task['DueDate'] = new_due_date.strftime('%Y-%m-%d')
                     task['status'] = 'Pending'
         except ValueError as e:
-            print(f"Date parsing error in check_bills for task {task['id']}: {e}")
+            print(f"Date parsing error in check_bills for task {task.get('id', 'unknown')}: {e}")
         except Exception as e:
-            print(f"Error processing task {task['id']} in check_bills: {e}")
+            print(f"Error processing task {task.get('id', 'unknown')} in check_bills: {e}")
 
 # Scheduler setup
-scheduler = BackgroundScheduler()
-scheduler.add_job(check_bills, 'cron', hour=8, minute=0)  # Runs daily at 8 AM
-scheduler.start()
-
-# Cleanup scheduler on shutdown
-atexit.register(lambda: scheduler.shutdown())
+if APSCHEDULER_AVAILABLE:
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(check_bills, 'cron', hour=8, minute=0)  # Runs daily at 8 AM
+    scheduler.start()
+    atexit.register(lambda: scheduler.shutdown())
 
 @app.route('/change_language', methods=['POST'])
 def change_language():
