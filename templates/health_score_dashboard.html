@@ -499,6 +499,7 @@
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <!-- Plotly Chart Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const chartDataElement = document.getElementById('chart-data');
@@ -540,9 +541,18 @@
             renderChart('score-breakdown-chart', breakdownChartJson, 'breakdown-loading', 'breakdown-error');
             renderChart('compare-others-chart', comparisonChartJson, 'comparison-loading', 'comparison-error');
 
+            // Confetti Effect for Successful Submission
+            if (window.location.search.includes('success')) {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
             // Share Results Button
             document.getElementById('share-button').addEventListener('click', function () {
-                const shareText = `${translations['My Financial Health Score']}: ${healthScore}/100\n${translations['Ranked']}: #${{{ rank }}}                ${translations['out of']}: ${{{ total_users }}}                ${translations['Check yours at']}: ${window.location.origin}`;
+                const shareText = `${translations['My Financial Health Score']}: ${healthScore}/100\n${translations['Ranked']}: #${{{ rank }}} ${translations['out of']}: ${{{ total_users }}} ${translations['Check yours at']}: ${window.location.origin}`;
                 const shareData = {
                     title: translations['My Financial Health Score'],
                     text: shareText,
