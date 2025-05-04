@@ -153,6 +153,28 @@ def get_courses(language='English'):
         {'title': translations[language]['Investing for Beginners'], 'link': 'https://youtube.com/@ficore.africa'}
     ]
 
+# Helper function to generate quiz advice
+def get_quiz_advice(score, personality, language='English'):
+    if score >= 4:
+        return translations[language]['Great job! Continue to leverage your {personality} approach to build wealth.'].format(personality=personality.lower())
+    elif score >= 2:
+        return translations[language]['Good effort! Your {personality} style is solid, but consider tracking expenses more closely.'].format(personality=personality.lower())
+    else:
+        return translations[language]['Keep learning! Your {personality} approach can improve with regular financial reviews.'].format(personality=personality.lower())
+
+# Helper function to assign quiz badges
+def assign_quiz_badges(score, language='English'):
+    badges = []
+    try:
+        if score >= 4:
+            badges.append(translations[language]['Financial Guru'])
+        if score >= 2:
+            badges.append(translations[language]['Quiz Achiever'])
+        badges.append(translations[language]['Quiz Participant'])
+    except Exception as e:
+        logger.error(f"Error assigning quiz badges: {e}")
+    return badges
+
 # Helper function to generate Plotly charts
 def generate_net_worth_charts(net_worth_data, language='English'):
     try:
@@ -570,7 +592,7 @@ def send_net_worth_email():
     try:
         full_name = f"{user_data.get('First Name', '')} {user_data.get('Last Name', '')}".strip() or "User"
         rank = assign_net_worth_rank(net_worth_data['net_worth'])
-        top_percent = 100 - rank  # Calculate top percentile
+        top_percent = 100 - rank
         msg = Message(
             translations[language]['Net Worth Report Subject'].format(user_name=full_name),
             sender='ficore.ai.africa@gmail.com',
@@ -655,7 +677,63 @@ def quiz_dashboard():
     if not quiz_data:
         flash(translations[language]['No data available'], 'error')
         return redirect(url_for('quiz'))
-    return render_template('quiz_dashboard.html', quiz_data=quiz_data, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+    advice = get_quiz_advice(quiz_data['score'], quiz_data['personality'], language)
+    badges = assign_quiz_badges(quiz_data['score'], language)
+    tips = get_tips(language)
+    courses = get_courses(language)
+    return render_template(
+        'quiz_dashboard.html',
+        quiz_data=quiz_data,
+        advice=advice,
+        badges=badges,
+        tips=tips,
+        courses=courses,
+        translations=translations[language],
+        language=language,
+        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+    )
+
+@app.route('/send_quiz_email')
+def send_quiz_email():
+    language = session.get('language', 'English')
+    quiz_data = session.get('quiz_data')
+    if not quiz_data:
+        flash(translations[language]['No data available'], 'error')
+        return redirect(url_for('quiz'))
+    
+    try:
+        msg = Message(
+            translations[language]['Quiz Report Subject'].format(user_name=quiz_data['first_name']),
+            sender='ficore.ai.africa@gmail.com',
+            recipients=[quiz_data['email']]
+        )
+        course_url = 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'
+        course_title = translations[language]['Recommended Course']
+        msg.html = translations[language]['Quiz Email Body'].format(
+            user_name=quiz_data['first_name'],
+            score=quiz_data['score'] * 20,
+            personality=quiz_data['personality'],
+            advice=get_quiz_advice(quiz_data['score'], quiz_data['personality'], language),
+            course_url=course_url,
+            course_title=course_title,
+            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+        )
+        mail.send(msg)
+        flash(translations[language]['Email sent successfully'], 'success')
+    except SMTPAuthenticationError as e:
+        logger.error(f"SMTP authentication error sending quiz email: {e}")
+        flash(translations[language]['Failed to send email due to authentication issue'], 'error')
+    except SMTPException as e:
+        logger.error(f"SMTP error sending quiz email: {e}")
+        flash(translations[language]['Failed to send email due to server issue'], 'error')
+    except Exception as e:
+        logger.error(f"Unexpected error sending quiz email: {e}")
+        flash(translations[language]['Failed to send email'], 'error')
+    return redirect(url_for('quiz_dashboard'))
 
 @app.route('/emergency_fund', methods=['GET', 'POST'])
 def emergency_fund():
