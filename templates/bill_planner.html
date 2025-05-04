@@ -64,6 +64,10 @@
                 <label for="recurrence" class="form-label">{{ translations['Recurrence'] }}</label>
                 {{ form.recurrence(class="form-select") }}
             </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="send_email" name="send_email" value="true">
+                <label class="form-check-label" for="send_email">{{ translations['Send Email Notification'] }}</label>
+            </div>
             <button type="submit" class="btn btn-primary">{{ translations['Add Task'] }}</button>
         </form>
         
@@ -82,6 +86,7 @@
                         <th>{{ translations['Status'] }}</th>
                         <th>{{ translations['Edit'] }}</th>
                         <th>{{ translations['Complete'] }}</th>
+                        <th>{{ translations['Email Notification'] }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -106,10 +111,19 @@
                                     </a>
                                 {% endif %}
                             </td>
+                            <td>
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input email-toggle" data-id="{{ loop.index0 }}" {{ 'checked' if task.get('send_email', False) else '' }}>
+                                    <label class="form-check-label">{{ translations['Enable'] }}</label>
+                                </div>
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            <form method="POST" action="{{ url_for('update_email_notifications') }}" id="email-form" style="display: none;">
+                <input type="hidden" name="task_updates" id="task-updates">
+            </form>
         {% else %}
             <p>{{ translations['No Tasks'] }}</p>
         {% endif %}
@@ -197,6 +211,19 @@
                 dueDate.value = targetDate.toISOString().split('T')[0];
             }
         });
+
+        // Handle email notification toggles
+        document.querySelectorAll('.email-toggle').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const taskId = this.getAttribute('data-id');
+                const isChecked = this.checked;
+                const form = document.getElementById('email-form');
+                const updates = JSON.parse(document.getElementById('task-updates').value || '{}');
+                updates[taskId] = isChecked;
+                document.getElementById('task-updates').value = JSON.stringify(updates);
+                form.submit();
+            });
+        });
     </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93a6682a79d2adc5',t:'MTc0NjM0NTAyMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
