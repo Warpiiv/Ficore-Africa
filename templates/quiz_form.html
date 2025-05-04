@@ -75,7 +75,7 @@
 
             <div class="mb-3">
                 {{ form.first_name.label(class="form-label") }}
-                {{ form.first_name(class="form-control", id="first_name", placeholder=translations['Enter your first name'], **{'aria-required': 'true'}) }}
+                {{ form.first_name(class="form-control", id="first_name", placeholder=translations['Enter your first name'], **{'aria-required': 'true', 'aria-label': translations['First Name']}) }}
                 <span class="info-icon" aria-label="First Name Info">
                     <i class="fas fa-info-circle"></i>
                     <span class="tooltip-text">{{ translations['Enter your first name to personalize your results.'] }}</span>
@@ -87,7 +87,7 @@
 
             <div class="mb-3">
                 {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control", id="email", placeholder=translations['Enter your email'], **{'aria-required': 'true'}) }}
+                {{ form.email(class="form-control", id="email", placeholder=translations['Enter your email'], **{'aria-required': 'true', 'aria-label': translations['Email']}) }}
                 <span class="info-icon" aria-label="Email Info">
                     <i class="fas fa-info-circle"></i>
                     <span class="tooltip-text">{{ translations['Provide your email address to receive your results and personalized tips.'] }}</span>
@@ -99,7 +99,7 @@
 
             <div class="mb-3">
                 {{ form.language.label(class="form-label") }}
-                {{ form.language(class="form-control", id="language", **{'aria-required': 'true'}) }}
+                {{ form.language(class="form-select", id="language", **{'aria-required': 'true', 'aria-label': translations['Language']}) }}
                 <span class="info-icon" aria-label="Language Info">
                     <i class="fas fa-info-circle"></i>
                     <span class="tooltip-text">{{ translations['Choose your preferred language for the quiz. Options: English, Hausa.'] }}</span>
@@ -112,7 +112,7 @@
             {% for i in range(1, 6) %}
                 <div class="mb-3">
                     {{ form['q' + i|string].label(class="form-label", **{'for': 'q' + i|string}) }}
-                    {{ form['q' + i|string](class="form-control", id="q" + i|string, **{'aria-required': 'true'}) }}
+                    {{ form['q' + i|string](class="form-select", id="q" + i|string, **{'aria-required': 'true', 'aria-label': translations[form['q' + i|string].label.text]}) }}
                     <span class="info-icon" aria-label="Question {{ i }} Info">
                         <i class="fas fa-info-circle"></i>
                         <span class="tooltip-text">{{ translations['Answer each question with Yes or No based on your financial habits.'] }}</span>
@@ -143,27 +143,5 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    <script>
-        // Randomize question order
-        const questions = [
-            "{{ translations['Do you regularly track your income and expenses?'] }}",
-            "{{ translations['Do you prefer saving for the future over spending on immediate desires?'] }}",
-            "{{ translations['Are you comfortable with taking financial risks to grow your wealth?'] }}",
-            "{{ translations['Do you have an emergency fund set aside for unexpected situations?'] }}",
-            "{{ translations['Do you review your financial goals and strategies regularly?'] }}"
-        ];
-        function shuffle(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-        const labels = document.querySelectorAll('.form-label[for^="q"]');
-        const shuffledQuestions = shuffle([...questions]);
-        labels.forEach((label, index) => {
-            label.textContent = shuffledQuestions[index];
-        });
-    </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93a6566dc86e4546',t:'MTc0NjM0NDI5Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
