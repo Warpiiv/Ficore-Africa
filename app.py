@@ -346,7 +346,7 @@ def submit():
             session['score_description'] = score_description
             session['badges'] = badges
             flash(translations[language]['Submission Success'], 'success')
-            return redirect(url_for('health_score_dashboard'))
+            return redirect(url_for('health_score_dashboard') + '?success=true')  # Added ?success=true
         else:
             flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('health_score_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
