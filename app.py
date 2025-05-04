@@ -342,7 +342,7 @@ def expense_tracker():
         session['expenses'] = expenses
         flash(translations[language]['Submission Success'], 'success')
         return redirect(url_for('expense_tracker'))
-    return render_template('expense_tracker_form.html', form=form, expenses=expenses, translations=translations[language])
+    return render_template('expense_tracker.html', form=form, expenses=expenses, translations=translations[language])
 
 @app.route('/edit_expense/<expense_id>', methods=['GET', 'POST'])
 def edit_expense(expense_id):
