@@ -2,12 +2,14 @@ import os
 import uuid
 import json
 import re
+import logging
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, SelectField, TextAreaField, EmailField, SubmitField, BooleanField
 from wtforms.validators import DataRequired, Email, Optional, NumberRange
 from flask_mail import Mail, Message
+from smtplib import SMTPException, SMTPAuthenticationError
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from dateutil.parser import parse
@@ -23,6 +25,14 @@ except ImportError:
 import atexit
 from translations import translations
 
+# Configure logging
+logging.basicConfig(
+    filename='app.log',
+    level=logging.ERROR,
+    format='%(asctime)s %(levelname)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # Initialize Flask app with custom template and static folders
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'NEscD7rN4cuYR3o3VLZZuSj3myhwAX7')
@@ -36,7 +46,9 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = 'ficore.ai.africa@gmail.com'
-app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASSWORD', 'xxqnglkfbidniatln')
+app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASSWORD')
+if not app.config['MAIL_PASSWORD']:
+    logger.error("SMTP_PASSWORD environment variable not set")
 mail = Mail(app)
 
 # Google Sheets setup
@@ -44,16 +56,22 @@ scope = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
-creds_dict = json.loads(os.environ.get('GOOGLE_CREDENTIALS_JSON'))
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-client = gspread.authorize(creds)
+try:
+    creds_dict = json.loads(os.environ.get('GOOGLE_CREDENTIALS_JSON'))
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+except Exception as e:
+    logger.error(f"Failed to initialize Google Sheets credentials: {e}")
 
 # Open the spreadsheet and ensure the "UserData" worksheet exists
-spreadsheet = client.open_by_key('13hbiMTMRBHo9MHjWwcugngY_aSiuxII67HCf03MiZ8I')
 try:
-    sheet = spreadsheet.worksheet('UserData')
-except gspread.exceptions.WorksheetNotFound:
-    sheet = spreadsheet.add_worksheet(title='UserData', rows=100, cols=20)
+    spreadsheet = client.open_by_key('13hbiMTMRBHo9MHjWwcugngY_aSiuxII67HCf03MiZ8I')
+    try:
+        sheet = spreadsheet.worksheet('UserData')
+    except gspread.exceptions.WorksheetNotFound:
+        sheet = spreadsheet.add_worksheet(title='UserData', rows=100, cols=20)
+except Exception as e:
+    logger.error(f"Error accessing Google Sheets: {e}")
 
 # Define expected headers
 EXPECTED_HEADERS = [
@@ -69,7 +87,7 @@ try:
         sheet.clear()
         sheet.append_row(EXPECTED_HEADERS)
 except Exception as e:
-    print(f"Error setting headers: {e}")
+    logger.error(f"Error setting headers in Google Sheets: {e}")
     sheet.clear()
     sheet.append_row(EXPECTED_HEADERS)
 
@@ -82,7 +100,7 @@ def get_user_data_by_email(email):
                 return record
         return None
     except Exception as e:
-        print(f"Error fetching user data: {e}")
+        logger.error(f"Error fetching user data from Google Sheets: {e}")
         return None
 
 # Helper function to assign net worth rank
@@ -93,7 +111,7 @@ def assign_net_worth_rank(net_worth):
         rank_percentile = 100 - np.percentile(all_net_worths, np.searchsorted(sorted(all_net_worths, reverse=True), net_worth) / len(all_net_worths) * 100)
         return round(rank_percentile, 1)
     except Exception as e:
-        print(f"Error assigning net worth rank: {e}")
+        logger.error(f"Error assigning net worth rank: {e}")
         return 50.0
 
 # Helper function to generate net worth advice
@@ -116,7 +134,7 @@ def assign_net_worth_badges(net_worth, language='English'):
         if net_worth <= -50000:
             badges.append(translations[language]['Debt Recovery'])
     except Exception as e:
-        print(f"Error assigning net worth badges: {e}")
+        logger.error(f"Error assigning net worth badges: {e}")
     return badges
 
 # Helper function to get financial tips
@@ -170,7 +188,7 @@ def generate_net_worth_charts(net_worth_data, language='English'):
 
         return chart_html, comparison_chart_html
     except Exception as e:
-        print(f"Error generating charts: {e}")
+        logger.error(f"Error generating charts: {e}")
         return "", ""
 
 # Form for user input
@@ -280,7 +298,7 @@ def calculate_health_score(income, expenses, debt, interest_rate):
     except ZeroDivisionError:
         return 0
     except Exception as e:
-        print(f"Error calculating health score: {e}")
+        logger.error(f"Error calculating health score: {e}")
         return 50
 
 def get_score_description(score):
@@ -303,7 +321,7 @@ def assign_rank(score):
         total_users = len(all_scores)
         return rank, total_users
     except Exception as e:
-        print(f"Error assigning rank: {e}")
+        logger.error(f"Error assigning rank: {e}")
         return 1, 1
 
 def assign_badges(score, debt, income):
@@ -321,10 +339,11 @@ def assign_badges(score, debt, income):
         elif score >= 60:
             badges.append(translations[language]['Positive Value Badge'])
     except Exception as e:
-        print(f"Error assigning badges: {e}")
+        logger.error(f"Error assigning badges: {e}")
     return badges
 
 def update_or_append_user_data(user_data):
+    language = session.get('language', 'English')
     try:
         records = sheet.get_all_records()
         email = user_data.get('Email')
@@ -336,8 +355,13 @@ def update_or_append_user_data(user_data):
                     sheet.update(f'A{i}:{chr(64 + len(EXPECTED_HEADERS))}{i}', [list(merged_data.values())])
                     return
             sheet.append_row(list(user_data.values()))
+    except gspread.exceptions.APIError as e:
+        logger.error(f"Google Sheets API error updating/appending data: {e}")
+        flash(translations[language]['Failed to save data due to Google Sheets error'], 'error')
+        sheet.append_row(list(user_data.values()))
     except Exception as e:
-        print(f"Error updating/appending data: {e}")
+        logger.error(f"Error updating/appending data: {e}")
+        flash(translations[language]['Failed to save data'], 'error')
         sheet.append_row(list(user_data.values()))
 
 @app.route('/', methods=['GET'])
@@ -405,27 +429,37 @@ def submit():
                 'Budget Savings': 0
             }
             update_or_append_user_data(user_data)
-            msg = Message(
-                translations[language]['Score Report Subject'].format(user_name=form.first_name.data),
-                sender='ficore.ai.africa@gmail.com',
-                recipients=[form.email.data]
-            )
-            course_url = 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'
-            course_title = translations[language]['Recommended Course']
-            msg.html = translations[language]['Email Body'].format(
-                user_name=form.first_name.data,
-                health_score=health_score,
-                score_description=score_description,
-                rank=rank,
-                total_users=total_users,
-                course_url=course_url,
-                course_title=course_title,
-                FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-                WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-                CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-            )
-            mail.send(msg)
-            flash(translations[language]['Email sent successfully'], 'success')
+            try:
+                msg = Message(
+                    translations[language]['Score Report Subject'].format(user_name=form.first_name.data),
+                    sender='ficore.ai.africa@gmail.com',
+                    recipients=[form.email.data]
+                )
+                course_url = 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'
+                course_title = translations[language]['Recommended Course']
+                msg.html = translations[language]['Email Body'].format(
+                    user_name=form.first_name.data,
+                    health_score=health_score,
+                    score_description=score_description,
+                    rank=rank,
+                    total_users=total_users,
+                    course_url=course_url,
+                    course_title=course_title,
+                    FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+                    WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+                    CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+                )
+                mail.send(msg)
+                flash(translations[language]['Email sent successfully'], 'success')
+            except SMTPAuthenticationError as e:
+                logger.error(f"SMTP authentication error sending health score email: {e}")
+                flash(translations[language]['Failed to send email due to authentication issue'], 'error')
+            except SMTPException as e:
+                logger.error(f"SMTP error sending health score email: {e}")
+                flash(translations[language]['Failed to send email due to server issue'], 'error')
+            except Exception as e:
+                logger.error(f"Unexpected error sending health score email: {e}")
+                flash(translations[language]['Failed to send email'], 'error')
             session['user_data'] = user_data
             session['score_description'] = score_description
             session['badges'] = badges
@@ -482,7 +516,8 @@ def net_worth():
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
                 return redirect(url_for('net_worth_dashboard'))
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error calculating net worth: {e}")
                 flash(translations[language]['Error calculating net worth'], 'error')
         else:
             flash(translations[language]['Please correct the errors in the form'], 'error')
@@ -535,6 +570,7 @@ def send_net_worth_email():
     try:
         full_name = f"{user_data.get('First Name', '')} {user_data.get('Last Name', '')}".strip() or "User"
         rank = assign_net_worth_rank(net_worth_data['net_worth'])
+        top_percent = 100 - rank  # Calculate top percentile
         msg = Message(
             translations[language]['Net Worth Report Subject'].format(user_name=full_name),
             sender='ficore.ai.africa@gmail.com',
@@ -548,6 +584,7 @@ def send_net_worth_email():
             assets=net_worth_data['assets'],
             liabilities=net_worth_data['liabilities'],
             rank=rank,
+            top_percent=top_percent,
             advice=get_net_worth_advice(net_worth_data['net_worth'], language),
             course_url=course_url,
             course_title=course_title,
@@ -557,9 +594,15 @@ def send_net_worth_email():
         )
         mail.send(msg)
         flash(translations[language]['Email sent successfully'], 'success')
+    except SMTPAuthenticationError as e:
+        logger.error(f"SMTP authentication error sending net worth email: {e}")
+        flash(translations[language]['Failed to send email due to authentication issue'], 'error')
+    except SMTPException as e:
+        logger.error(f"SMTP error sending net worth email: {e}")
+        flash(translations[language]['Failed to send email due to server issue'], 'error')
     except Exception as e:
-        print(f"Error sending net worth email: {e}")
-        flash(translations[language]['Error sending email'], 'error')
+        logger.error(f"Unexpected error sending net worth email: {e}")
+        flash(translations[language]['Failed to send email'], 'error')
     return redirect(url_for('net_worth_dashboard'))
 
 @app.route('/quiz', methods=['GET', 'POST'])
@@ -598,7 +641,8 @@ def quiz():
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
                 return redirect(url_for('quiz_dashboard'))
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error processing quiz: {e}")
                 flash(translations[language]['Error processing quiz'], 'error')
         else:
             flash(translations[language]['Please correct the errors in the form'], 'error')
@@ -614,7 +658,7 @@ def quiz_dashboard():
     return render_template('quiz_dashboard.html', quiz_data=quiz_data, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/emergency_fund', methods=['GET', 'POST'])
-def emergency_fund_ignore():
+def emergency_fund():
     language = session.get('language', 'English')
     email = session.get('user_email')
     form_data = get_user_data_by_email(email) if email else None
@@ -647,7 +691,8 @@ def emergency_fund_ignore():
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
                 return redirect(url_for('emergency_fund_dashboard'))
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error calculating emergency fund: {e}")
                 flash(translations[language]['Error calculating emergency fund'], 'error')
         else:
             flash(translations[language]['Please correct the errors in the form'], 'error')
@@ -706,7 +751,8 @@ def budget():
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
                 return redirect(url_for('budget_dashboard'))
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error calculating budget: {e}")
                 flash(translations[language]['Error calculating budget'], 'error')
         else:
             flash(translations[language]['Please correct the errors in the form'], 'error')
@@ -745,8 +791,11 @@ def expense_tracker():
                 return redirect(url_for('expense_tracker'))
             except ValueError:
                 flash(translations[language]['Invalid date format'], 'error')
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error adding expense: {e}")
                 flash(translations[language]['Error adding expense'], 'error')
+        else:
+            flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('expense_tracker.html', form=form, expenses=expenses, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/edit_expense/<expense_id>', methods=['GET', 'POST'])
@@ -780,8 +829,11 @@ def edit_expense(expense_id):
                 return redirect(url_for('expense_tracker'))
             except ValueError:
                 flash(translations[language]['Invalid date format'], 'error')
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error updating expense: {e}")
                 flash(translations[language]['Error updating expense'], 'error')
+        else:
+            flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('edit_expense.html', form=form, expense_id=expense_id, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/bill_planner', methods=['GET', 'POST'])
@@ -802,9 +854,7 @@ def bill_planner():
             if email and form.email.data != email:
                 flash(translations[language]['Email must match previous submission'], 'error')
                 return render_template('bill_planner.html', form=form, bills=bills, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
-            session['
-
-language'] = form.language.data
+            session['language'] = form.language.data
             try:
                 due_date = parse(form.due_date.data)
                 current_date = datetime.now()
@@ -825,13 +875,19 @@ language'] = form.language.data
                 session['bills'] = bills
                 session.permanent = True
                 if form.send_email.data:
-                    schedule_bill_reminder(bill)
+                    if APSCHEDULER_AVAILABLE:
+                        schedule_bill_reminder(bill)
+                    else:
+                        flash(translations[language]['Email reminders not available due to missing scheduler'], 'warning')
                 flash(translations[language]['Submission Success'], 'success')
                 return redirect(url_for('bill_planner'))
             except ValueError:
                 flash(translations[language]['Invalid date format'], 'error')
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error adding bill: {e}")
                 flash(translations[language]['Error adding task'], 'error')
+        else:
+            flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('bill_planner.html', form=form, bills=bills, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/edit_bill/<bill_id>', methods=['GET', 'POST'])
@@ -875,13 +931,19 @@ def edit_bill(bill_id):
                 session['bills'] = bills
                 session.permanent = True
                 if form.send_email.data:
-                    schedule_bill_reminder(bill)
+                    if APSCHEDULER_AVAILABLE:
+                        schedule_bill_reminder(bill)
+                    else:
+                        flash(translations[language]['Email reminders not available due to missing scheduler'], 'warning')
                 flash(translations[language]['Submission Success'], 'success')
                 return redirect(url_for('bill_planner'))
             except ValueError:
                 flash(translations[language]['Invalid date format'], 'error')
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error updating bill: {e}")
                 flash(translations[language]['Error updating task'], 'error')
+        else:
+            flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('edit_bill.html', form=form, bill_id=bill_id, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/complete_bill/<bill_id>', methods=['POST'])
@@ -895,7 +957,8 @@ def complete_bill(bill_id):
             session['bills'] = bills
             session.permanent = True
             flash(translations[language]['Submission Success'], 'success')
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error completing bill: {e}")
             flash(translations[language]['Error completing task'], 'error')
     else:
         flash(translations[language]['No data available'], 'error')
@@ -922,22 +985,29 @@ def send_reminder_email(bill):
             due_date=bill['due_date']
         )
         mail.send(msg)
+    except SMTPAuthenticationError as e:
+        logger.error(f"SMTP authentication error sending reminder email: {e}")
+    except SMTPException as e:
+        logger.error(f"SMTP error sending reminder email: {e}")
     except Exception as e:
-        print(f"Failed to send reminder email: {e}")
+        logger.error(f"Unexpected error sending reminder email: {e}")
 
 def schedule_bill_reminder(bill):
     if not APSCHEDULER_AVAILABLE:
         return
-    due_date = parse(bill['due_date'])
-    reminder_time = due_date - timedelta(days=1)
-    if reminder_time > datetime.now():
-        scheduler.add_job(
-            func=send_reminder_email,
-            trigger='date',
-            run_date=reminder_time,
-            args=[bill],
-            id=f"reminder_{bill['id']}"
-        )
+    try:
+        due_date = parse(bill['due_date'])
+        reminder_time = due_date - timedelta(days=1)
+        if reminder_time > datetime.now():
+            scheduler.add_job(
+                func=send_reminder_email,
+                trigger='date',
+                run_date=reminder_time,
+                args=[bill],
+                id=f"reminder_{bill['id']}"
+            )
+    except Exception as e:
+        logger.error(f"Error scheduling bill reminder: {e}")
 
 @app.route('/change_language', methods=['POST'])
 def change_language():
