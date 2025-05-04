@@ -492,7 +492,7 @@
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Assess your financial health with a personalized score'] }}
+                            {{ translations['This tool evaluates your income, expenses, and debt to provide a health score'] }}
                             <span class="info-icon" data-tooltip-target="health-score-tooltip" title="{{ translations['Evaluates income, expenses, and debt for a health score'] }}" aria-label="More info">ℹ️</span>
                         </p>
                         <a href="{{ url_for('submit') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Health Score Assessment'] }}">{{ translations['Start Now'] }}</a>
@@ -531,13 +531,13 @@
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Plan an emergency fund for unexpected expenses'] }}
-                            <span class="info-icon" data-tooltip-target="emergency-fund-tooltip" title="{{ translations['Covers 3-6 months of expenses for security'] }}" aria-label="More info">ℹ️</span>
+                            {{ translations['Aims to cover 3-6 months of expenses for financial security'] }}
+                            <span class="info-icon" data-tooltip-target="emergency-fund-tooltip" title="{{ translations['Aims to cover 3-6 months of expenses for financial security'] }}" aria-label="More info">ℹ️</span>
                         </p>
                         <a href="{{ url_for('emergency_fund') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Emergency Fund Calculator'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="emergency-fund-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
-                            <span>{{ translations['Covers 3-6 months of expenses for security'] }}</span>
+                            <span>{{ translations['Aims to cover 3-6 months of expenses for financial security'] }}</span>
                         </div>
                     </div>
                 </div>
@@ -847,5 +847,5 @@
             }
         });
     </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93a8ba5b2ce5139b',t:'MTc0NjM2OTM2MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
