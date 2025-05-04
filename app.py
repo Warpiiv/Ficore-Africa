@@ -12,6 +12,9 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from dateutil.parser import parse
 import random
+import numpy as np
+import plotly.graph_objects as go
+import plotly.io as pio
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
     APSCHEDULER_AVAILABLE = True
@@ -81,6 +84,94 @@ def get_user_data_by_email(email):
     except Exception as e:
         print(f"Error fetching user data: {e}")
         return None
+
+# Helper function to assign net worth rank
+def assign_net_worth_rank(net_worth):
+    try:
+        all_net_worths = [float(row['Net Worth']) for row in sheet.get_all_records() if row['Net Worth'] and row['Net Worth'].strip()]
+        all_net_worths.append(net_worth)
+        rank_percentile = 100 - np.percentile(all_net_worths, np.searchsorted(sorted(all_net_worths, reverse=True), net_worth) / len(all_net_worths) * 100)
+        return round(rank_percentile, 1)
+    except Exception as e:
+        print(f"Error assigning net worth rank: {e}")
+        return 50.0
+
+# Helper function to generate net worth advice
+def get_net_worth_advice(net_worth, language='English'):
+    if net_worth > 0:
+        return translations[language]['Maintain your positive net worth by continuing to manage liabilities and grow assets.']
+    elif net_worth == 0:
+        return translations[language]['Your net worth is balanced. Consider increasing assets to build wealth.']
+    else:
+        return translations[language]['Focus on reducing liabilities to improve your net worth.']
+
+# Helper function to assign net worth badges
+def assign_net_worth_badges(net_worth, language='English'):
+    badges = []
+    try:
+        if net_worth > 0:
+            badges.append(translations[language]['Positive Net Worth'])
+        if net_worth >= 100000:
+            badges.append(translations[language]['Wealth Builder'])
+        if net_worth <= -50000:
+            badges.append(translations[language]['Debt Recovery'])
+    except Exception as e:
+        print(f"Error assigning net worth badges: {e}")
+    return badges
+
+# Helper function to get financial tips
+def get_tips(language='English'):
+    return [
+        translations[language]['Regularly review your assets and liabilities to track progress.'],
+        translations[language]['Invest in low-risk assets to grow your wealth steadily.'],
+        translations[language]['Create a plan to pay down high-interest debt first.']
+    ]
+
+# Helper function to get recommended courses
+def get_courses(language='English'):
+    return [
+        {'title': translations[language]['Personal Finance 101'], 'link': 'https://youtube.com/@ficore.africa'},
+        {'title': translations[language]['Debt Management Basics'], 'link': 'https://youtube.com/@ficore.africa'},
+        {'title': translations[language]['Investing for Beginners'], 'link': 'https://youtube.com/@ficore.africa'}
+    ]
+
+# Helper function to generate Plotly charts
+def generate_net_worth_charts(net_worth_data, language='English'):
+    try:
+        # Asset-Liability Breakdown Chart (Pie)
+        labels = [translations[language]['Assets'], translations[language]['Liabilities']]
+        values = [net_worth_data['assets'], net_worth_data['liabilities']]
+        pie_fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.3, marker=dict(colors=['#2E7D32', '#DC3545']))])
+        pie_fig.update_layout(
+            title=translations[language]['Asset-Liability Breakdown'],
+            showlegend=True,
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(size=12)
+        )
+        chart_html = pio.to_html(pie_fig, full_html=False, include_plotlyjs=False)
+
+        # Peer Comparison Chart (Bar)
+        all_net_worths = [float(row['Net Worth']) for row in sheet.get_all_records() if row['Net Worth'] and row['Net Worth'].strip()]
+        user_net_worth = net_worth_data['net_worth']
+        avg_net_worth = np.mean(all_net_worths) if all_net_worths else 0
+        bar_fig = go.Figure(data=[
+            go.Bar(name=translations[language]['Your Net Worth'], x=['You'], y=[user_net_worth], marker_color='#2E7D32'),
+            go.Bar(name=translations[language]['Average Net Worth'], x=['Average'], y=[avg_net_worth], marker_color='#0288D1')
+        ])
+        bar_fig.update_layout(
+            title=translations[language]['Comparison to Peers'],
+            barmode='group',
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(size=12)
+        )
+        comparison_chart_html = pio.to_html(bar_fig, full_html=False, include_plotlyjs=False)
+
+        return chart_html, comparison_chart_html
+    except Exception as e:
+        print(f"Error generating charts: {e}")
+        return "", ""
 
 # Form for user input
 class UserForm(FlaskForm):
@@ -240,12 +331,10 @@ def update_or_append_user_data(user_data):
         if email:
             for i, record in enumerate(records, start=2):
                 if record.get('Email') == email:
-                    # Merge existing data with new data
                     existing_data = record
                     merged_data = {**existing_data, **user_data}
                     sheet.update(f'A{i}:{chr(64 + len(EXPECTED_HEADERS))}{i}', [list(merged_data.values())])
                     return
-            # If no existing record, append new row
             sheet.append_row(list(user_data.values()))
     except Exception as e:
         print(f"Error updating/appending data: {e}")
@@ -263,7 +352,6 @@ def landing():
 @app.route('/submit', methods=['GET', 'POST'])
 def submit():
     language = session.get('language', 'English')
-    # Check for existing data in session or Google Sheet
     email = session.get('user_email')
     form_data = get_user_data_by_email(email) if email else None
     form = UserForm(
@@ -287,7 +375,6 @@ def submit():
             if form.email.data != form.confirm_email.data:
                 flash(translations[language]['Emails Do Not Match'], 'error')
                 return render_template('health_score_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
-
             session['language'] = form.language.data
             session['user_email'] = form.email.data
             session.permanent = True
@@ -318,8 +405,6 @@ def submit():
                 'Budget Savings': 0
             }
             update_or_append_user_data(user_data)
-
-            # Send email notification
             msg = Message(
                 translations[language]['Score Report Subject'].format(user_name=form.first_name.data),
                 sender='ficore.ai.africa@gmail.com',
@@ -341,12 +426,11 @@ def submit():
             )
             mail.send(msg)
             flash(translations[language]['Email sent successfully'], 'success')
-
             session['user_data'] = user_data
             session['score_description'] = score_description
             session['badges'] = badges
             flash(translations[language]['Submission Success'], 'success')
-            return redirect(url_for('health_score_dashboard') + '?success=true')  # Added ?success=true
+            return redirect(url_for('health_score_dashboard') + '?success=true')
         else:
             flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('health_score_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
@@ -370,7 +454,7 @@ def net_worth():
     form = NetWorthForm(
         email=email,
         language=form_data.get('Language') if form_data else language,
-        assets=form_data.get('Net Worth', 0) + (form_data.get('Debt', 0) if form_data else 0),  # Approximate assets
+        assets=form_data.get('Net Worth', 0) + (form_data.get('Debt', 0) if form_data else 0),
         liabilities=form_data.get('Debt', 0) if form_data else 0
     )
     if email:
@@ -408,10 +492,75 @@ def net_worth():
 def net_worth_dashboard():
     language = session.get('language', 'English')
     net_worth_data = session.get('net_worth_data')
+    user_data = session.get('user_data', {})
     if not net_worth_data:
         flash(translations[language]['No data available'], 'error')
         return redirect(url_for('net_worth'))
-    return render_template('net_worth_dashboard.html', net_worth_data=net_worth_data, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+    
+    full_name = f"{user_data.get('First Name', '')} {user_data.get('Last Name', '')}".strip() or "User"
+    rank = assign_net_worth_rank(net_worth_data['net_worth'])
+    advice = get_net_worth_advice(net_worth_data['net_worth'], language)
+    badges = assign_net_worth_badges(net_worth_data['net_worth'], language)
+    tips = get_tips(language)
+    courses = get_courses(language)
+    chart_html, comparison_chart_html = generate_net_worth_charts(net_worth_data, language)
+    
+    return render_template(
+        'net_worth_dashboard.html',
+        net_worth_data=net_worth_data,
+        full_name=full_name,
+        rank=rank,
+        advice=advice,
+        badges=badges,
+        tips=tips,
+        courses=courses,
+        chart_html=chart_html,
+        comparison_chart_html=comparison_chart_html,
+        translations=translations[language],
+        language=language,
+        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+    )
+
+@app.route('/send_net_worth_email')
+def send_net_worth_email():
+    language = session.get('language', 'English')
+    net_worth_data = session.get('net_worth_data')
+    user_data = session.get('user_data', {})
+    if not net_worth_data or not user_data:
+        flash(translations[language]['No data available'], 'error')
+        return redirect(url_for('net_worth'))
+    
+    try:
+        full_name = f"{user_data.get('First Name', '')} {user_data.get('Last Name', '')}".strip() or "User"
+        rank = assign_net_worth_rank(net_worth_data['net_worth'])
+        msg = Message(
+            translations[language]['Net Worth Report Subject'].format(user_name=full_name),
+            sender='ficore.ai.africa@gmail.com',
+            recipients=[net_worth_data['email']]
+        )
+        course_url = 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'
+        course_title = translations[language]['Recommended Course']
+        msg.html = translations[language]['Net Worth Email Body'].format(
+            user_name=full_name,
+            net_worth=net_worth_data['net_worth'],
+            assets=net_worth_data['assets'],
+            liabilities=net_worth_data['liabilities'],
+            rank=rank,
+            advice=get_net_worth_advice(net_worth_data['net_worth'], language),
+            course_url=course_url,
+            course_title=course_title,
+            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+        )
+        mail.send(msg)
+        flash(translations[language]['Email sent successfully'], 'success')
+    except Exception as e:
+        print(f"Error sending net worth email: {e}")
+        flash(translations[language]['Error sending email'], 'error')
+    return redirect(url_for('net_worth_dashboard'))
 
 @app.route('/quiz', methods=['GET', 'POST'])
 def quiz():
@@ -465,7 +614,7 @@ def quiz_dashboard():
     return render_template('quiz_dashboard.html', quiz_data=quiz_data, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/emergency_fund', methods=['GET', 'POST'])
-def emergency_fund():
+def emergency_fund_ignore():
     language = session.get('language', 'English')
     email = session.get('user_email')
     form_data = get_user_data_by_email(email) if email else None
@@ -653,7 +802,9 @@ def bill_planner():
             if email and form.email.data != email:
                 flash(translations[language]['Email must match previous submission'], 'error')
                 return render_template('bill_planner.html', form=form, bills=bills, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
-            session['language'] = form.language.data
+            session['
+
+language'] = form.language.data
             try:
                 due_date = parse(form.due_date.data)
                 current_date = datetime.now()
