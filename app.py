@@ -502,7 +502,7 @@ def health_score_dashboard():
         return redirect(url_for('submit'))
     return render_template('health_score_dashboard.html', user_data=user_data, score_description=score_description, badges=badges, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
-@app.route('/net_worth', methods=['GET', 'POST'])
+@app.route('net_worth_form', methods=['GET', 'POST'])
 def net_worth():
     language = session.get('language', 'English')
     email = session.get('user_email')
@@ -519,7 +519,7 @@ def net_worth():
         if form.validate_on_submit():
             if email and form.email.data != email:
                 flash(translations[language]['Email must match previous submission'], 'error')
-                return render_template('net_worth_form.html', form=form, net_worth=0, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+                return render_template('/net_worth_form', form=form, net_worth=0, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
             session['language'] = form.language.data
             try:
                 net_worth = form.assets.data - form.liabilities.data
@@ -543,9 +543,9 @@ def net_worth():
                 flash(translations[language]['Error calculating net worth'], 'error')
         else:
             flash(translations[language]['Please correct the errors in the form'], 'error')
-    return render_template('net_worth_form.html', form=form, net_worth=0, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+    return render_template('/net_worth_form', form=form, net_worth=0, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
-@app.route('/net_worth_dashboard')
+@app.route('net_worth_form_dashboard')
 def net_worth_dashboard():
     language = session.get('language', 'English')
     net_worth_data = session.get('net_worth_data')
@@ -627,7 +627,7 @@ def send_net_worth_email():
         flash(translations[language]['Failed to send email'], 'error')
     return redirect(url_for('net_worth_dashboard'))
 
-@app.route('/quiz', methods=['GET', 'POST'])
+@app.route('/quiz_form', methods=['GET', 'POST'])
 def quiz():
     language = session.get('language', 'English')
     email = session.get('user_email')
@@ -670,7 +670,7 @@ def quiz():
             flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('quiz_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
-@app.route('/quiz_dashboard')
+@app.route('/quiz_form_dashboard')
 def quiz_dashboard():
     language = session.get('language', 'English')
     quiz_data = session.get('quiz_data')
@@ -735,7 +735,7 @@ def send_quiz_email():
         flash(translations[language]['Failed to send email'], 'error')
     return redirect(url_for('quiz_dashboard'))
 
-@app.route('/emergency_fund', methods=['GET', 'POST'])
+@app.route('/emergency_fund_form', methods=['GET', 'POST'])
 def emergency_fund():
     language = session.get('language', 'English')
     email = session.get('user_email')
@@ -776,7 +776,7 @@ def emergency_fund():
             flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('emergency_fund_form.html', form=form, recommended_fund=0, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
-@app.route('/emergency_fund_dashboard')
+@app.route('/emergency_fund_form_dashboard')
 def emergency_fund_dashboard():
     language = session.get('language', 'English')
     emergency_fund_data = session.get('emergency_fund_data')
@@ -785,7 +785,7 @@ def emergency_fund_dashboard():
         return redirect(url_for('emergency_fund'))
     return render_template('emergency_fund_dashboard.html', emergency_fund_data=emergency_fund_data, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
-@app.route('/budget', methods=['GET', 'POST'])
+@app.route('/budget_form', methods=['GET', 'POST'])
 def budget():
     language = session.get('language', 'English')
     email = session.get('user_email')
@@ -836,7 +836,7 @@ def budget():
             flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('budget_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
-@app.route('/budget_dashboard')
+@app.route('/budget_form_dashboard')
 def budget_dashboard():
     language = session.get('language', 'English')
     budget_data = session.get('budget_data')
