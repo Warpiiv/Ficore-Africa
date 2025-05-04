@@ -18,13 +18,14 @@ translations = {
         'Expense Breakdown': 'Expense Breakdown',
         'Comparison to Peers': 'Comparison to Peers',
         'Your Badges': 'Your Badges',
-        'No Badges Yet': 'No badges earned yet. Keep submitting to earn more!',
+        'No badges yet. Submit more data to earn badges!': 'No badges yet. Submit more data to earn badges!',
         'First Health Score Completed!': 'First Health Score Completed!',
         'Financial Stability Achieved!': 'Financial Stability Achieved!',
         'Debt Slayer!': 'Debt Slayer!',
-        'High Value Badge': 'High Value Badge',
-        'Positive Value Badge': 'Positive Value Badge',
+        'High Value': 'High Value',
+        'Positive Net Worth': 'Positive Net Worth',
         'Recommended Learning': 'Recommended Learning',
+        'Recommended Courses': 'Recommended Courses',
         'Recommended Course': 'Recommended Course',
         'Quick Financial Tips': 'Quick Financial Tips',
         'Build Savings': 'Save 10% of your income monthly to create an emergency fund.',
@@ -75,6 +76,47 @@ translations = {
                     <li><strong>Rank</strong>: #{rank} out of {total_users} users</li>
                 </ul>
                 <p>Follow the advice above to improve your financial health.</p>
+                <p style="margin-bottom: 10px;">
+                    Want to learn more? Check out this course: 
+                    <a href="{course_url}" style="display: inline-block; padding: 10px 20px; background-color: #FBC02D; color: #333; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">{course_title}</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Please provide feedback on your experience: 
+                    <a href="{FEEDBACK_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #2E7D32; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Feedback Form</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Want Smart Insights? Join our waitlist: 
+                    <a href="{WAITLIST_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #0288D1; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Join Waitlist</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Need expert advice? Book a consultancy: 
+                    <a href="{CONSULTANCY_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #D81B60; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Book Consultancy</a>
+                </p>
+                <p>Thank you for choosing Ficore Africa!</p>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">
+                    © 2025 Ficore Africa. All rights reserved.
+                </p>
+            </body>
+            </html>
+        ''',
+        'Net Worth Report Subject': '📈 Your Ficore Net Worth Report is Ready, {user_name}!',
+        'Net Worth Email Body': '''
+            <html>
+            <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #1E7F71; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #FFFFFF; margin: 0;">Ficore Africa Net Worth Dashboard</h2>
+                    <p style="font-style: italic; color: #E0F7FA; font-size: 0.9rem; margin: 5px 0 0 0;">
+                        Financial growth passport for Africa
+                    </p>
+                </div>
+                <p>Dear {user_name},</p>
+                <p>We have calculated your Ficore Africa Net Worth based on your recent submission.</p>
+                <ul>
+                    <li><strong>Net Worth</strong>: {net_worth}</li>
+                    <li><strong>Rank</strong>: {rank}% (Top {top_percent}%)</li>
+                    <li><strong>Advice</strong>: {advice}</li>
+                </ul>
+                <p>Follow the advice above to improve your financial standing.</p>
                 <p style="margin-bottom: 10px;">
                     Want to learn more? Check out this course: 
                     <a href="{course_url}" style="display: inline-block; padding: 10px 20px; background-color: #FBC02D; color: #333; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">{course_title}</a>
@@ -311,7 +353,22 @@ translations = {
         'Error calculating budget: {}': 'Error calculating budget: {}.',
         'Error adding expense: {}': 'Error adding expense: {}.',
         'Error updating expense: {}': 'Error updating expense: {}.',
-        'No dashboard available for budget': 'No dashboard available for budget.'
+        'No dashboard available for budget': 'No dashboard available for budget.',
+        'Send Email Report': 'Send Email Report',
+        'Share Your Results': 'Share Your Results',
+        'My Net Worth': 'My Net Worth',
+        'Check yours at': 'Check yours at',
+        'Results shared successfully!': 'Results shared successfully!',
+        'Results copied to clipboard!': 'Results copied to clipboard!',
+        'Failed to copy results': 'Failed to copy results.',
+        'Your net worth is': 'Your net worth is',
+        'Ficore Africa Net Worth Dashboard': 'Ficore Africa Net Worth Dashboard',
+        'Your Net Worth Insights': 'Your Net Worth Insights',
+        'Your Net Worth': 'Your Net Worth',
+        'Rank': 'Rank',
+        'Top': 'Top',
+        'Your rank among users based on net worth': 'Your rank among users based on net worth',
+        'More info on rank': 'More info on rank'
     },
     'Hausa': {
         'Welcome': 'Barka da zuwa',
@@ -332,13 +389,14 @@ translations = {
         'Expense Breakdown': 'Rarraba Kashe Kuɗi',
         'Comparison to Peers': 'Kwatantawa da Takwarorinku',
         'Your Badges': 'Bajojin ku',
-        'No Badges Yet': 'Ba a sami baji ba tukuna. Ci gaba da ƙaddamarwa don samun ƙari!',
+        'No badges yet. Submit more data to earn badges!': 'Babu baji tukuna. Ƙaddamar da ƙarin bayanai don samun baji!',
         'First Health Score Completed!': 'An Kammala Makin Lafiyar Kuɗi na Farko!',
         'Financial Stability Achieved!': 'An Sami Kwanciyar Hankali na Kuɗi!',
         'Debt Slayer!': 'Mai Kashe Basussuka!',
-        'High Value Badge': 'Baji Mai Daraja Sosai',
-        'Positive Value Badge': 'Baji Mai Daraja',
+        'High Value': 'Mai Daraja Sosai',
+        'Positive Net Worth': 'Net Worth Mai Kyau',
         'Recommended Learning': 'Shawarar Koyo',
+        'Recommended Courses': 'Kwas da Aka Ba da Shawara',
         'Recommended Course': 'Kwas da Aka Ba da Shawara',
         'Quick Financial Tips': 'Shawarwari na Kuɗi Cikin Sauri',
         'Build Savings': 'Tara tanadi 10% na kuɗin shiga kowane wata don ƙirƙirar asusun gaggawa.',
@@ -389,6 +447,47 @@ translations = {
                     <li><strong>Matsayi</strong>: #{rank} daga cikin {total_users} masu amfani</li>
                 </ul>
                 <p>Bi shawarar da ke sama don inganta lafiyar kuɗin ka.</p>
+                <p style="margin-bottom: 10px;">
+                    Kana son ƙarin koyo? Duba wannan kwas: 
+                    <a href="{course_url}" style="display: inline-block; padding: 10px 20px; background-color: #FBC02D; color: #333; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">{course_title}</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Don Allah ba da ra’ayi kan kwarewar ka: 
+                    <a href="{FEEDBACK_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #2E7D32; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Fom na Ra’ayi</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Kana son Fahimta Mai Wayo? Shiga jerin jira: 
+                    <a href="{WAITLIST_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #0288D1; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Shiga Jerin Jira</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Kana buƙatar shawarar ƙwararru? Yi rijistar shawara: 
+                    <a href="{CONSULTANCY_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #D81B60; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Yi Rijistar Shawara</a>
+                </p>
+                <p>Na gode don zaɓin Ficore Africa!</p>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">
+                    © 2025 Ficore Africa. Duk haƙƙoƙin sun tanade.
+                </p>
+            </body>
+            </html>
+        ''',
+        'Net Worth Report Subject': '📈 Rahoton Net Worth na Ficore ɗinka Ya Shida, {user_name}!',
+        'Net Worth Email Body': '''
+            <html>
+            <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #1E7F71; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #FFFFFF; margin: 0;">Dashboard na Net Worth na Ficore Africa</h2>
+                    <p style="font-style: italic; color: #E0F7FA; font-size: 0.9rem; margin: 5px 0 0 0;">
+                        Fasfo na haɓaka kuɝi don Afirka
+                    </p>
+                </div>
+                <p>Mai girma {user_name},</p>
+                <p>Mun ƙididdige Net Worth na Ficore Africa ɗinka bisa ga ƙaddamarwar ka ta baya-bayan nan.</p>
+                <ul>
+                    <li><strong>Net Worth</strong>: {net_worth}</li>
+                    <li><strong>Matsayi</strong>: {rank}% (Sama {top_percent}%)</li>
+                    <li><strong>Shawara</strong>: {advice}</li>
+                </ul>
+                <p>Bi shawarar da ke sama don inganta matsayin kuɗin ka.</p>
                 <p style="margin-bottom: 10px;">
                     Kana son ƙarin koyo? Duba wannan kwas: 
                     <a href="{course_url}" style="display: inline-block; padding: 10px 20px; background-color: #FBC02D; color: #333; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">{course_title}</a>
@@ -625,6 +724,21 @@ translations = {
         'Error calculating budget: {}': 'Kuskure wajen ƙididdige kasafi: {}.',
         'Error adding expense: {}': 'Kuskure wajen ƙara kashe kuɗi: {}.',
         'Error updating expense: {}': 'Kuskure wajen sabunta kashe kuɗi: {}.',
-        'No dashboard available for budget': 'Babu dashboard da aka samu don kasafi.'
+        'No dashboard available for budget': 'Babu dashboard da aka samu don kasafi.',
+        'Send Email Report': 'Aika Rahoton Imel',
+        'Share Your Results': 'Raba Sakamakon Ka',
+        'My Net Worth': 'Net Worth Na',
+        'Check yours at': 'Duba naka a',
+        'Results shared successfully!': 'An raba sakamako cikin nasara!',
+        'Results copied to clipboard!': 'An kwafi sakamako zuwa allo!',
+        'Failed to copy results': 'An kasa kwafi sakamako.',
+        'Your net worth is': 'Net worth ɗinka shine',
+        'Ficore Africa Net Worth Dashboard': 'Dashboard na Net Worth na Ficore Africa',
+        'Your Net Worth Insights': 'Fahimtar Net Worth ɗinka',
+        'Your Net Worth': 'Net Worth ɗinka',
+        'Rank': 'Matsayi',
+        'Top': 'Sama',
+        'Your rank among users based on net worth': 'Matsayin ka a tsakanin masu amfani bisa net worth',
+        'More info on rank': 'Ƙarin bayani kan matsayi'
     }
 }
