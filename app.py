@@ -26,7 +26,7 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'NEscD7rN4cuYR3o3VLZZuSj3myh
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)  # Ensure session persists
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
 
 # Flask-Mail configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -56,7 +56,7 @@ except gspread.exceptions.WorksheetNotFound:
 EXPECTED_HEADERS = [
     'ID', 'Timestamp', 'First Name', 'Last Name', 'Email', 'Phone', 'Language',
     'Business Name', 'User Type', 'Income', 'Expenses', 'Debt', 'Interest Rate',
-    'Score', 'Rank', 'Total Users'
+    'Score', 'Rank', 'Total Users', 'Net Worth', 'Emergency Fund', 'Quiz Score', 'Budget Savings'
 ]
 
 # Check and set headers if they don't exist or are incorrect
@@ -69,6 +69,18 @@ except Exception as e:
     print(f"Error setting headers: {e}")
     sheet.clear()
     sheet.append_row(EXPECTED_HEADERS)
+
+# Helper function to get user data from Google Sheet by email
+def get_user_data_by_email(email):
+    try:
+        records = sheet.get_all_records()
+        for record in records:
+            if record.get('Email') == email:
+                return record
+        return None
+    except Exception as e:
+        print(f"Error fetching user data: {e}")
+        return None
 
 # Form for user input
 class UserForm(FlaskForm):
@@ -88,12 +100,15 @@ class UserForm(FlaskForm):
 
 # Form for Net Worth Calculator
 class NetWorthForm(FlaskForm):
+    email = EmailField('Email', validators=[DataRequired(), Email()])
+    language = SelectField('Language', choices=[('English', 'English'), ('Hausa', 'Hausa')], validators=[DataRequired()])
     assets = FloatField('Total Assets', validators=[DataRequired(), NumberRange(min=0)])
     liabilities = FloatField('Total Liabilities', validators=[DataRequired(), NumberRange(min=0)])
     submit = SubmitField('Submit')
 
 # Form for Financial Personality Quiz
 class QuizForm(FlaskForm):
+    email = EmailField('Email', validators=[DataRequired(), Email()])
     first_name = StringField('First Name', validators=[DataRequired()])
     language = SelectField('Language', choices=[('English', 'English'), ('Hausa', 'Hausa')], validators=[DataRequired()])
     q1 = SelectField('Track Income/Expenses', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()])
@@ -105,11 +120,15 @@ class QuizForm(FlaskForm):
 
 # Form for Emergency Fund Calculator
 class EmergencyFundForm(FlaskForm):
+    email = EmailField('Email', validators=[DataRequired(), Email()])
+    language = SelectField('Language', choices=[('English', 'English'), ('Hausa', 'Hausa')], validators=[DataRequired()])
     monthly_expenses = FloatField('Monthly Essential Expenses', validators=[DataRequired(), NumberRange(min=0)])
     submit = SubmitField('Submit')
 
 # Form for Monthly Budget Planner
 class BudgetForm(FlaskForm):
+    email = EmailField('Email', validators=[DataRequired(), Email()])
+    language = SelectField('Language', choices=[('English', 'English'), ('Hausa', 'Hausa')], validators=[DataRequired()])
     income = FloatField('Total Monthly Income', validators=[DataRequired(), NumberRange(min=0)])
     housing = FloatField('Housing Expenses', validators=[DataRequired(), NumberRange(min=0)])
     food = FloatField('Food Expenses', validators=[DataRequired(), NumberRange(min=0)])
@@ -214,6 +233,24 @@ def assign_badges(score, debt, income):
         print(f"Error assigning badges: {e}")
     return badges
 
+def update_or_append_user_data(user_data):
+    try:
+        records = sheet.get_all_records()
+        email = user_data.get('Email')
+        if email:
+            for i, record in enumerate(records, start=2):
+                if record.get('Email') == email:
+                    # Merge existing data with new data
+                    existing_data = record
+                    merged_data = {**existing_data, **user_data}
+                    sheet.update(f'A{i}:{chr(64 + len(EXPECTED_HEADERS))}{i}', [list(merged_data.values())])
+                    return
+            # If no existing record, append new row
+            sheet.append_row(list(user_data.values()))
+    except Exception as e:
+        print(f"Error updating/appending data: {e}")
+        sheet.append_row(list(user_data.values()))
+
 @app.route('/', methods=['GET'])
 def index():
     return redirect(url_for('landing'))
@@ -225,8 +262,26 @@ def landing():
 
 @app.route('/submit', methods=['GET', 'POST'])
 def submit():
-    form = UserForm()
     language = session.get('language', 'English')
+    # Check for existing data in session or Google Sheet
+    email = session.get('user_email')
+    form_data = get_user_data_by_email(email) if email else None
+    form = UserForm(
+        first_name=form_data.get('First Name') if form_data else None,
+        last_name=form_data.get('Last Name') if form_data else None,
+        email=email,
+        phone=form_data.get('Phone') if form_data else None,
+        language=form_data.get('Language') if form_data else language,
+        business_name=form_data.get('Business Name') if form_data else None,
+        user_type=form_data.get('User Type') if form_data else None,
+        income=form_data.get('Income') if form_data else None,
+        expenses=form_data.get('Expenses') if form_data else None,
+        debt=form_data.get('Debt') if form_data else None,
+        interest_rate=form_data.get('Interest Rate') if form_data else None
+    )
+    if email:
+        form.email.render_kw = {'readonly': True}
+        form.confirm_email.render_kw = {'readonly': True}
     if request.method == 'POST':
         if form.validate_on_submit():
             if form.email.data != form.confirm_email.data:
@@ -234,7 +289,8 @@ def submit():
                 return render_template('health_score_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
             session['language'] = form.language.data
-            session.permanent = True  # Make session persistent
+            session['user_email'] = form.email.data
+            session.permanent = True
             health_score = calculate_health_score(form.income.data, form.expenses.data, form.debt.data, form.interest_rate.data or 0)
             score_description = get_score_description(health_score)
             rank, total_users = assign_rank(health_score)
@@ -255,64 +311,48 @@ def submit():
                 'Interest Rate': form.interest_rate.data or 0,
                 'Score': health_score,
                 'Rank': rank,
-                'Total Users': total_users
+                'Total Users': total_users,
+                'Net Worth': 0,
+                'Emergency Fund': 0,
+                'Quiz Score': 0,
+                'Budget Savings': 0
             }
-            try:
-                # Ensure worksheet and headers exist before appending
-                try:
-                    sheet = spreadsheet.worksheet('UserData')
-                except gspread.exceptions.WorksheetNotFound:
-                    sheet = spreadsheet.add_worksheet(title='UserData', rows=100, cols=20)
-                    sheet.append_row(EXPECTED_HEADERS)
+            update_or_append_user_data(user_data)
 
-                # Verify headers
-                current_headers = sheet.row_values(1)
-                if not current_headers or current_headers != EXPECTED_HEADERS:
-                    sheet.clear()
-                    sheet.append_row(EXPECTED_HEADERS)
+            # Send email notification
+            msg = Message(
+                translations[language]['Score Report Subject'].format(user_name=form.first_name.data),
+                sender='ficore.ai.africa@gmail.com',
+                recipients=[form.email.data]
+            )
+            course_url = 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'
+            course_title = translations[language]['Recommended Course']
+            msg.html = translations[language]['Email Body'].format(
+                user_name=form.first_name.data,
+                health_score=health_score,
+                score_description=score_description,
+                rank=rank,
+                total_users=total_users,
+                course_url=course_url,
+                course_title=course_title,
+                FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+                WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+                CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+            )
+            mail.send(msg)
+            flash(translations[language]['Email sent successfully'], 'success')
 
-                # Append user data to Google Sheet
-                sheet.append_row(list(user_data.values()))
-
-                # Send email notification
-                msg = Message(
-                    translations[language]['Score Report Subject'].format(user_name=form.first_name.data),
-                    sender='ficore.ai.africa@gmail.com',
-                    recipients=[form.email.data]
-                )
-                course_url = 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'
-                course_title = translations[language]['Recommended Course']
-                msg.html = translations[language]['Email Body'].format(
-                    user_name=form.first_name.data,
-                    health_score=health_score,
-                    score_description=score_description,
-                    rank=rank,
-                    total_users=total_users,
-                    course_url=course_url,
-                    course_title=course_title,
-                    FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-                    WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-                    CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-                )
-                mail.send(msg)
-                flash(translations[language]['Email sent successfully'], 'success')
-            except Exception as e:
-                print(f"Error in /submit: {e}")
-                flash(translations[language]['Failed to send email or save data: {}'.format(str(e))], 'error')
-                return render_template('health_score_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
-
-            # Store data in session for dashboard display
             session['user_data'] = user_data
             session['score_description'] = score_description
             session['badges'] = badges
             flash(translations[language]['Submission Success'], 'success')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('health_score_dashboard'))
         else:
-            flash(translations[language]['Error processing form'], 'error')
+            flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('health_score_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
-@app.route('/dashboard')
-def dashboard():
+@app.route('/health_score_dashboard')
+def health_score_dashboard():
     language = session.get('language', 'English')
     user_data = session.get('user_data')
     score_description = session.get('score_description')
@@ -320,28 +360,49 @@ def dashboard():
     if not user_data:
         flash(translations[language]['No data available'], 'error')
         return redirect(url_for('submit'))
-    return render_template('dashboard.html', user_data=user_data, score_description=score_description, badges=badges, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+    return render_template('health_score_dashboard.html', user_data=user_data, score_description=score_description, badges=badges, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/net_worth', methods=['GET', 'POST'])
 def net_worth():
-    form = NetWorthForm()
     language = session.get('language', 'English')
+    email = session.get('user_email')
+    form_data = get_user_data_by_email(email) if email else None
+    form = NetWorthForm(
+        email=email,
+        language=form_data.get('Language') if form_data else language,
+        assets=form_data.get('Net Worth', 0) + (form_data.get('Debt', 0) if form_data else 0),  # Approximate assets
+        liabilities=form_data.get('Debt', 0) if form_data else 0
+    )
+    if email:
+        form.email.render_kw = {'readonly': True}
     if request.method == 'POST':
         if form.validate_on_submit():
+            if email and form.email.data != email:
+                flash(translations[language]['Email must match previous submission'], 'error')
+                return render_template('net_worth_form.html', form=form, net_worth=0, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+            session['language'] = form.language.data
             try:
-                net_worth_value = form.assets.data - form.liabilities.data
+                net_worth = form.assets.data - form.liabilities.data
+                user_data = session.get('user_data', {})
+                user_data.update({
+                    'Net Worth': net_worth,
+                    'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'Email': form.email.data
+                })
+                update_or_append_user_data(user_data)
                 session['net_worth_data'] = {
+                    'email': form.email.data,
                     'assets': form.assets.data,
                     'liabilities': form.liabilities.data,
-                    'net_worth': net_worth_value,
+                    'net_worth': net_worth,
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
                 return redirect(url_for('net_worth_dashboard'))
-            except Exception as e:
-                flash(translations[language]['Error calculating net worth: {}'.format(str(e))], 'error')
+            except Exception:
+                flash(translations[language]['Error calculating net worth'], 'error')
         else:
-            flash(translations[language]['Error processing form'], 'error')
-    return render_template('net_worth_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+            flash(translations[language]['Please correct the errors in the form'], 'error')
+    return render_template('net_worth_form.html', form=form, net_worth=0, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/net_worth_dashboard')
 def net_worth_dashboard():
@@ -354,25 +415,44 @@ def net_worth_dashboard():
 
 @app.route('/quiz', methods=['GET', 'POST'])
 def quiz():
-    form = QuizForm()
     language = session.get('language', 'English')
+    email = session.get('user_email')
+    form_data = get_user_data_by_email(email) if email else None
+    form = QuizForm(
+        email=email,
+        first_name=form_data.get('First Name') if form_data else None,
+        language=form_data.get('Language') if form_data else language
+    )
+    if email:
+        form.email.render_kw = {'readonly': True}
     if request.method == 'POST':
         if form.validate_on_submit():
+            if email and form.email.data != email:
+                flash(translations[language]['Email must match previous submission'], 'error')
+                return render_template('quiz_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+            session['language'] = form.language.data
             try:
-                session['language'] = form.language.data
                 score = sum(1 for answer in [form.q1.data, form.q2.data, form.q3.data, form.q4.data, form.q5.data] if answer == 'Yes')
                 personality = 'Conservative' if score <= 2 else 'Balanced' if score <= 4 else 'Risk-Taker'
+                user_data = session.get('user_data', {})
+                user_data.update({
+                    'Quiz Score': score,
+                    'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'Email': form.email.data
+                })
+                update_or_append_user_data(user_data)
                 session['quiz_data'] = {
+                    'email': form.email.data,
                     'first_name': form.first_name.data,
                     'score': score,
                     'personality': personality,
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
                 return redirect(url_for('quiz_dashboard'))
-            except Exception as e:
-                flash(translations[language]['Error processing quiz: {}'.format(str(e))], 'error')
+            except Exception:
+                flash(translations[language]['Error processing quiz'], 'error')
         else:
-            flash(translations[language]['Error processing form'], 'error')
+            flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('quiz_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/quiz_dashboard')
@@ -386,23 +466,43 @@ def quiz_dashboard():
 
 @app.route('/emergency_fund', methods=['GET', 'POST'])
 def emergency_fund():
-    form = EmergencyFundForm()
     language = session.get('language', 'English')
+    email = session.get('user_email')
+    form_data = get_user_data_by_email(email) if email else None
+    form = EmergencyFundForm(
+        email=email,
+        language=form_data.get('Language') if form_data else language,
+        monthly_expenses=form_data.get('Expenses', 0) if form_data else 0
+    )
+    if email:
+        form.email.render_kw = {'readonly': True}
     if request.method == 'POST':
         if form.validate_on_submit():
+            if email and form.email.data != email:
+                flash(translations[language]['Email must match previous submission'], 'error')
+                return render_template('emergency_fund_form.html', form=form, recommended_fund=0, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+            session['language'] = form.language.data
             try:
-                recommended_fund = form.monthly_expenses.data * 6  # 6 months of expenses
+                recommended_fund = form.monthly_expenses.data * 6
+                user_data = session.get('user_data', {})
+                user_data.update({
+                    'Emergency Fund': recommended_fund,
+                    'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'Email': form.email.data
+                })
+                update_or_append_user_data(user_data)
                 session['emergency_fund_data'] = {
+                    'email': form.email.data,
                     'monthly_expenses': form.monthly_expenses.data,
                     'recommended_fund': recommended_fund,
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
                 return redirect(url_for('emergency_fund_dashboard'))
-            except Exception as e:
-                flash(translations[language]['Error calculating fund: {}'.format(str(e))], 'error')
+            except Exception:
+                flash(translations[language]['Error calculating emergency fund'], 'error')
         else:
-            flash(translations[language]['Error processing form'], 'error')
-    return render_template('emergency_fund_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+            flash(translations[language]['Please correct the errors in the form'], 'error')
+    return render_template('emergency_fund_form.html', form=form, recommended_fund=0, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/emergency_fund_dashboard')
 def emergency_fund_dashboard():
@@ -415,14 +515,38 @@ def emergency_fund_dashboard():
 
 @app.route('/budget', methods=['GET', 'POST'])
 def budget():
-    form = BudgetForm()
     language = session.get('language', 'English')
+    email = session.get('user_email')
+    form_data = get_user_data_by_email(email) if email else None
+    form = BudgetForm(
+        email=email,
+        language=form_data.get('Language') if form_data else language,
+        income=form_data.get('Income', 0) if form_data else 0,
+        housing=0,
+        food=0,
+        transport=0,
+        other=0
+    )
+    if email:
+        form.email.render_kw = {'readonly': True}
     if request.method == 'POST':
         if form.validate_on_submit():
+            if email and form.email.data != email:
+                flash(translations[language]['Email must match previous submission'], 'error')
+                return render_template('budget_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+            session['language'] = form.language.data
             try:
                 total_expenses = form.housing.data + form.food.data + form.transport.data + form.other.data
                 savings = form.income.data - total_expenses
+                user_data = session.get('user_data', {})
+                user_data.update({
+                    'Budget Savings': savings,
+                    'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'Email': form.email.data
+                })
+                update_or_append_user_data(user_data)
                 session['budget_data'] = {
+                    'email': form.email.data,
                     'income': form.income.data,
                     'housing': form.housing.data,
                     'food': form.food.data,
@@ -433,10 +557,10 @@ def budget():
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
                 return redirect(url_for('budget_dashboard'))
-            except Exception as e:
-                flash(translations[language]['Error calculating budget: {}'.format(str(e))], 'error')
+            except Exception:
+                flash(translations[language]['Error calculating budget'], 'error')
         else:
-            flash(translations[language]['Error processing form'], 'error')
+            flash(translations[language]['Please correct the errors in the form'], 'error')
     return render_template('budget_form.html', form=form, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/budget_dashboard')
@@ -444,7 +568,7 @@ def budget_dashboard():
     language = session.get('language', 'English')
     budget_data = session.get('budget_data')
     if not budget_data:
-        flash(translations[language]['No dashboard available for budget'], 'error')
+        flash(translations[language]['No data available'], 'error')
         return redirect(url_for('budget'))
     return render_template('budget_dashboard.html', budget_data=budget_data, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
@@ -456,7 +580,6 @@ def expense_tracker():
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
-                # Validate date format
                 date_str = form.date.data
                 parsed_date = parse(date_str)
                 expense = {
@@ -472,9 +595,9 @@ def expense_tracker():
                 flash(translations[language]['Submission Success'], 'success')
                 return redirect(url_for('expense_tracker'))
             except ValueError:
-                flash(translations[language]['Invalid date format: {}'.format(date_str)], 'error')
-            except Exception as e:
-                flash(translations[language]['Error adding expense: {}'.format(str(e))], 'error')
+                flash(translations[language]['Invalid date format'], 'error')
+            except Exception:
+                flash(translations[language]['Error adding expense'], 'error')
     return render_template('expense_tracker.html', form=form, expenses=expenses, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/edit_expense/<expense_id>', methods=['GET', 'POST'])
@@ -507,20 +630,31 @@ def edit_expense(expense_id):
                 flash(translations[language]['Submission Success'], 'success')
                 return redirect(url_for('expense_tracker'))
             except ValueError:
-                flash(translations[language]['Invalid date format: {}'.format(date_str)], 'error')
-            except Exception as e:
-                flash(translations[language]['Error updating expense: {}'.format(str(e))], 'error')
+                flash(translations[language]['Invalid date format'], 'error')
+            except Exception:
+                flash(translations[language]['Error updating expense'], 'error')
     return render_template('edit_expense.html', form=form, expense_id=expense_id, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/bill_planner', methods=['GET', 'POST'])
 def bill_planner():
-    form = BillForm()
     language = session.get('language', 'English')
+    email = session.get('user_email')
+    form_data = get_user_data_by_email(email) if email else None
+    form = BillForm(
+        first_name=form_data.get('First Name') if form_data else None,
+        email=email,
+        language=form_data.get('Language') if form_data else language
+    )
+    if email:
+        form.email.render_kw = {'readonly': True}
     bills = session.get('bills', [])
     if request.method == 'POST':
         if form.validate_on_submit():
+            if email and form.email.data != email:
+                flash(translations[language]['Email must match previous submission'], 'error')
+                return render_template('bill_planner.html', form=form, bills=bills, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
+            session['language'] = form.language.data
             try:
-                session['language'] = form.language.data
                 due_date = parse(form.due_date.data)
                 current_date = datetime.now()
                 status = 'Overdue' if due_date < current_date else 'Pending'
@@ -544,9 +678,9 @@ def bill_planner():
                 flash(translations[language]['Submission Success'], 'success')
                 return redirect(url_for('bill_planner'))
             except ValueError:
-                flash(translations[language]['Invalid date format: {}'.format(form.due_date.data)], 'error')
-            except Exception as e:
-                flash(translations[language]['Error adding task: {}'.format(str(e))], 'error')
+                flash(translations[language]['Invalid date format'], 'error')
+            except Exception:
+                flash(translations[language]['Error adding task'], 'error')
     return render_template('bill_planner.html', form=form, bills=bills, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/edit_bill/<bill_id>', methods=['GET', 'POST'])
@@ -568,6 +702,8 @@ def edit_bill(bill_id):
         recurrence=bill['recurrence'],
         send_email=bill['send_email']
     )
+    if bill['email']:
+        form.email.render_kw = {'readonly': True}
     if request.method == 'POST':
         if form.validate_on_submit():
             try:
@@ -592,9 +728,9 @@ def edit_bill(bill_id):
                 flash(translations[language]['Submission Success'], 'success')
                 return redirect(url_for('bill_planner'))
             except ValueError:
-                flash(translations[language]['Invalid date format: {}'.format(form.due_date.data)], 'error')
-            except Exception as e:
-                flash(translations[language]['Error updating task: {}'.format(str(e))], 'error')
+                flash(translations[language]['Invalid date format'], 'error')
+            except Exception:
+                flash(translations[language]['Error updating task'], 'error')
     return render_template('edit_bill.html', form=form, bill_id=bill_id, translations=translations[language], language=language, FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ')
 
 @app.route('/complete_bill/<bill_id>', methods=['POST'])
@@ -608,8 +744,8 @@ def complete_bill(bill_id):
             session['bills'] = bills
             session.permanent = True
             flash(translations[language]['Submission Success'], 'success')
-        except Exception as e:
-            flash(translations[language]['Error completing task: {}'.format(str(e))], 'error')
+        except Exception:
+            flash(translations[language]['Error completing task'], 'error')
     else:
         flash(translations[language]['No data available'], 'error')
     return redirect(url_for('bill_planner'))
