@@ -445,7 +445,6 @@
                 </form>
             </div>
         </div>
-
         <!-- Hero Section -->
         <header class="my-4">
             <h1>{{ translations['Unlock Your Financial Freedom'] }}</h1>
@@ -454,7 +453,6 @@
                 <p class="lead" style="font-weight: 600; color: #0288D1;">{{ translations['Discover Your Financial Tools Below'] }}</p>
             </div>
         </header>
-
         <!-- Why Ficore Africa Section -->
         <section class="why-ficore">
             <h3>{{ translations['Why Ficore Africa?'] }}</h3>
@@ -464,13 +462,11 @@
                 <li>{{ translations['Provides actionable insights for better financial decisions'] }}</li>
             </ul>
         </section>
-
         <!-- Call to Action Section -->
         <section class="cta-section">
             <p><span class="emoji">🎯</span> {{ translations['New here? Start with your Financial Health Score to get personalized recommendations.'] }}</p>
             <a href="{{ url_for('submit') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Begin Financial Health Score Assessment'] }}">{{ translations['Begin Now'] }}</a>
         </section>
-
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -484,7 +480,6 @@
                 </div>
             {% endif %}
         {% endwith %}
-
         <!-- Tools Grid -->
         <div class="row">
             <!-- Track Your Finances Section -->
@@ -509,7 +504,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Net Worth Calculator -->
             <div class="col-md-4 mb-4">
                 <div class="card">
@@ -529,7 +523,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Emergency Fund Calculator -->
             <div class="col-md-4 mb-4">
                 <div class="card">
@@ -549,7 +542,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Plan & Budget Section -->
             <h4><span class="emoji">💡</span> {{ translations['Plan & Budget'] }}</h4>
             <!-- Weekly Budget Planner -->
@@ -571,7 +563,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Expense Tracker -->
             <div class="col-md-4 mb-4">
                 <div class="card">
@@ -591,7 +582,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Bill Planner -->
             <div class="col-md-4 mb-4">
                 <div class="card">
@@ -611,7 +601,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Know Yourself Section -->
             <h4><span class="emoji">👤</span> {{ translations['Know Yourself'] }}</h4>
             <!-- Financial Personality Quiz -->
@@ -634,23 +623,19 @@
                 </div>
             </div>
         </div>
-
         <!-- Daily Tip/Feature Spotlight -->
         <section class="daily-tip-spotlight">
             <p><span class="emoji">💡</span> {{ translations['Daily Tip: Pay yourself first before expenses'] }}</p>
             <p><span class="emoji">📌</span> {{ translations['Feature Spotlight: Try our Net Worth Calculator!'] }}</p>
         </section>
-
         <!-- Contact Information -->
         <div class="text-center my-4">
             <p>{{ translations['Contact Us'] }} <a href="/cdn-cgi/l/email-protection#2f6966606c71660d626a0d6266716c2f68646c6065226f6361" class="btn btn-email" aria-label="{{ translations['Email Ficore Africa Support'] }}">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}.</p>
         </div>
-
         <!-- Feedback Link -->
         <div class="text-center my-4">
             <a href="{{ FEEDBACK_FORM_URL }}" class="btn btn-secondary" target="_blank" aria-label="{{ translations['Provide Feedback'] }}">{{ translations['Provide Feedback'] }}</a>
         </div>
-
         <!-- Footer -->
         <footer>
             <a href="javascript:history.back()" class="btn btn-back" aria-label="{{ translations['Go Back'] }}">{{ translations['Back'] }}</a>
@@ -663,7 +648,6 @@
             <p class="about-tagline">{{ translations['About Ficore Africa: Empowering financial growth across Africa since 2023'] }}</p>
         </footer>
     </div>
-
     <script data-cfasync="false" defer src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}" onerror="console.error('Failed to load bootstrap.bundle.min.js.');"></script>
     <script type="text/javascript">
@@ -671,7 +655,6 @@
         var gk_isXlsx = false;
         var gk_xlsxFileLookup = {};
         var gk_fileData = {};
-
         // Utility function to check if a cell is filled
         function filledCell(cell) {
             try {
@@ -681,7 +664,6 @@
                 return false;
             }
         }
-
         // Function to load file data with robust error handling
         function loadFileData(filename) {
             try {
@@ -690,7 +672,6 @@
                     console.error('Invalid filename provided to loadFileData');
                     return "";
                 }
-
                 // Check if the file is an XLSX and exists in the lookup
                 if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
                     // Ensure XLSX library is available
@@ -698,14 +679,12 @@
                         console.error('XLSX library not loaded');
                         return "";
                     }
-
                     // Read the workbook from base64 data
                     var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
                     if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
                         console.error('Invalid workbook or no sheets found');
                         return "";
                     }
-
                     // Get the first sheet
                     var firstSheetName = workbook.SheetNames[0];
                     var worksheet = workbook.Sheets[firstSheetName];
@@ -713,14 +692,12 @@
                         console.error('Worksheet not found');
                         return "";
                     }
-
                     // Convert sheet to JSON, excluding blank rows
                     var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
                     if (!Array.isArray(jsonData)) {
                         console.error('Failed to convert sheet to JSON');
                         return "";
                     }
-
                     // Filter out blank rows (rows where all cells are empty, null, or undefined)
                     var filteredData = jsonData.filter(row => {
                         try {
@@ -730,7 +707,6 @@
                             return false;
                         }
                     });
-
                     // Heuristic to find the header row
                     var headerRowIndex = -1;
                     for (var i = 0; i < filteredData.length - 1; i++) {
@@ -746,18 +722,15 @@
                             continue;
                         }
                     }
-
                     // Fallback if header row not found or too far down
                     if (headerRowIndex === -1 || headerRowIndex > 25) {
                         headerRowIndex = 0;
                     }
-
                     // Convert filtered data back to CSV
                     var csvSheet = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
                     var csv = XLSX.utils.sheet_to_csv(csvSheet, { header: 1 });
                     return csv || "";
                 }
-
                 // Fallback for non-XLSX files
                 return gk_fileData[filename] || "";
             } catch (e) {
@@ -765,7 +738,6 @@
                 return "";
             }
         }
-
         // DOM event listeners with error handling
         document.addEventListener('DOMContentLoaded', function () {
             try {
@@ -780,13 +752,11 @@
                                     console.warn('Tooltip target ID not found');
                                     return;
                                 }
-
                                 const tooltip = document.getElementById(targetId);
                                 if (!tooltip) {
                                     console.warn(`Tooltip element with ID ${targetId} not found`);
                                     return;
                                 }
-
                                 const isActive = tooltip.classList.contains('active');
                                 document.querySelectorAll('.tooltip-fallback').forEach(t => {
                                     try {
@@ -795,7 +765,6 @@
                                         console.error('Error removing active class from tooltip:', err);
                                     }
                                 });
-
                                 if (!isActive) {
                                     tooltip.classList.add('active');
                                     const span = tooltip.querySelector('span');
@@ -811,7 +780,6 @@
                         console.error('Error setting up info-icon listener:', e);
                     }
                 });
-
                 // Close button for tooltips
                 document.querySelectorAll('.tooltip-fallback .close-btn').forEach(btn => {
                     try {
@@ -829,7 +797,6 @@
                         console.error('Error setting up close-btn listener:', e);
                     }
                 });
-
                 // Hover tooltip for desktop
                 if (window.matchMedia("(min-width: 601px)").matches) {
                     document.querySelectorAll('.card').forEach(card => {
@@ -844,7 +811,6 @@
                                     console.error('Error in card mouseenter handler:', e);
                                 }
                             });
-
                             card.addEventListener('mouseleave', function() {
                                 try {
                                     const tooltip = this.querySelector('.tooltip-fallback');
@@ -860,7 +826,6 @@
                         }
                     });
                 }
-
                 // Prevent hover tooltip on mobile
                 if (window.matchMedia("(max-width: 600px)").matches) {
                     document.querySelectorAll('.card').forEach(card => {
