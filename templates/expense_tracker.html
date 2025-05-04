@@ -1,44 +1,5 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
-<html lang="{{ language }}">
+<!DOCTYPE html>
+<html lang="{{ 'en' if language == 'English' else 'ha' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -46,11 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <style>
-        .income { color: green; }
-        .expense { color: red; }
         .flash-message { margin-bottom: 20px; }
-        .insight { background-color: #e0f7fa; padding: 10px; border-radius: 5px; margin-top: 20px; }
-        .signup-prompt { background-color: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -68,44 +25,54 @@
             {% endif %}
         {% endwith %}
         
-        <!-- Transaction Form -->
-        <h3>{{ translations['Add Transaction'] }}</h3>
-        <form method="POST" action="{{ url_for('expense_submit') }}">
+        <!-- Expense Form -->
+        <h3>{{ translations['Enter your expense details'] }}</h3>
+        <form method="POST" action="{{ url_for('expense_tracker') }}" novalidate>
             {{ form.hidden_tag() }}
             <div class="mb-3">
-                <label for="first_name" class="form-label">{{ translations['First Name'] }}</label>
-                {{ form.first_name(class="form-control", placeholder=translations['Enter your first name']) }}
+                {{ form.amount.label(class="form-label") }}
+                <div class="input-group">
+                    <span class="input-group-text">₦</span>
+                    {{ form.amount(class="form-control", id="amount", type="number", min="0", step="0.01", placeholder="e.g. 5000", **{'aria-required': 'true'}) }}
+                </div>
+                <small class="form-text text-muted">{{ translations['Enter the amount spent.'] }}</small>
+                {% for error in form.amount.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
             </div>
             <div class="mb-3">
-                <label for="email" class="form-label">{{ translations['Enter your email'] }}</label>
-                {{ form.email(class="form-control", placeholder=translations['Enter your email']) }}
+                {{ form.category.label(class="form-label") }}
+                {{ form.category(class="form-select", id="category", **{'aria-required': 'true'}) }}
+                <small class="form-text text-muted">{{ translations['Select the category of the expense.'] }}</small>
+                {% for error in form.category.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
             </div>
             <div class="mb-3">
-                <label for="language" class="form-label">{{ translations['Language'] }}</label>
-                {{ form.language(class="form-select") }}
+                {{ form.date.label(class="form-label") }}
+                {{ form.date(class="form-control", id="date", placeholder=translations['e.g. today, yesterday, 2025-05-03'], **{'aria-required': 'true'}) }}
+                <small class="form-text text-muted">{{ translations['Enter the date of the expense.'] }}</small>
+                {% for error in form.date.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
             </div>
             <div class="mb-3">
-                <label for="amount" class="form-label">{{ translations['Amount'] }} (₦)</label>
-                {{ form.amount(class="form-control", placeholder="e.g. 5000") }}
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(class="form-control", id="description", placeholder=translations['e.g. Groceries at Market'], **{'aria-required': 'true'}) }}
+                <small class="form-text text-muted">{{ translations['Provide a brief description of the expense.'] }}</small>
+                {% for error in form.description.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
             </div>
-            <div class="mb-3">
-                <label for="description" class="form-label">{{ translations['Description'] }}</label>
-                {{ form.description(class="form-control", placeholder="e.g. Transport to Lagos") }}
+            <div class="mb-3 text-center">
+                {{ form.submit(class="btn btn-primary btn-lg", value=translations['Submit Expense'], id="submit-btn", **{'aria-label': translations['Submit expense form']}) }}
+                <p class="mt-2 text-muted">{{ translations['Add your expense now!'] }}</p>
             </div>
-            <div class="mb-3">
-                <label for="category" class="form-label">{{ translations['Category'] }}</label>
-                {{ form.category(class="form-select") }}
-            </div>
-            <div class="mb-3">
-                <label for="transaction_type" class="form-label">{{ translations['Transaction Type'] }}</label>
-                {{ form.transaction_type(class="form-select") }}
-            </div>
-            <button type="submit" class="btn btn-primary">{{ translations['Submit Transaction'] }}</button>
         </form>
         
-        <!-- Transaction History -->
-        <h3 class="mt-5">{{ translations['Transaction History'] }}</h3>
-        {% if transactions %}
+        <!-- Expense List -->
+        <h3 class="mt-5">{{ translations['Task List'] }}</h3>
+        {% if expenses %}
             <table class="table table-striped">
                 <thead>
                     <tr>
@@ -113,24 +80,18 @@
                         <th>{{ translations['Description'] }}</th>
                         <th>{{ translations['Category'] }}</th>
                         <th>{{ translations['Amount'] }} (₦)</th>
-                        <th>{{ translations['Transaction Type'] }}</th>
-                        <th>{{ translations['Running Balance'] }} (₦)</th>
                         <th>{{ translations['Edit'] }}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for transaction in transactions %}
+                    {% for expense in expenses %}
                         <tr>
-                            <td>{{ transaction['Timestamp'] }}</td>
-                            <td>{{ transaction['Description'] }}</td>
-                            <td>{{ transaction['Category'] }}</td>
-                            <td class="{{ 'income' if transaction['TransactionType'] == 'Income' else 'expense' }}">
-                                {{ transaction['Amount'] | float | round(2) }}
-                            </td>
-                            <td>{{ translations[transaction['TransactionType']] }}</td>
-                            <td>{{ transaction['RunningBalance'] | float | round(2) }}</td>
+                            <td>{{ expense.date }}</td>
+                            <td>{{ expense.description }}</td>
+                            <td>{{ expense.category }}</td>
+                            <td>{{ expense.amount | float | round(2) }}</td>
                             <td>
-                                <a href="{{ url_for('expense_edit', id=loop.index0) }}" class="btn btn-sm btn-warning">
+                                <a href="{{ url_for('edit_expense', expense_id=expense.id) }}" class="btn btn-sm btn-warning">
                                     {{ translations['Edit'] }}
                                 </a>
                             </td>
@@ -138,21 +99,8 @@
                     {% endfor %}
                 </tbody>
             </table>
-            
-            <!-- Insight Snippet -->
-            {% if insight %}
-                <div class="insight">
-                    <strong>{{ translations['Insight'] }}:</strong> {{ insight }}
-                </div>
-            {% endif %}
-            
-            <!-- Signup Prompt -->
-            <div class="signup-prompt">
-                {{ translations['Sign Up to Save'] }} 
-                <a href="{{ WAITLIST_FORM_URL }}" target="_blank">{{ translations['Join Waitlist'] }}</a>
-            </div>
         {% else %}
-            <p>{{ translations['No Transactions'] }}</p>
+            <p>{{ translations['No Tasks'] }}</p>
         {% endif %}
         
         <a href="{{ url_for('landing') }}" class="btn btn-primary mt-3">{{ translations['Back to Home'] }}</a>
@@ -160,23 +108,5 @@
     </div>
     
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    <script>
-        // Basic category suggestion
-        document.getElementById('description').addEventListener('input', function() {
-            const desc = this.value.toLowerCase();
-            const category = document.getElementById('category');
-            if (desc.includes('transport') || desc.includes('fuel') || desc.includes('bus')) {
-                category.value = 'Transport';
-            } else if (desc.includes('food') || desc.includes('groceries') || desc.includes('dining')) {
-                category.value = 'Food';
-            } else if (desc.includes('rent') || desc.includes('mortgage') || desc.includes('utilities')) {
-                category.value = 'Housing';
-            } else if (desc.includes('entertainment') || desc.includes('subscription') || desc.includes('movie')) {
-                category.value = 'Entertainment';
-            } else {
-                category.value = '';
-            }
-        });
-    </script>
 </body>
 </html>
