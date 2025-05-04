@@ -1,82 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="{{ translations[session.get('language', 'English')]['Language'] }}">
 <head>
     <meta charset="UTF-8">
@@ -744,52 +666,221 @@
 
     <script data-cfasync="false" defer src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}" onerror="console.error('Failed to load bootstrap.bundle.min.js.');"></script>
-    <script>
+    <script type="text/javascript">
+        // Global variables for file data handling
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+
+        // Utility function to check if a cell is filled
+        function filledCell(cell) {
+            try {
+                return cell !== '' && cell != null;
+            } catch (e) {
+                console.error('Error in filledCell:', e);
+                return false;
+            }
+        }
+
+        // Function to load file data with robust error handling
+        function loadFileData(filename) {
+            try {
+                // Validate inputs
+                if (!filename || typeof filename !== 'string') {
+                    console.error('Invalid filename provided to loadFileData');
+                    return "";
+                }
+
+                // Check if the file is an XLSX and exists in the lookup
+                if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                    // Ensure XLSX library is available
+                    if (typeof XLSX === 'undefined') {
+                        console.error('XLSX library not loaded');
+                        return "";
+                    }
+
+                    // Read the workbook from base64 data
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+                        console.error('Invalid workbook or no sheets found');
+                        return "";
+                    }
+
+                    // Get the first sheet
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    if (!worksheet) {
+                        console.error('Worksheet not found');
+                        return "";
+                    }
+
+                    // Convert sheet to JSON, excluding blank rows
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    if (!Array.isArray(jsonData)) {
+                        console.error('Failed to convert sheet to JSON');
+                        return "";
+                    }
+
+                    // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                    var filteredData = jsonData.filter(row => {
+                        try {
+                            return Array.isArray(row) && row.some(filledCell);
+                        } catch (e) {
+                            console.error('Error filtering row:', e);
+                            return false;
+                        }
+                    });
+
+                    // Heuristic to find the header row
+                    var headerRowIndex = -1;
+                    for (var i = 0; i < filteredData.length - 1; i++) {
+                        try {
+                            var currentFilled = filteredData[i].filter(filledCell).length;
+                            var nextFilled = filteredData[i + 1]?.filter(filledCell).length || 0;
+                            if (currentFilled >= nextFilled) {
+                                headerRowIndex = i;
+                                break;
+                            }
+                        } catch (e) {
+                            console.error('Error in header row heuristic:', e);
+                            continue;
+                        }
+                    }
+
+                    // Fallback if header row not found or too far down
+                    if (headerRowIndex === -1 || headerRowIndex > 25) {
+                        headerRowIndex = 0;
+                    }
+
+                    // Convert filtered data back to CSV
+                    var csvSheet = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                    var csv = XLSX.utils.sheet_to_csv(csvSheet, { header: 1 });
+                    return csv || "";
+                }
+
+                // Fallback for non-XLSX files
+                return gk_fileData[filename] || "";
+            } catch (e) {
+                console.error('Error in loadFileData:', e);
+                return "";
+            }
+        }
+
+        // DOM event listeners with error handling
         document.addEventListener('DOMContentLoaded', function () {
-            // Tooltip functionality for mobile and desktop
-            document.querySelectorAll('.info-icon').forEach(icon => {
-                icon.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('data-tooltip-target');
-                    const tooltip = document.getElementById(targetId);
-                    const isActive = tooltip.classList.contains('active');
-                    document.querySelectorAll('.tooltip-fallback').forEach(t => t.classList.remove('active'));
-                    if (!isActive) {
-                        tooltip.classList.add('active');
-                        tooltip.querySelector('span').textContent = this.getAttribute('title');
+            try {
+                // Tooltip functionality for mobile and desktop
+                document.querySelectorAll('.info-icon').forEach(icon => {
+                    try {
+                        icon.addEventListener('click', function(e) {
+                            try {
+                                e.preventDefault();
+                                const targetId = this.getAttribute('data-tooltip-target');
+                                if (!targetId) {
+                                    console.warn('Tooltip target ID not found');
+                                    return;
+                                }
+
+                                const tooltip = document.getElementById(targetId);
+                                if (!tooltip) {
+                                    console.warn(`Tooltip element with ID ${targetId} not found`);
+                                    return;
+                                }
+
+                                const isActive = tooltip.classList.contains('active');
+                                document.querySelectorAll('.tooltip-fallback').forEach(t => {
+                                    try {
+                                        t.classList.remove('active');
+                                    } catch (err) {
+                                        console.error('Error removing active class from tooltip:', err);
+                                    }
+                                });
+
+                                if (!isActive) {
+                                    tooltip.classList.add('active');
+                                    const span = tooltip.querySelector('span');
+                                    if (span) {
+                                        span.textContent = this.getAttribute('title') || 'Info not available';
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Error in info-icon click handler:', e);
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Error setting up info-icon listener:', e);
                     }
                 });
-            });
 
-            document.querySelectorAll('.tooltip-fallback .close-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    this.parentElement.classList.remove('active');
+                // Close button for tooltips
+                document.querySelectorAll('.tooltip-fallback .close-btn').forEach(btn => {
+                    try {
+                        btn.addEventListener('click', function() {
+                            try {
+                                const parent = this.parentElement;
+                                if (parent) {
+                                    parent.classList.remove('active');
+                                }
+                            } catch (e) {
+                                console.error('Error in tooltip close button handler:', e);
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Error setting up close-btn listener:', e);
+                    }
                 });
-            });
 
-            // Hover tooltip for desktop
-            if (window.matchMedia("(min-width: 601px)").matches) {
-                document.querySelectorAll('.card').forEach(card => {
-                    card.addEventListener('mouseenter', function() {
-                        const tooltip = this.querySelector('.tooltip-fallback');
-                        if (tooltip) tooltip.style.display = 'block';
-                    });
-                    card.addEventListener('mouseleave', function() {
-                        const tooltip = this.querySelector('.tooltip-fallback');
-                        if (tooltip) tooltip.style.display = 'none';
-                    });
-                });
-            }
+                // Hover tooltip for desktop
+                if (window.matchMedia("(min-width: 601px)").matches) {
+                    document.querySelectorAll('.card').forEach(card => {
+                        try {
+                            card.addEventListener('mouseenter', function() {
+                                try {
+                                    const tooltip = this.querySelector('.tooltip-fallback');
+                                    if (tooltip) {
+                                        tooltip.style.display = 'block';
+                                    }
+                                } catch (e) {
+                                    console.error('Error in card mouseenter handler:', e);
+                                }
+                            });
 
-            // Prevent hover tooltip on mobile
-            if (window.matchMedia("(max-width: 600px)").matches) {
-                document.querySelectorAll('.card').forEach(card => {
-                    card.addEventListener('mouseenter', function(e) {
-                        e.preventDefault();
+                            card.addEventListener('mouseleave', function() {
+                                try {
+                                    const tooltip = this.querySelector('.tooltip-fallback');
+                                    if (tooltip) {
+                                        tooltip.style.display = 'none';
+                                    }
+                                } catch (e) {
+                                    console.error('Error in card mouseleave handler:', e);
+                                }
+                            });
+                        } catch (e) {
+                            console.error('Error setting up card hover listeners:', e);
+                        }
                     });
-                });
+                }
+
+                // Prevent hover tooltip on mobile
+                if (window.matchMedia("(max-width: 600px)").matches) {
+                    document.querySelectorAll('.card').forEach(card => {
+                        try {
+                            card.addEventListener('mouseenter', function(e) {
+                                try {
+                                    e.preventDefault();
+                                } catch (err) {
+                                    console.error('Error in mobile hover prevention:', err);
+                                }
+                            });
+                        } catch (e) {
+                            console.error('Error setting up mobile hover prevention:', e);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Error in DOMContentLoaded handler:', e);
             }
         });
     </script>
-    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93a278f53bf432ed',t:'MTc0NjMwMzc2Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93a38fd15c681d78',t:'MTc0NjMxNTE5MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
