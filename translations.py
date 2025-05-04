@@ -368,7 +368,7 @@ translations = {
         'Rank': 'Rank',
         'Top': 'Top',
         'Your rank among users based on net worth': 'Your rank among users based on net worth',
-        'More info on rank': 'More info on rank'
+        'More info on rank': 'More info on rank',
         'Failed to send email due to authentication issue': 'Failed to send email due to authentication issue',
         'Failed to send email due to server issue': 'Failed to send email due to server issue',
         'Failed to save data due to Google Sheets error': 'Failed to save data due to Google Sheets error',
