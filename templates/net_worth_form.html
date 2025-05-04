@@ -1,85 +1,108 @@
 <!DOCTYPE html>
-<html lang="{{ 'en' if language == 'English' else 'ha' }}">
+<html lang="{{ language }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ translations['Net Worth Calculator'] }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <style>
-        .flash-message { margin-bottom: 20px; }
+        .info-icon {
+            cursor: pointer;
+            color: #0288D1;
+            margin-left: 5px;
+            font-size: 0.9rem;
+        }
+        .info-icon:hover {
+            color: #2E7D32;
+        }
         .tooltip-text {
             visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
             position: absolute;
             z-index: 1;
-            background-color: #333;
-            color: #fff;
-            padding: 5px;
-            border-radius: 4px;
-            width: 200px;
-            top: 100%;
+            bottom: 125%;
             left: 50%;
-            transform: translateX(-50%);
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
         .info-icon:hover .tooltip-text {
             visibility: visible;
+            opacity: 1;
+        }
+        .form-control, .form-select {
+            min-height: 48px;
+            font-size: 1rem;
+        }
+        .btn-primary, .btn-secondary {
+            min-height: 48px;
+            font-size: 1rem;
         }
     </style>
 </head>
 <body>
     <div class="container mt-5">
-        <h1>{{ translations['Net Worth Calculator'] }}</h1>
+        <header class="text-center mb-4">
+            <img src="{{ url_for('static', filename='img/ficore_logo.png') }}" alt="FiCore Logo" class="img-fluid" style="max-width: 200px;">
+            <h1><i class="fas fa-coins icon"></i> <strong>{{ translations['Net Worth Calculator'] }}</strong></h1>
+            <p class="lead">{{ translations['Understand your financial standing and track your progress towards your goals.'] }}</p>
+        </header>
 
-        <!-- Language Toggle -->
-        <form method="POST" action="{{ url_for('change_language') }}" class="mb-4">
-            <div class="input-group w-25">
-                <select name="language" class="form-select" onchange="this.form.submit()">
-                    <option value="English" {{ 'selected' if language == 'English' }}>{{ translations['English'] }}</option>
-                    <option value="Hausa" {{ 'selected' if language == 'Hausa' }}>{{ translations['Hausa'] }}</option>
-                </select>
-                <button type="submit" class="btn btn-outline-secondary">{{ translations['Go'] }}</button>
-            </div>
-        </form>
-
-        <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} flash-message">
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
                         {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
-        <!-- Net Worth Form -->
-        <h3>{{ translations['Get your net worth instantly!'] }}</h3>
-        <p>{{ translations['Enter amounts in Naira (₦).'] }}</p>
         <form method="POST" action="{{ url_for('net_worth') }}" novalidate>
             {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.first_name.label(class="form-label") }}
+                {{ form.first_name(class="form-control", id="first_name", placeholder=translations['Enter your first name'], **{'aria-required': 'true'}) }}
+                {% for error in form.first_name.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
             <div class="mb-3">
                 {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control", id="email", placeholder=translations['e.g. example@domain.com'], **{'aria-required': 'true'}) }}
+                {{ form.email(class="form-control", id="email", placeholder=translations['Enter your email'], **{'aria-required': 'true'}) }}
                 {% for error in form.email.errors %}
                     <span class="text-danger">{{ error }}</span>
                 {% endfor %}
             </div>
+
             <div class="mb-3">
                 {{ form.language.label(class="form-label") }}
-                {{ form.language(class="form-select", id="language", **{'aria-required': 'true'}) }}
+                {{ form.language(class="form-control", id="language", **{'aria-required': 'true'}) }}
                 {% for error in form.language.errors %}
                     <span class="text-danger">{{ error }}</span>
                 {% endfor %}
             </div>
+
             <div class="mb-3">
                 {{ form.assets.label(class="form-label") }}
                 <div class="input-group">
                     <span class="input-group-text">₦</span>
-                    {{ form.assets(class="form-control", id="assets", type="number", min="0", step="0.01", placeholder=translations['e.g. 500,000'], **{'aria-required': 'true', 'aria-describedby': 'assets-tooltip'}) }}
+                    {{ form.assets(class="form-control", id="assets", type="number", min="0", step="0.01", placeholder=translations['e.g. 500,000'], **{'aria-required': 'true'}) }}
                     <span class="input-group-text info-icon" aria-label="Assets Info">
                         <i class="fas fa-info-circle"></i>
-                        <span class="tooltip-text" id="assets-tooltip">{{ translations['Total value of everything you own — cash, property, investments, vehicles, etc.'] }}</span>
+                        <span class="tooltip-text">{{ translations['Total value of everything you own — cash, property, investments, vehicles, etc.'] }}</span>
                     </span>
                 </div>
                 <small class="form-text text-muted">{{ translations['Enter amounts in Naira (₦).'] }}</small>
@@ -87,14 +110,15 @@
                     <span class="text-danger">{{ error }}</span>
                 {% endfor %}
             </div>
+
             <div class="mb-3">
                 {{ form.liabilities.label(class="form-label") }}
                 <div class="input-group">
                     <span class="input-group-text">₦</span>
-                    {{ form.liabilities(class="form-control", id="liabilities", type="number", min="0", step="0.01", placeholder=translations['e.g. 200,000'], **{'aria-required': 'true', 'aria-describedby': 'liabilities-tooltip'}) }}
+                    {{ form.liabilities(class="form-control", id="liabilities", type="number", min="0", step="0.01", placeholder=translations['e.g. 200,000'], **{'aria-required': 'true'}) }}
                     <span class="input-group-text info-icon" aria-label="Liabilities Info">
                         <i class="fas fa-info-circle"></i>
-                        <span class="tooltip-text" id="liabilities-tooltip">{{ translations['Total amount of money you owe — loans, debts, unpaid bills, etc.'] }}</span>
+                        <span class="tooltip-text">{{ translations['Total amount of money you owe — loans, debts, unpaid bills, etc.'] }}</span>
                     </span>
                 </div>
                 <small class="form-text text-muted">{{ translations['Enter amounts in Naira (₦).'] }}</small>
@@ -102,22 +126,26 @@
                     <span class="text-danger">{{ error }}</span>
                 {% endfor %}
             </div>
+
             <div class="mb-3 text-center">
                 {{ form.submit(class="btn btn-primary btn-lg", value=translations['Get your net worth instantly!'], id="submit-btn", **{'aria-label': translations['Submit net worth form']}) }}
+                <p class="mt-2 text-muted">{{ translations['Get your net worth instantly!'] }}</p>
             </div>
         </form>
 
-        <!-- Navigation Links -->
-        <div class="mt-3">
-            <a href="{{ url_for('landing') }}" class="btn btn-primary">{{ translations['Back to Home'] }}</a>
-            <a href="{{ url_for('net_worth_dashboard') }}" class="btn btn-primary">{{ translations['Dashboard'] }}</a>
-            <a href="{{ FEEDBACK_FORM_URL }}" class="btn btn-outline-secondary" target="_blank">{{ translations['Provide Feedback'] }}</a>
-            <a href="{{ WAITLIST_FORM_URL }}" class="btn btn-outline-secondary" target="_blank">{{ translations['Join Waitlist'] }}</a>
-            <a href="{{ CONSULTANCY_FORM_URL }}" class="btn btn-outline-secondary" target="_blank">{{ translations['Book Consultancy'] }}</a>
-        </div>
+        <footer class="text-center mt-4">
+            <p>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">{{ translations['Back'] }}</a>
+            </p>
+            <p>
+                <a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a> |
+                <a href="https://ficore.africa" target="_blank">{{ translations['FiCore Africa Home'] }}</a>
+            </p>
+            <p>© 2025 FiCore Africa</p>
+        </footer>
     </div>
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93a64ebbb96b6785',t:'MTc0NjM0Mzk4MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>

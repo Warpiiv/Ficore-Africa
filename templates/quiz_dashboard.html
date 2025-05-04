@@ -10,6 +10,7 @@
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <script src="https://cdn.plotly.com/plotly-latest.min.js" onerror="console.error('Failed to load Plotly.');"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <style>
         body {
@@ -140,6 +141,33 @@
             border-radius: 8px;
             font-weight: 500;
         }
+        .chart-container {
+            height: 300px;
+            width: 100%;
+            position: relative;
+        }
+        .chart-container.loading::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #fff;
+            border-top: 4px solid #0288D1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            transform: translate(-50%, -50%);
+        }
+        .empty-state {
+            font-size: 1.5rem;
+            color: #666;
+            text-align: center;
+            padding: 2rem;
+        }
+        .empty-state span {
+            font-size: 2rem;
+        }
         .confetti-canvas {
             position: fixed;
             top: 0;
@@ -148,12 +176,19 @@
             height: 100%;
             pointer-events: none;
         }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
         @media (max-width: 600px) {
             .card {
                 margin-bottom: 1rem;
             }
             .score-value {
                 font-size: 2rem;
+            }
+            .chart-container {
+                height: 200px;
             }
             .btn-primary, .btn-secondary, .btn-share {
                 width: 100%;
@@ -189,17 +224,17 @@
         <!-- Welcome and Score -->
         <div class="card">
             <div class="card-header">
-                {{ translations['Welcome'] }}, {{ quiz_data.first_name }}!
+                {{ translations['Welcome'] }}, {{ full_name }}!
             </div>
             <div class="card-body">
-                <p>{{ translations['Your Quiz Score'] }}: <span class="score-value">{{ quiz_data.score * 20 }}%</span></p>
-                <p>{{ translations['Financial Personality'] }}: {{ quiz_data.personality }}</p>
-                <p>{{ translations['Advice'] }}: {{ advice }}</p>
-                {% if quiz_data.score >= 4 %}
+                <p>{{ translations['Your Quiz Score'] }}: <span class="score-value">{{ score }}%</span></p>
+                <p>{{ translations['Rank'] }}: {{ rank }}% <span class="info-icon" data-bs-toggle="tooltip" data-bs-title="{{ translations['Your rank among users based on quiz performance'] }}" aria-label="{{ translations['More info on rank'] }}">ℹ️</span></p>
+                <p>{{ advice }}</p>
+                {% if score >= 80 %}
                     <canvas class="confetti-canvas" id="confetti" aria-hidden="true"></canvas>
                     <script>
                         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                        if (!prefersReduced-motion) {
+                        if (!prefersReducedMotion) {
                             setTimeout(() => {
                                 confetti({
                                     particleCount: 100,
@@ -227,6 +262,38 @@
                 {% endif %}
                 <p class="mt-2">{{ translations['Share your badges!'] }} <button class="btn btn-share" onclick="shareScore()" aria-label="{{ translations['Share your quiz score'] }}">{{ translations['Share Now'] }}</button></p>
                 <div class="alert alert-success mt-2 d-none" id="share-feedback" role="alert" aria-live="polite">{{ translations['Score shared successfully!'] }}</div>
+            </div>
+        </div>
+
+        <!-- Chart: Question Performance -->
+        <div class="card">
+            <div class="card-header">
+                {{ translations['Your Performance'] }}
+            </div>
+            <div class="card-body">
+                {% if chart_html %}
+                    <div class="chart-container" id="quiz-chart" role="img" aria-label="{{ translations['Chart showing quiz performance'] }}">{{ chart_html | safe }}</div>
+                {% else %}
+                    <div class="chart-container loading" aria-live="polite">
+                        <div class="empty-state"><span>📊</span> {{ translations['Loading chart...'] }}</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Comparison Chart -->
+        <div class="card">
+            <div class="card-header">
+                {{ translations['Comparison to Peers'] }}
+            </div>
+            <div class="card-body">
+                {% if comparison_chart_html %}
+                    <div class="chart-container" id="quiz-comparison" role="img" aria-label="{{ translations['Chart comparing your score to peers'] }}">{{ comparison_chart_html | safe }}</div>
+                {% else %}
+                    <div class="chart-container loading" aria-live="polite">
+                        <div class="empty-state"><span>📉</span> {{ translations['Loading comparison chart...'] }}</div>
+                    </div>
+                {% endif %}
             </div>
         </div>
 
@@ -294,7 +361,7 @@
         });
 
         function shareScore() {
-            const scoreText = `I scored ${{{ quiz_data.score * 20 }}% on the Ficore Africa Financial Quiz! Test your skills: ${window.location.href}`;
+            const scoreText = `I scored ${{{ score }}% on the Ficore Africa Financial Quiz! Test your skills: ${window.location.href}`;
             const shareFeedback = document.getElementById('share-feedback');
             if (navigator.share) {
                 navigator.share({

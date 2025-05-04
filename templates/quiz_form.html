@@ -75,7 +75,7 @@
 
             <div class="mb-3">
                 {{ form.first_name.label(class="form-label") }}
-                {{ form.first_name(class="form-control", id="first_name", placeholder=translations['Enter your first name'], **{'aria-required': 'true', 'aria-label': translations['First Name']}) }}
+                {{ form.first_name(class="form-control", id="first_name", placeholder=translations['Enter your first name'], **{'aria-required': 'true'}) }}
                 <span class="info-icon" aria-label="First Name Info">
                     <i class="fas fa-info-circle"></i>
                     <span class="tooltip-text">{{ translations['Enter your first name to personalize your results.'] }}</span>
@@ -87,7 +87,7 @@
 
             <div class="mb-3">
                 {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control", id="email", placeholder=translations['Enter your email'], **{'aria-required': 'true', 'aria-label': translations['Email']}) }}
+                {{ form.email(class="form-control", id="email", placeholder=translations['Enter your email'], **{'aria-required': 'true'}) }}
                 <span class="info-icon" aria-label="Email Info">
                     <i class="fas fa-info-circle"></i>
                     <span class="tooltip-text">{{ translations['Provide your email address to receive your results and personalized tips.'] }}</span>
@@ -99,7 +99,7 @@
 
             <div class="mb-3">
                 {{ form.language.label(class="form-label") }}
-                {{ form.language(class="form-select", id="language", **{'aria-required': 'true', 'aria-label': translations['Language']}) }}
+                {{ form.language(class="form-control", id="language", **{'aria-required': 'true'}) }}
                 <span class="info-icon" aria-label="Language Info">
                     <i class="fas fa-info-circle"></i>
                     <span class="tooltip-text">{{ translations['Choose your preferred language for the quiz. Options: English, Hausa.'] }}</span>
@@ -112,7 +112,7 @@
             {% for i in range(1, 6) %}
                 <div class="mb-3">
                     {{ form['q' + i|string].label(class="form-label", **{'for': 'q' + i|string}) }}
-                    {{ form['q' + i|string](class="form-select", id="q" + i|string, **{'aria-required': 'true', 'aria-label': translations[form['q' + i|string].label.text]}) }}
+                    {{ form['q' + i|string](class="form-control", id="q" + i|string, **{'aria-required': 'true'}) }}
                     <span class="info-icon" aria-label="Question {{ i }} Info">
                         <i class="fas fa-info-circle"></i>
                         <span class="tooltip-text">{{ translations['Answer each question with Yes or No based on your financial habits.'] }}</span>
@@ -132,7 +132,7 @@
         <footer class="text-center mt-4">
             <p>
                 <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
-                <a href="{{ url_for('quiz_dashboard') }}" class="btn btn-secondary">{{ translations['Dashboard'] }}</a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">{{ translations['Back'] }}</a>
             </p>
             <p>
                 <a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a> |
@@ -143,5 +143,27 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        // Randomize question order
+        const questions = [
+            "{{ translations['Do you regularly track your income and expenses?'] }}",
+            "{{ translations['Do you prefer saving for the future over spending on immediate desires?'] }}",
+            "{{ translations['Are you comfortable with taking financial risks to grow your wealth?'] }}",
+            "{{ translations['Do you have an emergency fund set aside for unexpected situations?'] }}",
+            "{{ translations['Do you review your financial goals and strategies regularly?'] }}"
+        ];
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        const labels = document.querySelectorAll('.form-label[for^="q"]');
+        const shuffledQuestions = shuffle([...questions]);
+        labels.forEach((label, index) => {
+            label.textContent = shuffledQuestions[index];
+        });
+    </script>
 </body>
 </html>
