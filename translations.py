@@ -373,6 +373,24 @@ translations = {
         'Failed to send email due to server issue': 'Failed to send email due to server issue',
         'Failed to save data due to Google Sheets error': 'Failed to save data due to Google Sheets error',
         'Email reminders not available due to missing scheduler': 'Email reminders not available due to missing scheduler',
+        'Quiz Report Subject': 'Your FiCore Africa Quiz Results, {user_name}',
+        'Quiz Email Body': '''
+            <p>Hello {user_name},</p>
+            <p>You scored {score}% on the FiCore Africa Financial Personality Quiz!</p>
+            <p>Your financial personality: {personality}</p>
+            <p>Advice: {advice}</p>
+            <p>Explore this recommended course: <a href="{course_url}">{course_title}</a></p>
+            <p>Provide feedback: <a href="{FEEDBACK_FORM_URL}">Feedback Form</a></p>
+            <p>Join our waitlist: <a href="{WAITLIST_FORM_URL}">Waitlist Form</a></p>
+            <p>Book a consultancy: <a href="{CONSULTANCY_FORM_URL}">Consultancy Form</a></p>
+            <p>Best regards,<br>FiCore Africa Team</p>
+        ''',
+        'Financial Guru': 'Financial Guru',
+        'Quiz Achiever': 'Quiz Achiever',
+        'Quiz Participant': 'Quiz Participant',
+        'Great job! Continue to leverage your {personality} approach to build wealth.': 'Great job! Continue to leverage your {personality} approach to build wealth.',
+        'Good effort! Your {personality} style is solid, but consider tracking expenses more closely.': 'Good effort! Your {personality} style is solid, but consider tracking expenses more closely.',
+        'Keep learning! Your {personality} approach can improve with regular financial reviews.': 'Keep learning! Your {personality} approach can improve with regular financial reviews.'
     },
     'Hausa': {
         'Welcome': 'Barka da zuwa',
@@ -748,5 +766,22 @@ translations = {
         'Failed to send email due to server issue': 'Kasa aikawa da imel saboda matsalar server',
         'Failed to save data due to Google Sheets error': 'Kasa adana bayanai saboda kuskuren Google Sheets',
         'Email reminders not available due to missing scheduler': 'Ba a samun tunatarwar imel saboda rashin mai tsara lokaci',
+        'Quiz Report Subject': 'Sakamakon Jarabawar Ku na FiCore Africa, {user_name}',
+        'Quiz Email Body': '''
+            <p>Sannu {user_name},</p>
+            <p>Ka samu kashi {score}% a Jarabawar Halin Kuɗi na FiCore Africa!</p>
+            <p>Halin kuɗin ku: {personality}</p>
+            <p>Shawara: {advice}</p>
+            <p>Bincika wannan kwas ɗin da aka ba da shawara: <a href="{course_url}">{course_title}</a></p>
+            <p>Ba da ra'ayi: <a href="{FEEDBACK_FORM_URL}">Fom ɗin Ra'ayi</a></p>
+            <p>Shiga jerin jiranmu: <a href="{WAITLIST_FORM_URL}">Fom ɗin Jerin Jira</a></p>
+            <p>Yi alƙawarin shawara: <a href="{CONSULTANCY_FORM_URL}">Fom ɗin Shawara</a></p>
+            <p>Gaisuwa mafi kyau,<br>Ƙungiyar FiCore Africa</p>
+        ''',
+        'Financial Guru': 'Guru na Kuɗi',
+        'Quiz Achiever': 'Mai Nasara a Jarabawa',
+        'Quiz Participant': 'Mai Shiga Jarabawa',
+        'Great job! Continue to leverage your {personality} approach to build wealth.': 'Aiki mai kyau! Ci gaba da amfani da tsarin {personality} don gina arziki.',
+        'Good effort! Your {personality} naka zai iya inganta tare da duba kuɗi akai-akai.'
     }
 }
