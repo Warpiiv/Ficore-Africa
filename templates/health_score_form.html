@@ -263,7 +263,7 @@
             <div class="progress">
                 <div class="progress-bar bg-success" role="progressbar" style="width: 33%;" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
-            <form method="POST" id="submission-form">
+            <form method="POST" id="submission-form" action="{{ url_for('submit') }}">
                 {{ form.hidden_tag() }}
 
                 <div class="step active" id="step-1">
@@ -332,38 +332,38 @@
                     <h3>{{ translations['Financial Information'] }}</h3>
                     <div class="financial-section">
                         <div class="form-group">
-                            {{ form.income_revenue.label(class="form-label") }}
-                            <span class="info-icon" aria-label="Income/Revenue Info">ℹ️
+                            {{ form.income.label(class="form-label") }}
+                            <span class="info-icon" aria-label="Income Info">ℹ️
                                 <span class="tooltip-text">{{ translations['Total money you receive regularly, like salary, business sales, gifts, grants, incentives, or side hustles.'] }}</span>
                             </span>
-                            {{ form.income_revenue(class="form-control number-input", type="text", pattern="[0-9,]*", min="0", max="10000000000", placeholder=translations['e.g. 150,000'], required=True, **{'aria-required': 'true'}) }}
+                            {{ form.income(class="form-control number-input", type="text", pattern="[0-9,]*", min="0", max="10000000000", placeholder=translations['e.g. 150,000'], required=True, **{'aria-required': 'true'}) }}
                             <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
                         </div>
                         <div class="form-group">
-                            {{ form.expenses_costs.label(class="form-label") }}
-                            <span class="info-icon" aria-label="Expenses/Costs Info">ℹ️
+                            {{ form.expenses.label(class="form-label") }}
+                            <span class="info-icon" aria-label="Expenses Info">ℹ️
                                 <span class="tooltip-text">{{ translations['All the money you spend, such as on rent, food, transport, electricity bill, gas and utilities, fine and penalties, levies, taxes, etc.'] }}</span>
                             </span>
-                            {{ form.expenses_costs(class="form-control number-input", type="text", pattern="[0-9,]*", min="0", max="10000000000", placeholder=translations['e.g. 60,000'], required=True, **{'aria-required': 'true'}) }}
+                            {{ form.expenses(class="form-control number-input", type="text", pattern="[0-9,]*", min="0", max="10000000000", placeholder=translations['e.g. 60,000'], required=True, **{'aria-required': 'true'}) }}
                             <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
                         </div>
                         <div class="form-group">
-                            {{ form.debt_loan.label(class="form-label") }}
-                            <span class="info-icon" aria-label="Debt/Loan Info">ℹ️
+                            {{ form.debt.label(class="form-label") }}
+                            <span class="info-icon" aria-label="Debt Info">ℹ️
                                 <span class="tooltip-text">{{ translations['Money you owe, like loans, IOUs, borrowings, or funds lent to you.'] }}</span>
                             </span>
-                            {{ form.debt_loan(class="form-control number-input", type="text", pattern="[0-9,]*", min="0", max="10000000000", placeholder=translations['e.g. 25,000'], required=True, **{'aria-required': 'true'}) }}
+                            {{ form.debt(class="form-control number-input", type="text", pattern="[0-9,]*", min="0", max="10000000000", placeholder=translations['e.g. 25,000'], required=True, **{'aria-required': 'true'}) }}
                             <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
                         </div>
                         <div class="form-group">
-                            {{ form.debt_interest_rate.label(class="form-label") }}
-                            <span class="info-icon" aria-label="Debt Interest Rate Info">ℹ️
+                            {{ form.interest_rate.label(class="form-label") }}
+                            <span class="info-icon" aria-label="Interest Rate Info">ℹ️
                                 <span class="tooltip-text">{{ translations['Extra percentage you pay on a loan, usually per year or month. It’s usually something like 12% or 7%.'] }}</span>
                             </span>
-                            {{ form.debt_interest_rate(class="form-control number-input", type="text", pattern="[0-9,]*", min="0", max="100", placeholder=translations['e.g. 10%'], required=True, **{'aria-required': 'true'}) }}
+                            {{ form.interest_rate(class="form-control number-input", type="text", pattern="[0-9,]*", min="0", max="100", placeholder=translations['e.g. 10%'], required=True, **{'aria-required': 'true'}) }}
                             <div class="valid-feedback">{{ translations['Valid percentage!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
                         </div>
@@ -390,7 +390,7 @@
             </p>
             <p>{{ translations['Contact Us'] }} <a href="/cdn-cgi/l/email-protection#2d4b444e425f484c446d42585941424246034e4240">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
             <p><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
-            <p>&copy; 2025 Ficore Africa. All rights reserved.</p>
+            <p>© 2025 Ficore Africa. All rights reserved.</p>
         </footer>
     </div>
 
@@ -559,5 +559,3 @@
             });
         }
     </script>
-</body>
-</html>
