@@ -110,7 +110,7 @@
         {% endwith %}
 
         <h3>{{ translations['Calculate Your Safety Net'] }}</h3>
-        <form method="POST" action="{{ url_for('emergency_fund') }}">
+        <form method="POST" action="{{ url_for('emergency_fund_form') }}">
             {{ form.hidden_tag() }}
 
             <label for="first_name">{{ translations['First Name'] }}:</label>
