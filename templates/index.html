@@ -495,7 +495,7 @@
                             {{ translations['This tool evaluates your income, expenses, and debt to provide a health score'] }}
                             <span class="info-icon" data-tooltip-target="health-score-tooltip" title="{{ translations['Evaluates income, expenses, and debt for a health score'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('submit') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Health Score Assessment'] }}">{{ translations['Start Now'] }}</a>
+                        <a href="{{ url_for('index') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Health Score Assessment'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="health-score-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Evaluates income, expenses, and debt for a health score'] }}</span>
