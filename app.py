@@ -1210,7 +1210,7 @@ def budget_form():
     if user_records:
         for record in user_records:
             timestamp = record.get('Timestamp', 'Unknown')
-            record_choices.append((timestamp, f"Record from {timestamp}))
+            record_choices.append((timestamp, f"Record from {timestamp}"))
     selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
     if selected_record_id and email:
         for record in user_records:
