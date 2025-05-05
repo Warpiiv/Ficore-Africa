@@ -42,24 +42,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ficore Africa Bill Planner Report</title>
+    <title>Ficore Africa Emergency Fund Report</title>
 </head>
 <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background-color: #1E7F71; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #FFFFFF; margin: 0;">Ficore Africa Bill Planner Report</h2>
+        <h2 style="color: #FFFFFF; margin: 0;">Ficore Africa Emergency Fund Report</h2>
         <p style="font-style: italic; color: #E0F7FA; font-size: 0.9rem; margin: 5px 0 0 0;">
             Financial growth passport for Africa
         </p>
     </div>
     <p>Dear {{ user_name }},</p>
-    <p>Here’s your Ficore Africa Bill Planner summary based on your recent submissions.</p>
-    <p>Review your bills below to stay on top of your payments:</p>
+    <p>Here’s your Ficore Africa Emergency Fund analysis based on your recent submission.</p>
     <ul>
-    {% for bill in bills %}
-        <li>{{ bill.Description }} - {{ bill.Amount }} ₦ (Due: {{ bill.DueDate }}, Status: {{ bill.Status }})</li>
-    {% endfor %}
+        <li><strong>Monthly Expenses</strong>: {{ monthly_expenses }} ₦</li>
+        <li><strong>Recommended Fund</strong>: {{ recommended_fund }} ₦ (6 months coverage)</li>
     </ul>
-    <p>Plan your payments to avoid late fees.</p>
+    <p>Start building your emergency fund to ensure financial security.</p>
     <p style="margin-bottom: 10px;">
         Want to learn more? Check out this course:
         <a href="{{ course_url }}" style="display: inline-block; padding: 10px 20px; background-color: #FBC02D; color: #333; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">{{ course_title }}</a>
