@@ -1,84 +1,157 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="{{ language }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ficore Africa Bill Planner Report</title>
+    <meta name="description" content="Plan your bills with Ficore Africa to stay on top of payments.">
+    <meta name="keywords" content="ficore africa, bill planner, financial management, Africa SME finance">
+    <meta name="author" content="Ficore Africa">
+    <title>{{ translations['Bill Planner'] }}</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #1E7F71;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h2 {
+            color: #FFFFFF;
+            margin: 0;
+        }
+        .header p {
+            font-style: italic;
+            color: #E0F7FA;
+            font-size: 0.9rem;
+            margin: 5px 0 0 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="email"],
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #2E7D32;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1B5E20;
+        }
+        .info-icon {
+            cursor: pointer;
+            color: #0288D1;
+            margin-left: 5px;
+            font-size: 0.9rem;
+        }
+        .info-icon:hover {
+            color: #2E7D32;
+        }
+        .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .info-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
 </head>
-<body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="background-color: #1E7F71; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #FFFFFF; margin: 0;">Ficore Africa Bill Planner Report</h2>
-        <p style="font-style: italic; color: #E0F7FA; font-size: 0.9rem; margin: 5px 0 0 0;">
-            Financial growth passport for Africa
-        </p>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>{{ translations['Bill Planner'] }}</h2>
+            <p>{{ translations['Financial growth passport for Africa'] }}</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h3>{{ translations['Plan Your Bills'] }}</h3>
+        <form method="POST" action="{{ url_for('bill_planner') }}">
+            {{ form.hidden_tag() }}
+
+            <label for="first_name">{{ translations['First Name'] }}:</label>
+            <input type="text" id="first_name" name="first_name" placeholder="{{ translations['Enter your first name'] }}" required>
+            <span class="info-icon" aria-label="First Name Info">
+                <i class="fas fa-info-circle"></i>
+                <span class="tooltip-text">{{ translations['Enter your first name to personalize your results.'] }}</span>
+            </span>
+
+            <label for="email">{{ translations['Email'] }}:</label>
+            <input type="email" id="email" name="email" placeholder="{{ translations['Enter your email'] }}" required>
+            <span class="info-icon" aria-label="Email Info">
+                <i class="fas fa-info-circle"></i>
+                <span class="tooltip-text">{{ translations['Provide your email address to receive your bill summary.'] }}</span>
+            </span>
+
+            <label for="language">{{ translations['Language'] }}:</label>
+            <select id="language" name="language" required>
+                <option value="en">{{ translations['English'] }}</option>
+                <option value="ha">{{ translations['Hausa'] }}</option>
+                <option value="yo">{{ translations['Yoruba'] }}</option>
+                <option value="ig">{{ translations['Igbo'] }}</option>
+            </select>
+            <span class="info-icon" aria-label="Language Info">
+                <i class="fas fa-info-circle"></i>
+                <span class="tooltip-text">{{ translations['Choose your preferred language for the planner.'] }}</span>
+            </span>
+
+            <p>{{ translations['Add or edit your bills'] }}: <a href="{{ url_for('edit_bill') }}">{{ translations['Click Here'] }}</a></p>
+
+            <button type="submit">{{ translations['View Your Bill Summary'] }}</button>
+        </form>
+
+        <footer class="mt-4 text-center">
+            <p>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
+                <a href="{{ url_for('edit_bill') }}" class="btn btn-secondary">{{ translations['Add/Edit Bill'] }}</a>
+            </p>
+            <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
+            <p><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
+            <p>© 2025 Ficore Africa. All rights reserved.</p>
+        </footer>
     </div>
-    <p>Dear {{ user_name }},</p>
-    <p>Here’s your Ficore Africa Bill Planner summary based on your recent submissions.</p>
-    <p>Review your bills below to stay on top of your payments:</p>
-    <ul>
-    {% for bill in bills %}
-        <li>{{ bill.Description }} - {{ bill.Amount }} ₦ (Due: {{ bill.DueDate }}, Status: {{ bill.Status }})</li>
-    {% endfor %}
-    </ul>
-    <p>Plan your payments to avoid late fees.</p>
-    <p style="margin-bottom: 10px;">
-        Want to learn more? Check out this course:
-        <a href="{{ course_url }}" style="display: inline-block; padding: 10px 20px; background-color: #FBC02D; color: #333; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">{{ course_title }}</a>
-    </p>
-    <p style="margin-bottom: 10px;">
-        Please provide feedback on your experience:
-        <a href="{{ FEEDBACK_FORM_URL }}" style="display: inline-block; padding: 10px 20px; background-color: #2E7D32; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Feedback Form</a>
-    </p>
-    <p style="margin-bottom: 10px;">
-        Want Smart Insights? Join our waitlist:
-        <a href="{{ WAITLIST_FORM_URL }}" style="display: inline-block; padding: 10px 20px; background-color: #0288D1; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Join Waitlist</a>
-    </p>
-    <p style="margin-bottom: 10px;">
-        Need expert advice? Book a consultancy:
-        <a href="{{ CONSULTANCY_FORM_URL }}" style="display: inline-block; padding: 10px 20px; background-color: #D81B60; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Book Consultancy</a>
-    </p>
-    <p>Thank you for choosing Ficore Africa!</p>
-    <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">
-        © 2025 Ficore Africa. All rights reserved.
-    </p>
-</body>
-</html>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
