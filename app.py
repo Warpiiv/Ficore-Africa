@@ -66,21 +66,21 @@ if not app.config['MAIL_PASSWORD']:
     logger.error("SMTP_PASSWORD environment variable not set")
 mail = Mail(app)
 
-# Initialize Google Sheets client with validation
+# Initialize Google Sheets client with google-auth
 scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 try:
     creds_json = os.environ.get('GOOGLE_CREDENTIALS_JSON')
     if not creds_json:
         logger.error("GOOGLE_CREDENTIALS_JSON environment variable not set")
         abort(500)
-    try:
-        creds_dict = json.loads(creds_json)
-    except json.JSONDecodeError as e:
-        logger.error(f"Invalid GOOGLE_CREDENTIALS_JSON format: {e}")
-        flash("Server error: Invalid Google Sheets credentials configuration", 'error')
-        abort(500)
-creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
-client = gspread.authorize(creds)
+    
+    creds_dict = json.loads(creds_json)
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+    client = gspread.authorize(creds)
+except json.JSONDecodeError as e:
+    logger.error(f"Invalid GOOGLE_CREDENTIALS_JSON format: {e}")
+    flash("Server error: Invalid Google Sheets credentials configuration", 'error')
+    abort(500)
 except Exception as e:
     logger.error(f"Failed to initialize Google Sheets credentials: {e}")
     abort(500)
