@@ -109,7 +109,7 @@
         {% endwith %}
 
         <h3>{{ translations['Plan Your Bills'] }}</h3>
-        <form method="POST" action="{{ url_for('bill_planner') }}">
+        <form method="POST" action="{{ url_for('bill_planner_form') }}">
             {{ form.hidden_tag() }}
 
             <label for="first_name">{{ translations['First Name'] }}:</label>
@@ -138,7 +138,7 @@
                 <span class="tooltip-text">{{ translations['Choose your preferred language for the planner.'] }}</span>
             </span>
 
-            <p>{{ translations['Add or edit your bills'] }}: <a href="{{ url_for('edit_bill') }}">{{ translations['Click Here'] }}</a></p>
+            <p>{{ translations['Add or edit your bills'] }}: <a href="{{ url_for('bill_planner_dashboard') }}">{{ translations['Click Here'] }}</a></p>
 
             <button type="submit">{{ translations['View Your Bill Summary'] }}</button>
         </form>
@@ -146,7 +146,7 @@
         <footer class="mt-4 text-center">
             <p>
                 <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
-                <a href="{{ url_for('edit_bill') }}" class="btn btn-secondary">{{ translations['Add/Edit Bill'] }}</a>
+                <a href="{{ url_for('bill_planner_dashboard') }}" class="btn btn-secondary">{{ translations['Add/Edit Bill'] }}</a>
             </p>
             <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
             <p><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
