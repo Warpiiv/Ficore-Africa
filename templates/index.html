@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Welcome to Ficore Africa - Your financial growth passport for Africa. Access tools to calculate your financial health, net worth, emergency fund, and more.">
-    <meta name="keywords" content="ficore africa, financial health, net worth, emergency fund, financial quiz_form_form_form_form, udget_form planner, expense tracker, bill planner">
+    <meta name="keywords" content="ficore africa, financial health, net worth, emergency fund, financial quiz_form, udget_form planner, expense tracker, bill planner">
     <meta name="author" content="Ficore Africa">
     <!-- Open Graph and Twitter Card Tags -->
     <meta property="og:title" content="Ficore Africa - {{ translations['Financial Growth Tools'] }}">
@@ -603,19 +603,19 @@
             </div>
             <!-- Know Yourself Section -->
             <h4><span class="emoji">👤</span> {{ translations['Know Yourself'] }}</h4>
-            <!-- Financial Personality quiz_form_form_form_form -->
+            <!-- Financial Personality quiz -->
             <div class="col-md-4 mb-4">
                 <div class="card">
                     <div class="card-header">
-                        <span class="emoji">❓</span> {{ translations['Financial Personality quiz_form_form_form_form'] }}
+                        <span class="emoji">❓</span> {{ translations['Financial Personality Quiz'] }}
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Test your financial knowledge with a quiz_form_form_form_form'] }}
-                            <span class="info-icon" data-tooltip-target="quiz_form_form_form_form-tooltip" title="{{ translations['Answer questions to assess financial literacy'] }}" aria-label="More info">ℹ️</span>
+                            {{ translations['Test your financial knowledge with a Quiz'] }}
+                            <span class="info-icon" data-tooltip-target="quiz_form-tooltip" title="{{ translations['Answer questions to assess financial literacy'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('quiz_form_form_form_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Personality quiz_form_form_form_form'] }}">{{ translations['Start Now'] }}</a>
-                        <div class="tooltip-fallback" id="quiz_form_form_form_form-tooltip">
+                        <a href="{{ url_for('quiz_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Personality quiz_form'] }}">{{ translations['Start Now'] }}</a>
+                        <div class="tooltip-fallback" id="quiz_form-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Answer questions to assess financial literacy'] }}</span>
                         </div>
