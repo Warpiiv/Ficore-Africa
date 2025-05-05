@@ -50,6 +50,7 @@ translations = {
         'Enter phone number (optional)': 'Enter phone number (optional)',
         'Invalid Number': 'Please enter a valid number.',
         'Language': 'Language',
+        'Create New Record': 'Create New Record',
         'Select Language': 'Select Language',
         'Submit': 'Submit',
         'Please answer all questions before submitting!': 'Please answer all questions before submitting!',
@@ -783,6 +784,7 @@ translations = {
         'Quiz Participant': 'Mai Shiga Jarabawa',
         'Great job! Continue to leverage your {personality} approach to build wealth.': 'Aiki mai kyau! Ci gaba da amfani da tsarin {personality} don gina arziki.',
         'Good effort! Your {personality} style is solid, but consider tracking expenses more closely.': 'Ƙoƙari mai kyau! Salon {personality} naka yana da ƙarfi, amma ka ji daɗin bibiyar kashe kuɗi sosai.',
-        'Keep learning! Your {personality} approach can improve with regular financial reviews.': 'Ci gaba da koyo! Tsarin {personality} naka zai iya inganta tare da duba kuɗi akai-akai.'
+        'Keep learning! Your {personality} approach can improve with regular financial reviews.': 'Ci gaba da koyo! Tsarin {personality} naka zai iya inganta tare da duba kuɗi akai-akai.',
+        'Create New Record': "Kirkiri Sabuwa"
     }
 }
