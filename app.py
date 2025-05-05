@@ -590,7 +590,7 @@ def send_bill_reminder_email(bill_json):
     trans = translations.get(language, translations['English'])
     try:
         html = render_template(
-            'email_templates/bill_reminder.html',
+            'email_templates/bill_reminder_email.html',
             user_name=bill.get('FirstName', ''),
             description=bill.get('Description', ''),
             amount=bill.get('Amount', 0),
@@ -746,7 +746,7 @@ def change_language():
         flash(translations.get(session.get('language', 'English'), translations['English'])['Invalid language selection'], 'error')
     return redirect(request.referrer or url_for('index'))
 
-@app.route('/health_score', methods=['GET', 'POST'])
+@app.route('/health_score_form', methods=['GET', 'POST'])
 def health_score():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
@@ -818,7 +818,7 @@ def health_score():
             update_or_append_user_data(user_data, 'HealthScore')
             if form.auto_email.data:
                 html = render_template(
-                    'email_templates/health_score.html',
+                    'email_templates/health_score_email.html',
                     user_name=form.first_name.data,
                     health_score=health_score,
                     score_description=score_description,
@@ -859,7 +859,7 @@ def health_score():
                 CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
             )
     return render_template(
-        'health_score.html',
+        'health_score_form.html',
         form=form,
         translations=trans,
         language=language,
@@ -868,7 +868,7 @@ def health_score():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/net_worth', methods=['GET', 'POST'])
+@app.route('/net_worth_form', methods=['GET', 'POST'])
 def net_worth():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
@@ -920,9 +920,29 @@ def net_worth():
             if form.record_id.data:
                 user_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(user_data, 'NetWorth')
+            if form.auto_email.data:
+                html = render_template(
+                    'email_templates/net_worth_email.html',
+                    user_name=form.first_name.data,
+                    net_worth=net_worth,
+                    rank_percentile=rank_percentile,
+                    badges=badges,
+                    advice=advice,
+                    FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+                    WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+                    CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
+                    translations=trans
+                )
+                send_email_async.delay(
+                    trans['Net Worth Report Subject'].format(user_name=form.first_name.data),
+                    [form.email.data],
+                    html,
+                    language
+                )
+                flash(trans['Email scheduled to be sent'], 'success')
             chart_html, comparison_chart_html = generate_net_worth_charts(json.dumps(user_data), language)
             return render_template(
-                'health_score_dashboard.html',
+                'net_worth_dashboard.html',
                 tool='Net Worth',
                 user_data=user_data,
                 chart_html=chart_html,
@@ -939,7 +959,7 @@ def net_worth():
                 CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
             )
     return render_template(
-        'net_worth.html',
+        'net_worth_form.html',
         form=form,
         translations=trans,
         language=language,
@@ -1005,8 +1025,28 @@ def quiz():
             if form.record_id.data:
                 user_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(user_data, 'Quiz')
+            if form.auto_email.data:
+                html = render_template(
+                    'email_templates/quiz_email.html',
+                    user_name=form.first_name.data,
+                    score=score,
+                    personality=personality,
+                    badges=badges,
+                    advice=advice,
+                    FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+                    WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+                    CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
+                    translations=trans
+                )
+                send_email_async.delay(
+                    trans['Quiz Report Subject'].format(user_name=form.first_name.data),
+                    [form.email.data],
+                    html,
+                    language
+                )
+                flash(trans['Email scheduled to be sent'], 'success')
             return render_template(
-                'health_score_dashboard.html',
+                'quiz_dashboard.html',
                 tool='Financial Quiz',
                 user_data=user_data,
                 score=score,
@@ -1022,7 +1062,7 @@ def quiz():
                 CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
             )
     return render_template(
-        'quiz.html',
+        'quiz_form.html',
         form=form,
         translations=trans,
         language=language,
@@ -1031,7 +1071,7 @@ def quiz():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/emergency_fund', methods=['GET', 'POST'])
+@app.route('/emergency_fund_form', methods=['GET', 'POST'])
 def emergency_fund():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
@@ -1077,8 +1117,26 @@ def emergency_fund():
             if form.record_id.data:
                 user_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(user_data, 'EmergencyFund')
+            if form.auto_email.data:
+                html = render_template(
+                    'email_templates/emergency_fund_email.html',
+                    user_name=form.first_name.data,
+                    monthly_expenses=monthly_expenses,
+                    recommended_fund=recommended_fund,
+                    FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+                    WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+                    CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
+                    translations=trans
+                )
+                send_email_async.delay(
+                    trans['Emergency Fund Report Subject'].format(user_name=form.first_name.data),
+                    [form.email.data],
+                    html,
+                    language
+                )
+                flash(trans['Email scheduled to be sent'], 'success')
             return render_template(
-                'health_score_dashboard.html',
+                'emergency_fund_dashboard.html',
                 tool='Emergency Fund',
                 user_data=user_data,
                 translations=trans,
@@ -1088,7 +1146,7 @@ def emergency_fund():
                 CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
             )
     return render_template(
-        'emergency_fund.html',
+        'emergency_fund_form.html',
         form=form,
         translations=trans,
         language=language,
@@ -1097,7 +1155,7 @@ def emergency_fund():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/budget', methods=['GET', 'POST'])
+@app.route('/budget_form', methods=['GET', 'POST'])
 def budget():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
@@ -1129,7 +1187,7 @@ def budget():
     )
     form.record_id.choices = record_choices
     if email:
-        form.email.render_kw = {'readonly': True}
+        formemail.render_kw = {'readonly': True}
         form.confirm_email.render_kw = {'readonly': True}
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -1164,9 +1222,13 @@ def budget():
             update_or_append_user_data(user_data, 'Budget')
             if form.auto_email.data:
                 html = render_template(
-                    'email_templates/budget_summary.html',
+                    'email_templates/budget_email.html',
                     user_name=form.first_name.data,
                     income=income,
+                    housing=housing,
+                    food=food,
+                    transport=transport,
+                    other=other,
                     total_expenses=total_expenses,
                     savings=savings,
                     surplus_deficit=surplus_deficit,
@@ -1176,7 +1238,7 @@ def budget():
                     translations=trans
                 )
                 send_email_async.delay(
-                    trans['Budget Summary Subject'].format(user_name=form.first_name.data),
+                    trans['Budget Report Subject'].format(user_name=form.first_name.data),
                     [form.email.data],
                     html,
                     language
@@ -1184,7 +1246,7 @@ def budget():
                 flash(trans['Email scheduled to be sent'], 'success')
             chart_html = generate_budget_charts(json.dumps(user_data), language)
             return render_template(
-                'health_score_dashboard.html',
+                'budget_dashboard.html',
                 tool='Budget Planner',
                 user_data=user_data,
                 chart_html=chart_html,
@@ -1197,7 +1259,7 @@ def budget():
                 CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
             )
     return render_template(
-        'budget.html',
+        'budget_form.html',
         form=form,
         translations=trans,
         language=language,
@@ -1206,7 +1268,7 @@ def budget():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/expense_tracker', methods=['GET', 'POST'])
+@app.route('/expense_form', methods=['GET', 'POST'])
 def expense_tracker():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
@@ -1217,7 +1279,7 @@ def expense_tracker():
     if user_records:
         for record in user_records:
             record_id = record.get('ID', 'Unknown')
-            record_choices.append((record_id, f"Record ID {record_id}"))
+            record_choices.append((record_id, f"Record {record_id} from {record.get('Timestamp', 'Unknown')}"))
     selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
     if selected_record_id and email:
         for record in user_records:
@@ -1257,13 +1319,32 @@ def expense_tracker():
             if form.record_id.data:
                 user_data['ID'] = form.record_id.data
             update_or_append_user_data(user_data, 'ExpenseTracker')
+            if form.auto_email.data:
+                html = render_template(
+                    'email_templates/expense_email.html',
+                    user_name=form.first_name.data,
+                    amount=amount,
+                    category=form.category.data,
+                    description=form.description.data,
+                    transaction_type=form.transaction_type.data,
+                    FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+                    WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+                    CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
+                    translations=trans
+                )
+                send_email_async.delay(
+                    trans['Expense Report Subject'].format(user_name=form.first_name.data),
+                    [form.email.data],
+                    html,
+                    language
+                )
+                flash(trans['Email scheduled to be sent'], 'success')
             chart_html = generate_expense_charts(form.email.data, language)
             return render_template(
-                'health_score_dashboard.html',
+                'expense_tracker_dashboard.html',
                 tool='Expense Tracker',
                 user_data=user_data,
                 chart_html=chart_html,
-                balance=user_data['RunningBalance'],
                 tips=get_tips(language),
                 courses=get_courses(language),
                 translations=trans,
@@ -1273,7 +1354,7 @@ def expense_tracker():
                 CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
             )
     return render_template(
-        'expense_tracker.html',
+        'expense_form.html',
         form=form,
         translations=trans,
         language=language,
@@ -1282,7 +1363,7 @@ def expense_tracker():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/bill_planner', methods=['GET', 'POST'])
+@app.route('/bill_form', methods=['GET', 'POST'])
 def bill_planner():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
@@ -1320,13 +1401,14 @@ def bill_planner():
             session['language'] = form.language.data
             session['user_email'] = form.email.data
             session.permanent = True
+            amount = parse_number(form.amount.data)
             user_data = {
                 'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'FirstName': form.first_name.data,
                 'Email': form.email.data,
                 'Language': form.language.data,
                 'Description': form.description.data,
-                'Amount': parse_number(form.amount.data),
+                'Amount': amount,
                 'DueDate': form.due_date.data,
                 'Category': form.category.data,
                 'Recurrence': form.recurrence.data,
@@ -1338,20 +1420,12 @@ def bill_planner():
             update_or_append_user_data(user_data, 'BillPlanner')
             if form.send_email.data:
                 schedule_bill_reminder(user_data)
-            return render_template(
-                'health_score_dashboard.html',
-                tool='Bill Planner',
-                user_data=user_data,
-                tips=get_tips(language),
-                courses=get_courses(language),
-                translations=trans,
-                language=language,
-                FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-                WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-                CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-            )
+                flash(trans['Bill reminder scheduled'], 'success')
+            else:
+                flash(trans['Bill added successfully'], 'success')
+            return redirect(url_for('bill_planner'))
     return render_template(
-        'bill_planner.html',
+        'bill_form.html',
         form=form,
         translations=trans,
         language=language,
@@ -1360,171 +1434,17 @@ def bill_planner():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/health_score_dashboard', methods=['GET'])
-def health_score_dashboard():
-    language = session.get('language', 'English')
-    trans = translations.get(language, translations['English'])
-    email = session.get('user_email')
-    if not email:
-        flash(trans['Please log in or submit a form first to view your health_score_dashboard.'], 'warning')
-        return redirect(url_for('index'))
-    tool = request.args.get('tool')
-    user_data = None
-    if tool == 'Financial Health Score':
-        user_records = get_user_data_by_email(email, 'HealthScore')
-        if user_records:
-            user_data = user_records[-1]
-    elif tool == 'Net Worth':
-        user_records = get_user_data_by_email(email, 'NetWorth')
-        if user_records:
-            user_data = user_records[-1]
-    elif tool == 'Financial Quiz':
-        user_records = get_user_data_by_email(email, 'Quiz')
-        if user_records:
-            user_data = user_records[-1]
-    elif tool == 'Emergency Fund':
-        user_records = get_user_data_by_email(email, 'EmergencyFund')
-        if user_records:
-            user_data = user_records[-1]
-    elif tool == 'Budget Planner':
-        user_records = get_user_data_by_email(email, 'Budget')
-        if user_records:
-            user_data = user_records[-1]
-    elif tool == 'Expense Tracker':
-        user_records = get_user_data_by_email(email, 'ExpenseTracker')
-        if user_records:
-            user_data = user_records[-1]
-    elif tool == 'Bill Planner':
-        user_records = get_user_data_by_email(email, 'BillPlanner')
-        if user_records:
-            user_data = user_records[-1]
-    if not user_data:
-        flash(trans['No data available for the selected tool.'], 'warning')
-        return redirect(url_for('index'))
-    if tool == 'Financial Health Score':
-        chart_html, comparison_chart_html = generate_health_score_charts(json.dumps(user_data), language)
-        score_description = get_score_description(user_data.get('Score', 50), language)
-        rank, total_users = assign_rank(user_data.get('Score', 50))
-        badges = assign_badges(user_data.get('Score', 50), user_data.get('DebtLoan', 0), user_data.get('IncomeRevenue', 0), language)
-        return render_template(
-            'health_score_dashboard.html',
-            tool=tool,
-            user_data=user_data,
-            chart_html=chart_html,
-            comparison_chart_html=comparison_chart_html,
-            score_description=score_description,
-            rank=rank,
-            total_users=total_users,
-            badges=badges,
-            tips=get_tips(language),
-            courses=get_courses(language),
-            translations=trans,
-            language=language,
-            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-        )
-    elif tool == 'Net Worth':
-        chart_html, comparison_chart_html = generate_net_worth_charts(json.dumps(user_data), language)
-        rank_percentile = assign_net_worth_rank(user_data.get('NetWorth', 0))
-        badges = assign_net_worth_badges(user_data.get('NetWorth', 0), language)
-        advice = get_net_worth_advice(user_data.get('NetWorth', 0), language)
-        return render_template(
-            'health_score_dashboard.html',
-            tool=tool,
-            user_data=user_data,
-            chart_html=chart_html,
-            comparison_chart_html=comparison_chart_html,
-            rank_percentile=rank_percentile,
-            badges=badges,
-            advice=advice,
-            tips=get_tips(language),
-            courses=get_courses(language),
-            translations=trans,
-            language=language,
-            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-        )
-    elif tool == 'Financial Quiz':
-        score = user_data.get('QuizScore', 0)
-        personality = user_data.get('Personality', 'Balanced')
-        badges = assign_quiz_badges(score, language)
-        advice = get_quiz_advice(score, personality, language)
-        return render_template(
-            'health_score_dashboard.html',
-            tool=tool,
-            user_data=user_data,
-            score=score,
-            personality=personality,
-            badges=badges,
-            advice=advice,
-            tips=get_tips(language),
-            courses=get_courses(language),
-            translations=trans,
-            language=language,
-            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-        )
-    elif tool == 'Emergency Fund':
-        return render_template(
-            'health_score_dashboard.html',
-            tool=tool,
-            user_data=user_data,
-            translations=trans,
-            language=language,
-            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-        )
-    elif tool == 'Budget Planner':
-        chart_html = generate_budget_charts(json.dumps(user_data), language)
-        return render_template(
-            'health_score_dashboard.html',
-            tool=tool,
-            user_data=user_data,
-            chart_html=chart_html,
-            tips=get_tips(language),
-            courses=get_courses(language),
-            translations=trans,
-            language=language,
-            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-        )
-    elif tool == 'Expense Tracker':
-        chart_html = generate_expense_charts(email, language)
-        balance = calculate_running_balance(email)
-        return render_template(
-            'health_score_dashboard.html',
-            tool=tool,
-            user_data=user_data,
-            chart_html=chart_html,
-            balance=balance,
-            tips=get_tips(language),
-            courses=get_courses(language),
-            translations=trans,
-            language=language,
-            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-        )
-    elif tool == 'Bill Planner':
-        return render_template(
-            'health_score_dashboard.html',
-            tool=tool,
-            user_data=user_data,
-            tips=get_tips(language),
-            courses=get_courses(language),
-            translations=trans,
-            language=language,
-            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-        )
-    flash(trans['Invalid health_score_dashboard tool selected.'], 'error')
+@app.route('/logout')
+def logout():
+    session.pop('user_email', None)
+    session.pop('language', None)
+    session.pop('user_data_id', None)
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Register atexit handler to close Redis connection if used
+    redis_client = redis.Redis(host='localhost', port=6379, db=0)
+    def close_redis():
+        redis_client.close()
+    atexit.register(close_redis)
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
