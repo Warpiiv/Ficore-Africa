@@ -110,7 +110,7 @@
         {% endwith %}
 
         <h3>{{ translations['Plan Your Monthly Budget'] }}</h3>
-        <form method="POST" action="{{ url_for('budget') }}">
+        <form method="POST" action="{{ url_for('budget_form') }}">
             {{ form.hidden_tag() }}
 
             <label for="first_name">{{ translations['First Name'] }}:</label>
