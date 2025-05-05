@@ -3,13 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Discover your financial personality with Ficore Africa's quiz and get personalized insights.">
+    <meta name="keywords" content="ficore africa, financial personality quiz, financial literacy, Africa SME finance">
+    <meta name="author" content="Ficore Africa">
     <title>{{ translations['Financial Personality Quiz'] }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #1E7F71;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h2 {
+            color: #FFFFFF;
+            margin: 0;
+        }
+        .header p {
+            font-style: italic;
+            color: #E0F7FA;
+            font-size: 0.9rem;
+            margin: 5px 0 0 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="email"],
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #2E7D32;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1B5E20;
+        }
         .info-icon {
             cursor: pointer;
             color: #0288D1;
@@ -39,119 +89,100 @@
             visibility: visible;
             opacity: 1;
         }
-        .form-control, .form-select {
-            min-height: 48px;
-            font-size: 1rem;
-        }
-        .btn-primary, .btn-secondary {
-            min-height: 48px;
-            font-size: 1rem;
-        }
     </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <header class="text-center mb-4">
-            <img src="{{ url_for('static', filename='img/ficore_logo.png') }}" alt="FiCore Logo" class="img-fluid" style="max-width: 200px;">
-            <h1><i class="fas fa-lightbulb icon"></i> <strong>{{ translations['Financial Personality Quiz'] }}</strong></h1>
-            <p class="lead">{{ translations['Discover your financial personality and gain insights'] }}</p>
-        </header>
+    <div class="container">
+        <div class="header">
+            <h2>{{ translations['Financial Personality Quiz'] }}</h2>
+            <p>{{ translations['Financial growth passport for Africa'] }}</p>
+        </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
-        <p class="mb-4">{{ translations['Answer each question with Yes or No.'] }}</p>
-
-        <form method="POST" action="{{ url_for('quiz') }}" novalidate>
+        <h3>{{ translations['Discover Your Financial Style'] }}</h3>
+        <p>{{ translations['Answer each question with Yes or No.'] }}</p>
+        <form method="POST" action="{{ url_for('quiz') }}">
             {{ form.hidden_tag() }}
 
-            <div class="mb-3">
-                {{ form.first_name.label(class="form-label") }}
-                {{ form.first_name(class="form-control", id="first_name", placeholder=translations['Enter your first name'], **{'aria-required': 'true'}) }}
-                <span class="info-icon" aria-label="First Name Info">
-                    <i class="fas fa-info-circle"></i>
-                    <span class="tooltip-text">{{ translations['Enter your first name to personalize your results.'] }}</span>
-                </span>
-                {% for error in form.first_name.errors %}
-                    <span class="text-danger">{{ error }}</span>
-                {% endfor %}
-            </div>
+            <label for="first_name">{{ translations['First Name'] }}:</label>
+            <input type="text" id="first_name" name="first_name" placeholder="{{ translations['Enter your first name'] }}" required>
+            <span class="info-icon" aria-label="First Name Info">
+                <i class="fas fa-info-circle"></i>
+                <span class="tooltip-text">{{ translations['Enter your first name to personalize your results.'] }}</span>
+            </span>
 
-            <div class="mb-3">
-                {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control", id="email", placeholder=translations['Enter your email'], **{'aria-required': 'true'}) }}
-                <span class="info-icon" aria-label="Email Info">
-                    <i class="fas fa-info-circle"></i>
-                    <span class="tooltip-text">{{ translations['Provide your email address to receive your results and personalized tips.'] }}</span>
-                </span>
-                {% for error in form.email.errors %}
-                    <span class="text-danger">{{ error }}</span>
-                {% endfor %}
-            </div>
+            <label for="email">{{ translations['Email'] }}:</label>
+            <input type="email" id="email" name="email" placeholder="{{ translations['Enter your email'] }}" required>
+            <span class="info-icon" aria-label="Email Info">
+                <i class="fas fa-info-circle"></i>
+                <span class="tooltip-text">{{ translations['Provide your email address to receive your results and personalized tips.'] }}</span>
+            </span>
 
-            <div class="mb-3">
-                {{ form.language.label(class="form-label") }}
-                {{ form.language(class="form-control", id="language", **{'aria-required': 'true'}) }}
-                <span class="info-icon" aria-label="Language Info">
-                    <i class="fas fa-info-circle"></i>
-                    <span class="tooltip-text">{{ translations['Choose your preferred language for the quiz. Options: English, Hausa.'] }}</span>
-                </span>
-                {% for error in form.language.errors %}
-                    <span class="text-danger">{{ error }}</span>
-                {% endfor %}
-            </div>
+            <label for="language">{{ translations['Language'] }}:</label>
+            <select id="language" name="language" required>
+                <option value="en">{{ translations['English'] }}</option>
+                <option value="ha">{{ translations['Hausa'] }}</option>
+                <option value="yo">{{ translations['Yoruba'] }}</option>
+                <option value="ig">{{ translations['Igbo'] }}</option>
+            </select>
+            <span class="info-icon" aria-label="Language Info">
+                <i class="fas fa-info-circle"></i>
+                <span class="tooltip-text">{{ translations['Choose your preferred language for the quiz.'] }}</span>
+            </span>
 
             {% for i in range(1, 6) %}
                 <div class="mb-3">
-                    {{ form['q' + i|string].label(class="form-label", **{'for': 'q' + i|string}) }}
-                    {{ form['q' + i|string](class="form-control", id="q" + i|string, **{'aria-required': 'true'}) }}
+                    <label class="form-label" for="q{{ i }}">{{ translations['Question'] }} {{ i }}</label>
+                    <select name="q{{ i }}" id="q{{ i }}" required>
+                        <option value="">{{ translations['Select'] }}</option>
+                        <option value="yes">{{ translations['Yes'] }}</option>
+                        <option value="no">{{ translations['No'] }}</option>
+                    </select>
                     <span class="info-icon" aria-label="Question {{ i }} Info">
                         <i class="fas fa-info-circle"></i>
                         <span class="tooltip-text">{{ translations['Answer each question with Yes or No based on your financial habits.'] }}</span>
                     </span>
-                    {% for error in form['q' + i|string].errors %}
-                        <span class="text-danger">{{ error }}</span>
-                    {% endfor %}
                 </div>
             {% endfor %}
 
-            <div class="mb-3 text-center">
-                {{ form.submit(class="btn btn-primary btn-lg", value=translations['Uncover Your Financial Style'], id="submit-btn", **{'aria-label': translations['Submit quiz form']}) }}
-                <p class="mt-2 text-muted">{{ translations['Test your financial knowledge now!'] }}</p>
-            </div>
+            <button type="submit">{{ translations['Uncover Your Financial Style'] }}</button>
         </form>
 
-        <footer class="text-center mt-4">
+        <footer class="mt-4 text-center">
             <p>
                 <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">{{ translations['Back'] }}</a>
+                <a href="{{ url_for('quiz_dashboard') }}" class="btn btn-secondary">{{ translations['Dashboard'] }}</a>
             </p>
-            <p>
-                <a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a> |
-                <a href="https://ficore.africa" target="_blank">{{ translations['FiCore Africa Home'] }}</a>
-            </p>
-            <p>© 2025 FiCore Africa</p>
+            <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
+            <p><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
+            <p>© 2025 Ficore Africa. All rights reserved.</p>
         </footer>
     </div>
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script>
-        // Randomize question order
         const questions = [
-            "{{ translations['Do you regularly track your income and expenses?'] }}",
-            "{{ translations['Do you prefer saving for the future over spending on immediate desires?'] }}",
-            "{{ translations['Are you comfortable with taking financial risks to grow your wealth?'] }}",
-            "{{ translations['Do you have an emergency fund set aside for unexpected situations?'] }}",
-            "{{ translations['Do you review your financial goals and strategies regularly?'] }}"
+            "{{ translations['Do you save some money every month?'] }}",
+            "{{ translations['Do you know how much you spend each week?'] }}",
+            "{{ translations['Do you like to plan before spending money?'] }}",
+            "{{ translations['Do you keep money for emergencies?'] }}",
+            "{{ translations['Do you check your money goals often?'] }}",
+            "{{ translations['Do you avoid borrowing money when possible?'] }}",
+            "{{ translations['Do you feel okay taking small money risks?'] }}",
+            "{{ translations['Do you learn about saving or investing?'] }}",
+            "{{ translations['Do you spend less than you earn?'] }}",
+            "{{ translations['Do you talk about money with family or friends?'] }}"
         ];
+
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -159,11 +190,10 @@
             }
             return array;
         }
+
         const labels = document.querySelectorAll('.form-label[for^="q"]');
-        const shuffledQuestions = shuffle([...questions]);
+        const shuffledQuestions = shuffle([...questions]).slice(0, 5);
         labels.forEach((label, index) => {
             label.textContent = shuffledQuestions[index];
         });
     </script>
-</body>
-</html>
