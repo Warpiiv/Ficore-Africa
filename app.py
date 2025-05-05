@@ -16,11 +16,9 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
 from flask_caching import Cache
-try:
-    from apscheduler.schedulers.background import BackgroundScheduler
-    APSCHEDULER_AVAILABLE = True
-except ImportError:
-    APSCHEDULER_AVAILABLE = False
+from celery import Celery
+from celery.schedules import crontab
+import redis
 import atexit
 from math import ceil
 from translations import translations
@@ -46,6 +44,18 @@ cache_config = {
 app.config.from_mapping(cache_config)
 cache = Cache(app)
 
+# Configure Celery
+app.config['CELERY_BROKER_URL'] = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+app.config['CELERY_RESULT_BACKEND'] = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+celery.conf.update(app.config)
+celery.conf.beat_schedule = {
+    'check-bill-reminders-every-minute': {
+        'task': 'app.check_bill_reminders',
+        'schedule': crontab(minute='*'),
+    },
+}
+
 # Configure Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -56,10 +66,19 @@ if not app.config['MAIL_PASSWORD']:
     logger.error("SMTP_PASSWORD environment variable not set")
 mail = Mail(app)
 
-# Initialize Google Sheets client
+# Initialize Google Sheets client with validation
 scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 try:
-    creds_dict = json.loads(os.environ.get('GOOGLE_CREDENTIALS_JSON'))
+    creds_json = os.environ.get('GOOGLE_CREDENTIALS_JSON')
+    if not creds_json:
+        logger.error("GOOGLE_CREDENTIALS_JSON environment variable not set")
+        abort(500)
+    try:
+        creds_dict = json.loads(creds_json)
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid GOOGLE_CREDENTIALS_JSON format: {e}")
+        flash("Server error: Invalid Google Sheets credentials configuration", 'error')
+        abort(500)
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
 except Exception as e:
@@ -80,7 +99,8 @@ WORKSHEETS = {
     'EmergencyFund': {'name': 'EmergencyFundSheet', 'headers': ['Timestamp', 'FirstName', 'Email', 'Language', 'MonthlyExpenses', 'RecommendedFund']},
     'Budget': {'name': 'BudgetSheet', 'headers': ['Timestamp', 'FirstName', 'Email', 'AutoEmail', 'Language', 'MonthlyIncome', 'HousingExpenses', 'FoodExpenses', 'TransportExpenses', 'OtherExpenses', 'TotalExpenses', 'Savings', 'SurplusDeficit']},
     'ExpenseTracker': {'name': 'ExpenseTrackerSheet', 'headers': ['ID', 'UserEmail', 'Amount', 'Category', 'Date', 'Description', 'Timestamp', 'TransactionType', 'RunningBalance']},
-    'BillPlanner': {'name': 'BillPlannerSheet', 'headers': ['Timestamp', 'FirstName', 'Email', 'Language', 'Description', 'Amount', 'DueDate', 'Category', 'Recurrence', 'Status', 'SendEmail']}
+    'BillPlanner': {'name': 'BillPlannerSheet', 'headers': ['Timestamp', 'FirstName', 'Email', 'Language', 'Description', 'Amount', 'DueDate', 'Category', 'Recurrence', 'Status', 'SendEmail']},
+    'BillReminders': {'name': 'BillRemindersSheet', 'headers': ['Timestamp', 'BillTimestamp', 'Email', 'ReminderDate', 'Status']}
 }
 
 # Initialize worksheets and ensure headers
@@ -114,16 +134,17 @@ def parse_number(value):
 def get_user_data_by_email(email, tool):
     try:
         records = sheets[tool].get_all_records()
+        user_records = []
         for record in records:
             if not isinstance(record, dict):
                 logger.warning(f"Malformed record in {tool}: {record}")
                 continue
             if record.get('Email') == email or record.get('UserEmail') == email:
-                return record
-        return None
+                user_records.append(record)
+        return user_records
     except Exception as e:
         logger.error(f"Error fetching user data from {WORKSHEETS[tool]['name']}: {e}")
-        return None
+        return []
 
 # Fetch record by ID
 def get_record_by_id(id, tool):
@@ -133,7 +154,7 @@ def get_record_by_id(id, tool):
             if not isinstance(record, dict):
                 logger.warning(f"Malformed record in {tool}: {record}")
                 continue
-            if record.get('ID') == id or record.get('Timestamp') == id:
+            if record.get('ID') == id or record.get('Timestamp') == id or record.get('BillTimestamp') == id:
                 return record
         return None
     except Exception as e:
@@ -141,31 +162,39 @@ def get_record_by_id(id, tool):
         return None
 
 # Update or append user data to Google Sheets
-def update_or_append_user_data(user_data, tool):
+def update_or_append_user_data(user_data, tool, update_only_specific_fields=None):
     language = session.get('language', 'English')
     sheet = sheets[tool]
     headers = WORKSHEETS[tool]['headers']
     try:
         records = sheet.get_all_records()
         email = user_data.get('Email') or user_data.get('UserEmail')
-        id = user_data.get('ID') or user_data.get('Timestamp')
-        if email:
-            for i, record in enumerate(records, start=2):
-                if not isinstance(record, dict):
-                    logger.warning(f"Malformed record in {tool}: {record}")
-                    continue
-                if record.get('Email') == email or record.get('UserEmail') == email or record.get('ID') == id or record.get('Timestamp') == id:
+        id = user_data.get('ID') or user_data.get('Timestamp') or user_data.get('BillTimestamp')
+        found = False
+        for i, record in enumerate(records, start=2):
+            if not isinstance(record, dict):
+                logger.warning(f"Malformed record in {tool}: {record}")
+                continue
+            if record.get('Email') == email or record.get('UserEmail') == email or record.get('ID') == id or record.get('Timestamp') == id or record.get('BillTimestamp') == id:
+                if update_only_specific_fields:
+                    merged_data = {**record}
+                    for field in update_only_specific_fields:
+                        if field in user_data:
+                            merged_data[field] = user_data[field]
+                else:
                     merged_data = {**record, **user_data}
-                    sheet.update(f'A{i}:{chr(64 + len(headers))}{i}', [[merged_data.get(header, '') for header in headers]])
-                    return
-        sheet.append_row([user_data.get(header, '') for header in headers])
+                sheet.update(f'A{i}:{chr(64 + len(headers))}{i}', [[merged_data.get(header, '') for header in headers]])
+                found = True
+                break
+        if not found:
+            sheet.append_row([user_data.get(header, '') for header in headers])
     except gspread.exceptions.APIError as e:
         logger.error(f"Google Sheets API error updating/appending data to {WORKSHEETS[tool]['name']}: {e}")
-        flash(translations[language]['Failed to save data due to Google Sheets API limit'], 'error')
+        flash(translations.get(language, translations['English'])['Failed to save data due to Google Sheets API limit'], 'error')
         sheet.append_row([user_data.get(header, '') for header in headers])
     except Exception as e:
         logger.error(f"Error updating/appending data to {WORKSHEETS[tool]['name']}: {e}")
-        flash(translations[language]['Failed to save data due to server error'], 'error')
+        flash(translations.get(language, translations['English'])['Failed to save data due to server error'], 'error')
         sheet.append_row([user_data.get(header, '') for header in headers])
 
 # Calculate running balance for expense tracker (optimized)
@@ -182,7 +211,7 @@ def calculate_running_balance(email):
             balance += amount if record.get('TransactionType') == 'Income' else -amount
             if i == len(sorted_records) - 1:  # Update only the latest record
                 record['RunningBalance'] = balance
-                update_or_append_user_data(record, 'ExpenseTracker')
+                update_or_append_user_data(record, 'ExpenseTracker', update_only_specific_fields=['RunningBalance'])
         return balance
     except Exception as e:
         logger.error(f"Error calculating running balance: {e}")
@@ -202,61 +231,67 @@ def assign_net_worth_rank(net_worth):
 
 # Get net worth advice
 def get_net_worth_advice(net_worth, language='English'):
+    trans = translations.get(language, translations['English'])
     if net_worth > 0:
-        return translations[language]['Maintain your positive net worth by continuing to manage liabilities and grow assets.']
+        return trans['Maintain your positive net worth by continuing to manage liabilities and grow assets.']
     elif net_worth == 0:
-        return translations[language]['Your net worth is balanced. Consider increasing assets to build wealth.']
+        return trans['Your net worth is balanced. Consider increasing assets to build wealth.']
     else:
-        return translations[language]['Focus on reducing liabilities to improve your net worth.']
+        return trans['Focus on reducing liabilities to improve your net worth.']
 
 # Assign net worth badges
 def assign_net_worth_badges(net_worth, language='English'):
     badges = []
+    trans = translations.get(language, translations['English'])
     try:
         if net_worth > 0:
-            badges.append(translations[language]['Positive Net Worth'])
+            badges.append(trans['Positive Net Worth'])
         if net_worth >= 100000:
-            badges.append(translations[language]['Wealth Builder'])
+            badges.append(trans['Wealth Builder'])
         if net_worth <= -50000:
-            badges.append(translations[language]['Debt Recovery'])
+            badges.append(trans['Debt Recovery'])
     except Exception as e:
         logger.error(f"Error assigning net worth badges: {e}")
     return badges
 
 # Get financial tips
 def get_tips(language='English'):
+    trans = translations.get(language, translations['English'])
     return [
-        translations[language]['Regularly review your assets and liabilities to track progress.'],
-        translations[language]['Invest in low-risk assets to grow your wealth steadily.'],
-        translations[language]['Create a plan to pay down high-interest debt first.']
+        trans['Regularly review your assets and liabilities to track progress.'],
+        trans['Invest in low-risk assets to grow your wealth steadily.'],
+        trans['Create a plan to pay down high-interest debt first.']
     ]
 
 # Get recommended courses
 def get_courses(language='English'):
+    trans = translations.get(language, translations['English'])
     return [
-        {'title': translations[language]['Personal Finance 101'], 'link': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'},
-        {'title': translations[language]['Debt Management Basics'], 'link': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'},
-        {'title': translations[language]['Investing for Beginners'], 'link': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'}
+        {'title': trans['Personal Finance 101'], 'link': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'},
+        {'title': trans['Debt Management Basics'], 'link': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'},
+        {'title': trans['Investing for Beginners'], 'link': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'}
     ]
 
 # Get quiz advice
 def get_quiz_advice(score, personality, language='English'):
+    trans = translations.get(language, translations['English'])
     if score >= 4:
-        return translations[language]['Great job! Continue to leverage your {personality} approach to build wealth.'].format(personality=personality.lower())
+        return trans['Great job! Continue to leverage your {personality} approach to build wealth.'].format(personality=personality.lower())
     elif score >= 2:
-        return translations[language]['Good effort! Your {personality} style is solid, but consider tracking expenses more closely.'].format(personality=personality.lower())
+        return trans['Good effort! Your {personality} style is solid, but consider tracking expenses more closely.'].format(personality=personality.lower())
     else:
-        return translations[language]['Keep learning! Your {personality} approach can improve with regular financial reviews.'].format(personality=personality.lower())
+        return trans['Keep learning! Your {personality} approach can improve with regular financial reviews.'].format(personality=personality.lower())
 
 # Assign quiz badges
 def assign_quiz_badges(score, language='English'):
     badges = []
+    trans = translations.get(language, translations['English'])
     try:
         if score >= 4:
-            badges.append(translations[language]['Financial Guru'])
+            badges.append(trans['Financial Guru'])
         if score >= 2:
-            badges.append(translations[language]['Quiz Achiever'])
-        badges.append(translations[language]['Quiz Participant'])
+            badges.append(trans['Quiz Achiever'])
+        badges.append(trans['Quiz Participant'])
     except Exception as e:
         logger.error(f"Error assigning quiz badges: {e}")
     return badges
@@ -272,18 +307,21 @@ def get_average_health_score():
         logger.error(f"Error calculating average health score: {e}")
         return 50
 
-# Generate health score charts
-def generate_health_score_charts(user_data, language='English'):
+# Generate health score charts with caching
+@cache.memoize(timeout=300)
+def generate_health_score_charts(user_data_json, language='English'):
+    user_data = json.loads(user_data_json)
+    trans = translations.get(language, translations['English'])
     try:
         income = parse_number(user_data.get('IncomeRevenue', 0))
         debt = parse_number(user_data.get('DebtLoan', 0))
-        ratio_message = translations[language]['Your asset-to-liability ratio is healthy.'] if income >= 2 * debt else translations[language]['Your liabilities are high. Consider strategies to reduce debt.']
+        ratio_message = trans['Your asset-to-liability ratio is healthy.'] if income >= 2 * debt else trans['Your liabilities are high. Consider strategies to reduce debt.']
         bar_fig = go.Figure(data=[
-            go.Bar(name=translations[language]['Income (₦)'], x=['Income'], y=[income], marker_color='#2E7D32'),
-            go.Bar(name=translations[language]['Debt (₦)'], x=['Debt'], y=[debt], marker_color='#DC3545')
+            go.Bar(name=trans['Income (₦)'], x=['Income'], y=[income], marker_color='#2E7D32'),
+            go.Bar(name=trans['Debt (₦)'], x=['Debt'], y=[debt], marker_color='#DC3545')
         ])
         bar_fig.update_layout(
-            title=translations[language]['Asset-Liability Breakdown'],
+            title=trans['Asset-Liability Breakdown'],
             barmode='group',
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
@@ -295,11 +333,11 @@ def generate_health_score_charts(user_data, language='English'):
 
         average_score = get_average_health_score()
         bar_fig = go.Figure(data=[
-            go.Bar(name=translations[language]['Your Score'], x=['You'], y=[user_data.get('Score', 0)], marker_color='#2E7D32'),
-            go.Bar(name=translations[language]['Average Score'], x=['Average'], y=[average_score], marker_color='#0288D1')
+            go.Bar(name=trans['Your Score'], x=['You'], y=[user_data.get('Score', 0)], marker_color='#2E7D32'),
+            go.Bar(name=trans['Average Score'], x=['Average'], y=[average_score], marker_color='#0288D1')
         ])
         bar_fig.update_layout(
-            title=translations[language]['Comparison to Peers'],
+            title=trans['Comparison to Peers'],
             barmode='group',
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
@@ -310,16 +348,19 @@ def generate_health_score_charts(user_data, language='English'):
         return chart_html, comparison_chart_html
     except Exception as e:
         logger.error(f"Error generating health score charts: {e}")
-        return translations[language]['Chart failed to load. Please try again.'], ""
+        return trans['Chart failed to load. Please try again.'], ""
 
-# Generate net worth charts
-def generate_net_worth_charts(net_worth_data, language='English'):
+# Generate net worth charts with caching
+@cache.memoize(timeout=300)
+def generate_net_worth_charts(net_worth_data_json, language='English'):
+    net_worth_data = json.loads(net_worth_data_json)
+    trans = translations.get(language, translations['English'])
     try:
-        labels = [translations[language]['Assets'], translations[language]['Liabilities']]
+        labels = [trans['Assets'], trans['Liabilities']]
         values = [parse_number(net_worth_data.get('Assets', 0)), parse_number(net_worth_data.get('Liabilities', 0))]
         pie_fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.3, marker=dict(colors=['#2E7D32', '#DC3545']))])
         pie_fig.update_layout(
-            title=translations[language]['Asset-Liability Breakdown'],
+            title=trans['Asset-Liability Breakdown'],
             showlegend=True,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
@@ -332,11 +373,11 @@ def generate_net_worth_charts(net_worth_data, language='English'):
         user_net_worth = parse_number(net_worth_data.get('NetWorth', 0))
         avg_net_worth = np.mean(all_net_worths) if all_net_worths else 0
         bar_fig = go.Figure(data=[
-            go.Bar(name=translations[language]['Your Net Worth'], x=['You'], y=[user_net_worth], marker_color='#2E7D32'),
-            go.Bar(name=translations[language]['Average Net Worth'], x=['Average'], y=[avg_net_worth], marker_color='#0288D1')
+            go.Bar(name=trans['Your Net Worth'], x=['You'], y=[user_net_worth], marker_color='#2E7D32'),
+            go.Bar(name=trans['Average Net Worth'], x=['Average'], y=[avg_net_worth], marker_color='#0288D1')
         ])
         bar_fig.update_layout(
-            title=translations[language]['Comparison to Peers'],
+            title=trans['Comparison to Peers'],
             barmode='group',
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
@@ -347,17 +388,20 @@ def generate_net_worth_charts(net_worth_data, language='English'):
         return chart_html, comparison_chart_html
     except Exception as e:
         logger.error(f"Error generating net worth charts: {e}")
-        return translations[language]['Chart failed to load. Please try again.'], ""
+        return trans['Chart failed to load. Please try again.'], ""
 
-# Generate budget charts
-def generate_budget_charts(budget_data, language='English'):
+# Generate budget charts with caching
+@cache.memoize(timeout=300)
+def generate_budget_charts(budget_data_json, language='English'):
+    budget_data = json.loads(budget_data_json)
+    trans = translations.get(language, translations['English'])
     try:
         labels = [
-            translations[language]['Housing'],
-            translations[language]['Food'],
-            translations[language]['Transport'],
-            translations[language]['Other'],
-            translations[language]['Savings']
+            trans['Housing'],
+            trans['Food'],
+            trans['Transport'],
+            trans['Other'],
+            trans['Savings']
         ]
         values = [
             parse_number(budget_data.get('HousingExpenses', 0)),
@@ -368,7 +412,7 @@ def generate_budget_charts(budget_data, language='English'):
         ]
         pie_fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.3, marker=dict(colors=['#2E7D32', '#DC3545', '#0288D1', '#FFB300', '#4CAF50']))])
         pie_fig.update_layout(
-            title=translations[language]['Budget Breakdown'],
+            title=trans['Budget Breakdown'],
             showlegend=True,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
@@ -379,10 +423,12 @@ def generate_budget_charts(budget_data, language='English'):
         return chart_html
     except Exception as e:
         logger.error(f"Error generating budget charts: {e}")
-        return translations[language]['Chart failed to load. Please try again.']
+        return trans['Chart failed to load. Please try again.']
 
-# Generate expense charts (including income)
+# Generate expense charts with caching
+@cache.memoize(timeout=300)
 def generate_expense_charts(email, language='English'):
+    trans = translations.get(language, translations['English'])
     try:
         records = sheets['ExpenseTracker'].get_all_records()
         user_records = [r for r in records if r.get('UserEmail') == email]
@@ -396,10 +442,10 @@ def generate_expense_charts(email, language='English'):
         labels = list(categories.keys())
         values = [abs(v) for v in categories.values()]
         if not labels:
-            return translations[language]['No expense data available.']
+            return trans['No expense data available.']
         pie_fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.3, marker=dict(colors=['#2E7D32', '#DC3545', '#0288D1', '#FFB300', '#4CAF50', '#9C27B0']))])
         pie_fig.update_layout(
-            title=translations[language]['Expense Breakdown by Category'],
+            title=trans['Expense Breakdown by Category'],
             showlegend=True,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
@@ -410,7 +456,7 @@ def generate_expense_charts(email, language='English'):
         return chart_html
     except Exception as e:
         logger.error(f"Error generating expense charts: {e}")
-        return translations[language]['Chart failed to load. Please try again.']
+        return trans['Chart failed to load. Please try again.']
 
 # Form definitions with enhanced UI features
 class UserForm(FlaskForm):
@@ -427,6 +473,7 @@ class UserForm(FlaskForm):
     debt = FloatField('Total Debt (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦50,000', 'aria-label': 'Total Debt', 'data-tooltip': 'Enter your total debt amount.'})
     interest_rate = FloatField('Debt Interest Rate (%)', validators=[Optional(), NumberRange(min=0, max=100)], render_kw={'placeholder': 'e.g. 10%', 'aria-label': 'Debt Interest Rate', 'data-tooltip': 'Enter the annual interest rate for your debt (optional).'})
     auto_email = BooleanField('Send Email Notification', default=False, render_kw={'aria-label': 'Send Email Notification', 'data-tooltip': 'Check to receive email notifications.'})
+    record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
     submit = SubmitField('Check My Financial Health', render_kw={'aria-label': 'Submit Financial Health Form'})
 
 class NetWorthForm(FlaskForm):
@@ -435,6 +482,7 @@ class NetWorthForm(FlaskForm):
     language = SelectField('Language', choices=[('English', 'English'), ('Hausa', 'Hausa'), ('Yoruba', 'Yoruba'), ('Igbo', 'Igbo')], validators=[DataRequired()], render_kw={'aria-label': 'Language', 'data-tooltip': 'Select your preferred language.'})
     assets = FloatField('Total Assets (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦500,000', 'aria-label': 'Total Assets', 'data-tooltip': 'Enter the total value of your assets.'})
     liabilities = FloatField('Total Liabilities (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦200,000', 'aria-label': 'Total Liabilities', 'data-tooltip': 'Enter the total value of your liabilities.'})
+    record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
     submit = SubmitField('Get My Net Worth', render_kw={'aria-label': 'Submit Net Worth Form'})
 
 class QuizForm(FlaskForm):
@@ -446,6 +494,7 @@ class QuizForm(FlaskForm):
     q3 = SelectField('Financial Risks', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()], render_kw={'aria-label': 'Financial Risks', 'data-tooltip': 'Are you comfortable with financial risks?'})
     q4 = SelectField('Emergency Fund', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()], render_kw={'aria-label': 'Emergency Fund', 'data-tooltip': 'Do you have an emergency fund?'})
     q5 = SelectField('Review Goals', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()], render_kw={'aria-label': 'Review Goals', 'data-tooltip': 'Do you regularly review your financial goals?'})
+    record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
     submit = SubmitField('Submit Quiz', render_kw={'aria-label': 'Submit Quiz Form'})
 
 class EmergencyFundForm(FlaskForm):
@@ -453,6 +502,7 @@ class EmergencyFundForm(FlaskForm):
     email = EmailField('Email', validators=[DataRequired(), Email()], render_kw={'placeholder': 'e.g. john.doe@example.com', 'aria-label': 'Email', 'data-tooltip': 'Enter your email address.'})
     language = SelectField('Language', choices=[('English', 'English'), ('Hausa', 'Hausa'), ('Yoruba', 'Yoruba'), ('Igbo', 'Igbo')], validators=[DataRequired()], render_kw={'aria-label': 'Language', 'data-tooltip': 'Select your preferred language.'})
     monthly_expenses = FloatField('Monthly Essential Expenses (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦50,000', 'aria-label': 'Monthly Essential Expenses', 'data-tooltip': 'Enter your monthly essential expenses.'})
+    record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
     submit = SubmitField('Calculate Emergency Fund', render_kw={'aria-label': 'Submit Emergency Fund Form'})
 
 class BudgetForm(FlaskForm):
@@ -466,6 +516,7 @@ class BudgetForm(FlaskForm):
     transport = FloatField('Transport Expenses (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦20,000', 'aria-label': 'Transport Expenses', 'data-tooltip': 'Enter your monthly transport expenses.'})
     other = FloatField('Other Expenses (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦10,000', 'aria-label': 'Other Expenses', 'data-tooltip': 'Enter other monthly expenses.'})
     auto_email = BooleanField('Send Email Notification', default=False, render_kw={'aria-label': 'Send Email Notification', 'data-tooltip': 'Check to receive email notifications.'})
+    record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
     submit = SubmitField('Plan My Budget', render_kw={'aria-label': 'Submit Budget Form'})
 
 class ExpenseForm(FlaskForm):
@@ -483,6 +534,7 @@ class ExpenseForm(FlaskForm):
         ('Other', 'Other')
     ], validators=[DataRequired()], render_kw={'aria-label': 'Category', 'data-tooltip': 'Select the transaction category.'})
     transaction_type = SelectField('Transaction Type', choices=[('Income', 'Income'), ('Expense', 'Expense')], validators=[DataRequired()], render_kw={'aria-label': 'Transaction Type', 'data-tooltip': 'Select if this is income or expense.'})
+    record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
     submit = SubmitField('Add Transaction', render_kw={'aria-label': 'Submit Expense Form'})
 
 class BillForm(FlaskForm):
@@ -507,46 +559,32 @@ class BillForm(FlaskForm):
         ('Yearly', 'Yearly')
     ], validators=[DataRequired()], render_kw={'aria-label': 'Recurrence', 'data-tooltip': 'Select if the bill recurs.'})
     send_email = BooleanField('Send Email Notification', default=False, render_kw={'aria-label': 'Send Email Notification', 'data-tooltip': 'Check to receive email reminders.'})
+    record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
     submit = SubmitField('Add Bill', render_kw={'aria-label': 'Submit Bill Form'})
 
-# Initialize APScheduler if available
-if APSCHEDULER_AVAILABLE:
-    scheduler = BackgroundScheduler(daemon=True, max_instances=10)
-    scheduler.start()
-    atexit.register(lambda: scheduler.shutdown())
-
-# Fallback for bill reminders if APScheduler is unavailable
-def schedule_bill_reminder(bill):
-    language = bill.get('Language', 'English')
+# Celery tasks for email sending
+@celery.task
+def send_email_async(subject, recipients, html, language='English'):
+    trans = translations.get(language, translations['English'])
     try:
-        due_date = parse(bill.get('DueDate', '1970-01-01'))
-        reminder_date = due_date - timedelta(days=1)
-        if reminder_date > datetime.now():
-            if APSCHEDULER_AVAILABLE:
-                scheduler.add_job(
-                    send_bill_reminder_email,
-                    'date',
-                    run_date=reminder_date,
-                    args=[bill],
-                    id=f"bill_reminder_{bill.get('Timestamp')}",
-                    max_instances=1
-                )
-            else:
-                flash(translations[language]['Bill reminder scheduling unavailable. Please send manually.'], 'warning')
+        msg = Message(subject, sender='ficore.ai.africa@gmail.com', recipients=recipients)
+        msg.html = html
+        with app.app_context():
+            mail.send(msg)
+    except SMTPAuthenticationError as e:
+        logger.error(f"SMTP authentication error: {e}")
+    except SMTPException as e:
+        logger.error(f"SMTP error: {e}")
     except Exception as e:
-        logger.error(f"Error scheduling bill reminder: {e}")
-        flash(translations[language]['Failed to schedule bill reminder due to server error'], 'error')
+        logger.error(f"Unexpected error: {e}")
 
-# Send bill reminder email
-def send_bill_reminder_email(bill):
+@celery.task
+def send_bill_reminder_email(bill_json):
+    bill = json.loads(bill_json)
     language = bill.get('Language', 'English')
+    trans = translations.get(language, translations['English'])
     try:
-        msg = Message(
-            translations[language]['Bill Reminder Subject'].format(description=bill.get('Description', '')),
-            sender='ficore.ai.africa@gmail.com',
-            recipients=[bill.get('Email', '')]
-        )
-        msg.html = render_template(
+        html = render_template(
             'email_templates/bill_reminder.html',
             user_name=bill.get('FirstName', ''),
             description=bill.get('Description', ''),
@@ -555,18 +593,56 @@ def send_bill_reminder_email(bill):
             FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
             WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
             CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
-            translations=translations[language]
+            translations=trans
         )
-        mail.send(msg)
-    except SMTPAuthenticationError as e:
-        logger.error(f"SMTP authentication error sending bill reminder: {e}")
-        flash(translations[language]['Failed to send email due to authentication issue'], 'error')
-    except SMTPException as e:
-        logger.error(f"SMTP error sending bill reminder: {e}")
-        flash(translations[language]['Failed to send email due to server issue'], 'error')
+        send_email_async.delay(
+            trans['Bill Reminder Subject'].format(description=bill.get('Description', '')),
+            [bill.get('Email', '')],
+            html,
+            language
+        )
     except Exception as e:
-        logger.error(f"Unexpected error sending bill reminder: {e}")
-        flash(translations[language]['Failed to send email due to unknown error'], 'error')
+        logger.error(f"Error sending bill reminder: {e}")
+
+@celery.task
+def check_bill_reminders():
+    try:
+        reminders = sheets['BillReminders'].get_all_records()
+        now = datetime.now()
+        for reminder in reminders:
+            if reminder.get('Status') != 'Pending':
+                continue
+            reminder_date = parse(reminder.get('ReminderDate', '1970-01-01'))
+            if reminder_date <= now:
+                bill = get_record_by_id(reminder.get('BillTimestamp'), 'BillPlanner')
+                if bill and bill.get('Status') == 'Pending':
+                    send_bill_reminder_email.delay(json.dumps(bill))
+                reminder['Status'] = 'Sent'
+                update_or_append_user_data(reminder, 'BillReminders')
+    except Exception as e:
+        logger.error(f"Error checking bill reminders: {e}")
+
+# Schedule bill reminder using Google Sheets
+def schedule_bill_reminder(bill):
+    language = bill.get('Language', 'English')
+    trans = translations.get(language, translations['English'])
+    try:
+        due_date = parse(bill.get('DueDate', '1970-01-01'))
+        reminder_date = due_date - timedelta(days=1)
+        if reminder_date > datetime.now():
+            reminder_data = {
+                'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'BillTimestamp': bill.get('Timestamp'),
+                'Email': bill.get('Email'),
+                'ReminderDate': reminder_date.strftime('%Y-%m-%d %H:%M:%S'),
+                'Status': 'Pending'
+            }
+            update_or_append_user_data(reminder_data, 'BillReminders')
+        else:
+            flash(translations[language]['Reminder date is in the past'], 'warning')
+    except Exception as e:
+        logger.error(f"Error scheduling bill reminder: {e}")
+        flash(translations[language]['Failed to schedule bill reminder due to server error'], 'error')
 
 # Calculate health score
 def calculate_health_score(income, expenses, debt, interest_rate):
@@ -586,16 +662,16 @@ def calculate_health_score(income, expenses, debt, interest_rate):
         return 50
 
 # Get score description
-def get_score_description(score):
-    language = session.get('language', 'English')
+def get_score_description(score, language='English'):
+    trans = translations.get(language, translations['English'])
     if score >= 80:
-        return translations[language]['Strong Financial Health']
+        return trans['Strong Financial Health']
     elif score >= 60:
-        return translations[language]['Stable Finances']
+        return trans['Stable Finances']
     elif score >= 40:
-        return translations[language]['Financial Strain']
+        return trans['Financial Strain']
     else:
-        return translations[language]['Urgent Attention Needed']
+        return trans['Urgent Attention Needed']
 
 # Assign rank for health score
 @cache.memoize(timeout=300)
@@ -612,20 +688,20 @@ def assign_rank(score):
         return 1, 1
 
 # Assign badges for health score
-def assign_badges(score, debt, income):
-    language = session.get('language', 'English')
+def assign_badges(score, debt, income, language='English'):
+    trans = translations.get(language, translations['English'])
     badges = []
     try:
         if score >= 60:
-            badges.append(translations[language]['Financial Stability Achieved!'])
+            badges.append(trans['Financial Stability Achieved!'])
         if debt == 0:
-            badges.append(translations[language]['Debt Slayer!'])
+            badges.append(trans['Debt Slayer!'])
         if income > 0:
-            badges.append(translations[language]['First Health Score Completed!'])
+            badges.append(trans['First Health Score Completed!'])
         if score >= 80:
-            badges.append(translations[language]['High Value Badge'])
+            badges.append(trans['High Value Badge'])
         elif score >= 60:
-            badges.append(translations[language]['Positive Value Badge'])
+            badges.append(trans['Positive Value Badge'])
     except Exception as e:
         logger.error(f"Error assigning badges: {e}")
     return badges
@@ -640,7 +716,7 @@ def index():
     language = session.get('language', 'English')
     return render_template(
         'landing.html',
-        translations=translations[language],
+        translations=translations.get(language, translations['English']),
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -652,16 +728,29 @@ def change_language():
     language = request.form.get('language', 'English')
     if language in ['English', 'Hausa', 'Yoruba', 'Igbo']:
         session['language'] = language
-        flash(translations[language]['Language changed successfully'], 'success')
+        flash(translations.get(language, translations['English'])['Language changed successfully'], 'success')
     else:
-        flash(translations[session.get('language', 'English')]['Invalid language selection'], 'error')
+        flash(translations.get(session.get('language', 'English'), translations['English'])['Invalid language selection'], 'error')
     return redirect(request.referrer or url_for('index'))
 
 @app.route('/financial_health_score', methods=['GET', 'POST'])
 def financial_health_score():
     language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
     email = session.get('user_email')
-    form_data = get_user_data_by_email(email, 'HealthScore') if email else None
+    form_data = None
+    record_choices = [('', trans['Create New Record'])]
+    user_records = get_user_data_by_email(email, 'HealthScore') if email else []
+    if user_records:
+        for record in user_records:
+            timestamp = record.get('Timestamp', 'Unknown')
+            record_choices.append((timestamp, f"Record from {timestamp}"))
+    selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
+    if selected_record_id and email:
+        for record in user_records:
+            if record.get('Timestamp') == selected_record_id:
+                form_data = record
+                break
     form = UserForm(
         first_name=form_data.get('FirstName') if form_data else None,
         last_name=form_data.get('LastName') if form_data else None,
@@ -674,8 +763,10 @@ def financial_health_score():
         expenses=form_data.get('ExpensesCosts') if form_data else None,
         debt=form_data.get('DebtLoan') if form_data else None,
         interest_rate=form_data.get('DebtInterestRate') if form_data else None,
-        auto_email=form_data.get('AutoEmail', False) if form_data else False
+        auto_email=form_data.get('AutoEmail', False) if form_data else False,
+        record_id=selected_record_id
     )
+    form.record_id.choices = record_choices
     if email:
         form.email.render_kw = {'readonly': True}
         form.confirm_email.render_kw = {'readonly': True}
@@ -689,9 +780,9 @@ def financial_health_score():
             debt = parse_number(form.debt.data)
             interest_rate = parse_number(form.interest_rate.data or 0)
             health_score = calculate_health_score(income, expenses, debt, interest_rate)
-            score_description = get_score_description(health_score)
+            score_description = get_score_description(health_score, language)
             rank, total_users = assign_rank(health_score)
-            badges = assign_badges(health_score, debt, income)
+            badges = assign_badges(health_score, debt, income, language)
             user_data = {
                 'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'BusinessName': form.business_name.data,
@@ -709,51 +800,40 @@ def financial_health_score():
                 'Language': form.language.data,
                 'Score': health_score
             }
+            if form.record_id.data:
+                user_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(user_data, 'HealthScore')
             if form.auto_email.data:
-                try:
-                    msg = Message(
-                        translations[language]['Score Report Subject'].format(user_name=form.first_name.data),
-                        sender='ficore.ai.africa@gmail.com',
-                        recipients=[form.email.data]
-                    )
-                    msg.html = render_template(
-                        'email_templates/financial_health_score.html',
-                        user_name=form.first_name.data,
-                        health_score=health_score,
-                        score_description=score_description,
-                        rank=rank,
-                        total_users=total_users,
-                        course_title=translations[language]['Recommended Course'],
-                        course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
-                        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-                        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-                        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
-                        translations=translations[language]
-                    )
-                    mail.send(msg)
-                    flash(translations[language]['Email sent successfully'], 'success')
-                except SMTPAuthenticationError as e:
-                    logger.error(f"SMTP authentication error sending health score email: {e}")
-                    flash(translations[language]['Failed to send email due to authentication issue'], 'error')
-                except SMTPException as e:
-                    logger.error(f"SMTP error sending health score email: {e}")
-                    flash(translations[language]['Failed to send email due to server issue'], 'error')
-                except Exception as e:
-                    logger.error(f"Unexpected error sending health score email: {e}")
-                    flash(translations[language]['Failed to send email due to unknown error'], 'error')
-            session['user_data'] = user_data
-            session['score_description'] = score_description
-            session['badges'] = badges
-            session['average_score'] = get_average_health_score()
-            flash(translations[language]['Submission Success'], 'success')
+                html = render_template(
+                    'email_templates/financial_health_score.html',
+                    user_name=form.first_name.data,
+                    health_score=health_score,
+                    score_description=score_description,
+                    rank=rank,
+                    total_users=total_users,
+                    course_title=trans['Recommended Course'],
+                    course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
+                    FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+                    WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+                    CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
+                    translations=trans
+                )
+                send_email_async.delay(
+                    trans['Score Report Subject'].format(user_name=form.first_name.data),
+                    [form.email.data],
+                    html,
+                    language
+                )
+                flash(trans['Email scheduled to be sent'], 'success')
+            session['user_data_id'] = user_data['Timestamp']
+            flash(trans['Submission Success'], 'success')
             return redirect(url_for('financial_health_score_dashboard') + '?success=true')
         else:
-            flash(translations[language]['Please correct the errors in the form'], 'error')
+            flash(trans['Please correct the errors in the form'], 'error')
     return render_template(
         'financial_health_score_form.html',
         form=form,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -764,14 +844,16 @@ def financial_health_score():
 @app.route('/financial_health_score_dashboard')
 def financial_health_score_dashboard():
     language = session.get('language', 'English')
-    user_data = session.get('user_data')
-    score_description = session.get('score_description')
-    badges = session.get('badges', [])
-    average_score = session.get('average_score', 50)
+    trans = translations.get(language, translations['English'])
+    user_data_id = session.get('user_data_id')
+    user_data = get_record_by_id(user_data_id, 'HealthScore') if user_data_id else None
     if not user_data:
-        flash(translations[language]['No data available'], 'error')
+        flash(trans['No data available'], 'error')
         return redirect(url_for('financial_health_score'))
-    chart_html, comparison_chart_html = generate_health_score_charts(user_data, language)
+    score_description = get_score_description(user_data.get('Score', 0), language)
+    badges = user_data.get('Badges', '').split(',') if user_data.get('Badges') else []
+    average_score = get_average_health_score()
+    chart_html, comparison_chart_html = generate_health_score_charts(json.dumps(user_data), language)
     tips = get_tips(language)
     courses = get_courses(language)
     return render_template(
@@ -784,7 +866,7 @@ def financial_health_score_dashboard():
         courses=courses,
         chart_html=chart_html,
         comparison_chart_html=comparison_chart_html,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -794,57 +876,64 @@ def financial_health_score_dashboard():
 @app.route('/send_financial_health_score_email')
 def send_financial_health_score_email():
     language = session.get('language', 'English')
-    user_data = session.get('user_data')
-    score_description = session.get('score_description')
+    trans = translations.get(language, translations['English'])
+    user_data_id = session.get('user_data_id')
+    user_data = get_record_by_id(user_data_id, 'HealthScore') if user_data_id else None
     if not user_data:
-        flash(translations[language]['No data available'], 'error')
+        flash(trans['No data available'], 'error')
         return redirect(url_for('financial_health_score'))
-    try:
-        msg = Message(
-            translations[language]['Score Report Subject'].format(user_name=user_data.get('FirstName', '')),
-            sender='ficore.ai.africa@gmail.com',
-            recipients=[user_data.get('Email', '')]
-        )
-        rank,total_users = assign_rank(user_data.get('Score', 0))
-        msg.html = render_template(
-            'email_templates/financial_health_score.html',
-            user_name=user_data.get('FirstName', ''),
-            health_score=user_data.get('Score', 0),
-            score_description=score_description,
-            rank=rank,
-            total_users=total_users,
-            course_title=translations[language]['Recommended Course'],
-            course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
-            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
-            translations=translations[language]
-        )
-        mail.send(msg)
-        flash(translations[language]['Email sent successfully'], 'success')
-    except SMTPAuthenticationError as e:
-        logger.error(f"SMTP authentication error sending health score email: {e}")
-        flash(translations[language]['Failed to send email due to authentication issue'], 'error')
-    except SMTPException as e:
-        logger.error(f"SMTP error sending health score email: {e}")
-        flash(translations[language]['Failed to send email due to server issue'], 'error')
-    except Exception as e:
-        logger.error(f"Unexpected error sending health score email: {e}")
-        flash(translations[language]['Failed to send email due to unknown error'], 'error')
+    score_description = get_score_description(user_data.get('Score', 0), language)
+    rank, total_users = assign_rank(user_data.get('Score', 0))
+    html = render_template(
+        'email_templates/financial_health_score.html',
+        user_name=user_data.get('FirstName', ''),
+        health_score=user_data.get('Score', 0),
+        score_description=score_description,
+        rank=rank,
+        total_users=total_users,
+        course_title=trans['Recommended Course'],
+        course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
+        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
+        translations=trans
+    )
+    send_email_async.delay(
+        trans['Score Report Subject'].format(user_name=user_data.get('FirstName', '')),
+        [user_data.get('Email', '')],
+        html,
+        language
+    )
+    flash(trans['Email scheduled to be sent'], 'success')
     return redirect(url_for('financial_health_score_dashboard'))
 
 @app.route('/net_worth', methods=['GET', 'POST'])
 def net_worth():
     language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
     email = session.get('user_email')
-    form_data = get_user_data_by_email(email, 'NetWorth') if email else None
+    form_data = None
+    record_choices = [('', trans['Create New Record'])]
+    user_records = get_user_data_by_email(email, 'NetWorth') if email else []
+    if user_records:
+        for record in user_records:
+            timestamp = record.get('Timestamp', 'Unknown')
+            record_choices.append((timestamp, f"Record from {timestamp}"))
+    selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
+    if selected_record_id and email:
+        for record in user_records:
+            if record.get('Timestamp') == selected_record_id:
+                form_data = record
+                break
     form = NetWorthForm(
         first_name=form_data.get('FirstName') if form_data else None,
         email=email,
         language=form_data.get('Language') if form_data else language,
         assets=form_data.get('Assets') if form_data else None,
-        liabilities=form_data.get('Liabilities') if form_data else None
+        liabilities=form_data.get('Liabilities') if form_data else None,
+        record_id=selected_record_id
     )
+    form.record_id.choices = record_choices
     if email:
         form.email.render_kw = {'readonly': True}
     if request.method == 'POST':
@@ -867,19 +956,18 @@ def net_worth():
                 'Liabilities': liabilities,
                 'NetWorth': net_worth
             }
+            if form.record_id.data:
+                net_worth_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(net_worth_data, 'NetWorth')
-            session['net_worth_data'] = net_worth_data
-            session['net_worth_rank'] = rank
-            session['net_worth_advice'] = advice
-            session['net_worth_badges'] = badges
-            flash(translations[language]['Submission Success'], 'success')
+            session['net_worth_data_id'] = net_worth_data['Timestamp']
+            flash(trans['Submission Success'], 'success')
             return redirect(url_for('net_worth_dashboard') + '?success=true')
         else:
-            flash(translations[language]['Please correct the errors in the form'], 'error')
+            flash(trans['Please correct the errors in the form'], 'error')
     return render_template(
         'net_worth_form.html',
         form=form,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -890,14 +978,16 @@ def net_worth():
 @app.route('/net_worth_dashboard')
 def net_worth_dashboard():
     language = session.get('language', 'English')
-    net_worth_data = session.get('net_worth_data')
-    rank = session.get('net_worth_rank')
-    advice = session.get('net_worth_advice')
-    badges = session.get('net_worth_badges', [])
+    trans = translations.get(language, translations['English'])
+    net_worth_data_id = session.get('net_worth_data_id')
+    net_worth_data = get_record_by_id(net_worth_data_id, 'NetWorth') if net_worth_data_id else None
     if not net_worth_data:
-        flash(translations[language]['No data available'], 'error')
+        flash(trans['No data available'], 'error')
         return redirect(url_for('net_worth'))
-    chart_html, comparison_chart_html = generate_net_worth_charts(net_worth_data, language)
+    rank = assign_net_worth_rank(net_worth_data.get('NetWorth', 0))
+    advice = get_net_worth_advice(net_worth_data.get('NetWorth', 0), language)
+    badges = assign_net_worth_badges(net_worth_data.get('NetWorth', 0), language)
+    chart_html, comparison_chart_html = generate_net_worth_charts(json.dumps(net_worth_data), language)
     tips = get_tips(language)
     courses = get_courses(language)
     return render_template(
@@ -910,7 +1000,7 @@ def net_worth_dashboard():
         courses=courses,
         chart_html=chart_html,
         comparison_chart_html=comparison_chart_html,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -920,8 +1010,21 @@ def net_worth_dashboard():
 @app.route('/quiz', methods=['GET', 'POST'])
 def quiz():
     language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
     email = session.get('user_email')
-    form_data = get_user_data_by_email(email, 'Quiz') if email else None
+    form_data = None
+    record_choices = [('', trans['Create New Record'])]
+    user_records = get_user_data_by_email(email, 'Quiz') if email else []
+    if user_records:
+        for record in user_records:
+            timestamp = record.get('Timestamp', 'Unknown')
+            record_choices.append((timestamp, f"Record from {timestamp}"))
+    selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
+    if selected_record_id and email:
+        for record in user_records:
+            if record.get('Timestamp') == selected_record_id:
+                form_data = record
+                break
     form = QuizForm(
         first_name=form_data.get('FirstName') if form_data else None,
         email=email,
@@ -930,8 +1033,10 @@ def quiz():
         q2=form_data.get('Q2') if form_data else None,
         q3=form_data.get('Q3') if form_data else None,
         q4=form_data.get('Q4') if form_data else None,
-        q5=form_data.get('Q5') if form_data else None
+        q5=form_data.get('Q5') if form_data else None,
+        record_id=selected_record_id
     )
+    form.record_id.choices = record_choices
     if email:
         form.email.render_kw = {'readonly': True}
     if request.method == 'POST':
@@ -939,7 +1044,8 @@ def quiz():
             session['language'] = form.language.data
             session['user_email'] = form.email.data
             session.permanent = True
-            score = sum(1 for q in [form.q1.data, form.q2.data, form.q3.data, form.q4.data, form.q5.data] if q == 'Yes')
+            answers = [form.q1.data, form.q2.data, form.q3.data, form.q4.data, form.q5.data]
+            score = sum(1 for answer in answers if answer == 'Yes')
             personality = 'Risk-Taker' if form.q3.data == 'Yes' else 'Conservative'
             advice = get_quiz_advice(score, personality, language)
             badges = assign_quiz_badges(score, language)
@@ -956,44 +1062,50 @@ def quiz():
                 'QuizScore': score,
                 'Personality': personality
             }
+            if form.record_id.data:
+                quiz_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(quiz_data, 'Quiz')
-            session['quiz_data'] = quiz_data
-            session['quiz_advice'] = advice
-            session['quiz_badges'] = badges
-            flash(translations[language]['Submission Success'], 'success')
+            session['quiz_data_id'] = quiz_data['Timestamp']
+            flash(trans['Submission Success'], 'success')
             return redirect(url_for('quiz_dashboard') + '?success=true')
         else:
-            flash(translations[language]['Please correct the errors in the form'], 'error')
+            flash(trans['Please correct the errors in the form'], 'error')
     return render_template(
         'quiz_form.html',
         form=form,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
-        icon='📝'
+        icon='❓'
     )
 
 @app.route('/quiz_dashboard')
 def quiz_dashboard():
     language = session.get('language', 'English')
-    quiz_data = session.get('quiz_data')
-    advice = session.get('quiz_advice')
-    badges = session.get('quiz_badges', [])
+    trans = translations.get(language, translations['English'])
+    quiz_data_id = session.get('quiz_data_id')
+    quiz_data = get_record_by_id(quiz_data_id, 'Quiz') if quiz_data_id else None
     if not quiz_data:
-        flash(translations[language]['No data available'], 'error')
+        flash(trans['No data available'], 'error')
         return redirect(url_for('quiz'))
+    score = quiz_data.get('QuizScore', 0)
+    personality = quiz_data.get('Personality', 'Conservative')
+    advice = get_quiz_advice(score, personality, language)
+    badges = assign_quiz_badges(score, language)
     tips = get_tips(language)
     courses = get_courses(language)
     return render_template(
         'quiz_dashboard.html',
         quiz_data=quiz_data,
+        score=score,
+        personality=personality,
         advice=advice,
         badges=badges,
         tips=tips,
         courses=courses,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -1003,14 +1115,29 @@ def quiz_dashboard():
 @app.route('/emergency_fund', methods=['GET', 'POST'])
 def emergency_fund():
     language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
     email = session.get('user_email')
-    form_data = get_user_data_by_email(email, 'EmergencyFund') if email else None
+    form_data = None
+    record_choices = [('', trans['Create New Record'])]
+    user_records = get_user_data_by_email(email, 'EmergencyFund') if email else []
+    if user_records:
+        for record in user_records:
+            timestamp = record.get('Timestamp', 'Unknown')
+            record_choices.append((timestamp, f"Record from {timestamp}"))
+    selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
+    if selected_record_id and email:
+        for record in user_records:
+            if record.get('Timestamp') == selected_record_id:
+                form_data = record
+                break
     form = EmergencyFundForm(
         first_name=form_data.get('FirstName') if form_data else None,
         email=email,
         language=form_data.get('Language') if form_data else language,
-        monthly_expenses=form_data.get('MonthlyExpenses') if form_data else None
+        monthly_expenses=form_data.get('MonthlyExpenses') if form_data else None,
+        record_id=selected_record_id
     )
+    form.record_id.choices = record_choices
     if email:
         form.email.render_kw = {'readonly': True}
     if request.method == 'POST':
@@ -1028,16 +1155,18 @@ def emergency_fund():
                 'MonthlyExpenses': monthly_expenses,
                 'RecommendedFund': recommended_fund
             }
+            if form.record_id.data:
+                emergency_fund_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(emergency_fund_data, 'EmergencyFund')
-            session['emergency_fund_data'] = emergency_fund_data
-            flash(translations[language]['Submission Success'], 'success')
+            session['emergency_fund_data_id'] = emergency_fund_data['Timestamp']
+            flash(trans['Submission Success'], 'success')
             return redirect(url_for('emergency_fund_dashboard') + '?success=true')
         else:
-            flash(translations[language]['Please correct the errors in the form'], 'error')
+            flash(trans['Please correct the errors in the form'], 'error')
     return render_template(
         'emergency_fund_form.html',
         form=form,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -1048,9 +1177,11 @@ def emergency_fund():
 @app.route('/emergency_fund_dashboard')
 def emergency_fund_dashboard():
     language = session.get('language', 'English')
-    emergency_fund_data = session.get('emergency_fund_data')
+    trans = translations.get(language, translations['English'])
+    emergency_fund_data_id = session.get('emergency_fund_data_id')
+    emergency_fund_data = get_record_by_id(emergency_fund_data_id, 'EmergencyFund') if emergency_fund_data_id else None
     if not emergency_fund_data:
-        flash(translations[language]['No data available'], 'error')
+        flash(trans['No data available'], 'error')
         return redirect(url_for('emergency_fund'))
     tips = get_tips(language)
     courses = get_courses(language)
@@ -1059,7 +1190,7 @@ def emergency_fund_dashboard():
         emergency_fund_data=emergency_fund_data,
         tips=tips,
         courses=courses,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -1069,8 +1200,21 @@ def emergency_fund_dashboard():
 @app.route('/budget', methods=['GET', 'POST'])
 def budget():
     language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
     email = session.get('user_email')
-    form_data = get_user_data_by_email(email, 'Budget') if email else None
+    form_data = None
+    record_choices = [('', trans['Create New Record'])]
+    user_records = get_user_data_by_email(email, 'Budget') if email else []
+    if user_records:
+        for record in user_records:
+            timestamp = record.get('Timestamp', 'Unknown')
+            record_choices.append((timestamp, f"Record from {timestamp}"))
+    selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
+    if selected_record_id and email:
+        for record in user_records:
+            if record.get('Timestamp') == selected_record_id:
+                form_data = record
+                break
     form = BudgetForm(
         first_name=form_data.get('FirstName') if form_data else None,
         email=email,
@@ -1080,8 +1224,10 @@ def budget():
         food=form_data.get('FoodExpenses') if form_data else None,
         transport=form_data.get('TransportExpenses') if form_data else None,
         other=form_data.get('OtherExpenses') if form_data else None,
-        auto_email=form_data.get('AutoEmail', False) if form_data else False
+        auto_email=form_data.get('AutoEmail', False) if form_data else False,
+        record_id=selected_record_id
     )
+    form.record_id.choices = record_choices
     if email:
         form.email.render_kw = {'readonly': True}
         form.confirm_email.render_kw = {'readonly': True}
@@ -1096,8 +1242,10 @@ def budget():
             transport = parse_number(form.transport.data)
             other = parse_number(form.other.data)
             total_expenses = housing + food + transport + other
-            savings = max(0, income - total_expenses)
-            surplus_deficit = income - total_expenses
+            savings = max(income * 0.2, 0)
+            if total_expenses + savings > income:
+                savings = max(income - total_expenses, 0)
+            surplus_deficit = income - total_expenses - savings
             budget_data = {
                 'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'FirstName': form.first_name.data,
@@ -1113,45 +1261,38 @@ def budget():
                 'Savings': savings,
                 'SurplusDeficit': surplus_deficit
             }
+            if form.record_id.data:
+                budget_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(budget_data, 'Budget')
             if form.auto_email.data:
-                try:
-                    msg = Message(
-                        translations[language]['Budget Report Subject'].format(user_name=form.first_name.data),
-                        sender='ficore.ai.africa@gmail.com',
-                        recipients=[form.email.data]
-                    )
-                    msg.html = render_template(
-                        'email_templates/budget_report.html',
-                        user_name=form.first_name.data,
-                        budget_data=budget_data,
-                        course_title=translations[language]['Recommended Course'],
-                        course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
-                        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-                        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-                        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
-                        translations=translations[language]
-                    )
-                    mail.send(msg)
-                    flash(translations[language]['Email sent successfully'], 'success')
-                except SMTPAuthenticationError as e:
-                    logger.error(f"SMTP authentication error sending budget email: {e}")
-                    flash(translations[language]['Failed to send email due to authentication issue'], 'error')
-                except SMTPException as e:
-                    logger.error(f"SMTP error sending budget email: {e}")
-                    flash(translations[language]['Failed to send email due to server issue'], 'error')
-                except Exception as e:
-                    logger.error(f"Unexpected error sending budget email: {e}")
-                    flash(translations[language]['Failed to send email due to unknown error'], 'error')
-            session['budget_data'] = budget_data
-            flash(translations[language]['Submission Success'], 'success')
+                html = render_template(
+                    'email_templates/budget_report.html',
+                    user_name=form.first_name.data,
+                    income=income,
+                    total_expenses=total_expenses,
+                    savings=savings,
+                    surplus_deficit=surplus_deficit,
+                    FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+                    WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+                    CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
+                    translations=trans
+                )
+                send_email_async.delay(
+                    trans['Budget Report Subject'].format(user_name=form.first_name.data),
+                    [form.email.data],
+                    html,
+                    language
+                )
+                flash(trans['Email scheduled to be sent'], 'success')
+            session['budget_data_id'] = budget_data['Timestamp']
+            flash(trans['Submission Success'], 'success')
             return redirect(url_for('budget_dashboard') + '?success=true')
         else:
-            flash(translations[language]['Please correct the errors in the form'], 'error')
+            flash(trans['Please correct the errors in the form'], 'error')
     return render_template(
         'budget_form.html',
         form=form,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -1162,11 +1303,13 @@ def budget():
 @app.route('/budget_dashboard')
 def budget_dashboard():
     language = session.get('language', 'English')
-    budget_data = session.get('budget_data')
+    trans = translations.get(language, translations['English'])
+    budget_data_id = session.get('budget_data_id')
+    budget_data = get_record_by_id(budget_data_id, 'Budget') if budget_data_id else None
     if not budget_data:
-        flash(translations[language]['No data available'], 'error')
+        flash(trans['No data available'], 'error')
         return redirect(url_for('budget'))
-    chart_html = generate_budget_charts(budget_data, language)
+    chart_html = generate_budget_charts(json.dumps(budget_data), language)
     tips = get_tips(language)
     courses = get_courses(language)
     return render_template(
@@ -1175,7 +1318,7 @@ def budget_dashboard():
         chart_html=chart_html,
         tips=tips,
         courses=courses,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -1185,8 +1328,21 @@ def budget_dashboard():
 @app.route('/expense_tracker', methods=['GET', 'POST'])
 def expense_tracker():
     language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
     email = session.get('user_email')
-    form_data = get_user_data_by_email(email, 'ExpenseTracker') if email else None
+    form_data = None
+    record_choices = [('', trans['Create New Record'])]
+    user_records = get_user_data_by_email(email, 'ExpenseTracker') if email else []
+    if user_records:
+        for record in user_records:
+            record_id = record.get('ID', 'Unknown')
+            record_choices.append((record_id, f"Transaction {record_id}"))
+    selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
+    if selected_record_id and email:
+        for record in user_records:
+            if record.get('ID') == selected_record_id:
+                form_data = record
+                break
     form = ExpenseForm(
         first_name=form_data.get('FirstName') if form_data else None,
         email=email,
@@ -1194,8 +1350,10 @@ def expense_tracker():
         amount=form_data.get('Amount') if form_data else None,
         description=form_data.get('Description') if form_data else None,
         category=form_data.get('Category') if form_data else None,
-        transaction_type=form_data.get('TransactionType') if form_data else None
+        transaction_type=form_data.get('TransactionType') if form_data else None,
+        record_id=selected_record_id
     )
+    form.record_id.choices = record_choices
     if email:
         form.email.render_kw = {'readonly': True}
     if request.method == 'POST':
@@ -1203,14 +1361,12 @@ def expense_tracker():
             session['language'] = form.language.data
             session['user_email'] = form.email.data
             session.permanent = True
-            transaction_id = str(uuid.uuid4())
-            date = datetime.now().strftime('%Y-%m-%d')
             expense_data = {
-                'ID': transaction_id,
+                'ID': str(uuid.uuid4()) if not form.record_id.data else form.record_id.data,
                 'UserEmail': form.email.data,
                 'Amount': parse_number(form.amount.data),
                 'Category': form.category.data,
-                'Date': date,
+                'Date': datetime.now().strftime('%Y-%m-%d'),
                 'Description': form.description.data,
                 'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'TransactionType': form.transaction_type.data,
@@ -1218,15 +1374,15 @@ def expense_tracker():
             }
             update_or_append_user_data(expense_data, 'ExpenseTracker')
             running_balance = calculate_running_balance(form.email.data)
-            session['running_balance'] = running_balance
-            flash(translations[language]['Transaction added successfully'], 'success')
-            return redirect(url_for('expense_tracker_dashboard') + f'?transaction_id={transaction_id}&success=true')
+            session['expense_data_id'] = expense_data['ID']
+            flash(trans['Transaction Added'], 'success')
+            return redirect(url_for('expense_tracker_dashboard') + '?success=true')
         else:
-            flash(translations[language]['Please correct the errors in the form'], 'error')
+            flash(trans['Please correct the errors in the form'], 'error')
     return render_template(
         'expense_tracker_form.html',
         form=form,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -1237,36 +1393,27 @@ def expense_tracker():
 @app.route('/expense_tracker_dashboard')
 def expense_tracker_dashboard():
     language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
     email = session.get('user_email')
-    transaction_id = request.args.get('transaction_id')
-    page = int(request.args.get('page', 1))
-    per_page = 10
     if not email:
-        flash(translations[language]['No user email found'], 'error')
+        flash(trans['Please submit a transaction first'], 'error')
         return redirect(url_for('expense_tracker'))
-    records = sheets['ExpenseTracker'].get_all_records()
-    transactions = [r for r in records if r.get('UserEmail') == email]
-    transactions.sort(key=lambda x: parse(x.get('Timestamp', '1970-01-01 00:00:00')), reverse=True)
-    total_transactions = len(transactions)
-    total_pages = ceil(total_transactions / per_page)
-    start = (page - 1) * per_page
-    end = start + per_page
-    paginated_transactions = transactions[start:end]
-    running_balance = session.get('running_balance', calculate_running_balance(email))
+    records = get_user_data_by_email(email, 'ExpenseTracker')
+    if not records:
+        flash(trans['No transactions found'], 'error')
+        return redirect(url_for('expense_tracker'))
     chart_html = generate_expense_charts(email, language)
+    running_balance = calculate_running_balance(email)
     tips = get_tips(language)
     courses = get_courses(language)
     return render_template(
         'expense_tracker_dashboard.html',
-        transactions=paginated_transactions,
+        records=records,
         running_balance=running_balance,
         chart_html=chart_html,
         tips=tips,
         courses=courses,
-        page=page,
-        total_pages=total_pages,
-        transaction_id=transaction_id,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -1276,8 +1423,21 @@ def expense_tracker_dashboard():
 @app.route('/bill_planner', methods=['GET', 'POST'])
 def bill_planner():
     language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
     email = session.get('user_email')
-    form_data = get_user_data_by_email(email, 'BillPlanner') if email else None
+    form_data = None
+    record_choices = [('', trans['Create New Record'])]
+    user_records = get_user_data_by_email(email, 'BillPlanner') if email else []
+    if user_records:
+        for record in user_records:
+            timestamp = record.get('Timestamp', 'Unknown')
+            record_choices.append((timestamp, f"Bill from {timestamp}"))
+    selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
+    if selected_record_id and email:
+        for record in user_records:
+            if record.get('Timestamp') == selected_record_id:
+                form_data = record
+                break
     form = BillForm(
         first_name=form_data.get('FirstName') if form_data else None,
         email=email,
@@ -1287,8 +1447,10 @@ def bill_planner():
         due_date=form_data.get('DueDate') if form_data else None,
         category=form_data.get('Category') if form_data else None,
         recurrence=form_data.get('Recurrence') if form_data else None,
-        send_email=form_data.get('SendEmail', False) if form_data else False
+        send_email=form_data.get('SendEmail', False) if form_data else False,
+        record_id=selected_record_id
     )
+    form.record_id.choices = record_choices
     if email:
         form.email.render_kw = {'readonly': True}
     if request.method == 'POST':
@@ -1299,11 +1461,11 @@ def bill_planner():
             try:
                 due_date = parse(form.due_date.data).strftime('%Y-%m-%d')
             except ValueError:
-                flash(translations[language]['Invalid date format. Please use YYYY-MM-DD'], 'error')
+                flash(trans['Invalid due date format. Use YYYY-MM-DD'], 'error')
                 return render_template(
                     'bill_planner_form.html',
                     form=form,
-                    translations=translations[language],
+                    translations=trans,
                     language=language,
                     FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
                     WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -1323,17 +1485,20 @@ def bill_planner():
                 'Status': 'Pending',
                 'SendEmail': str(form.send_email.data)
             }
+            if form.record_id.data:
+                bill_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(bill_data, 'BillPlanner')
             if form.send_email.data:
                 schedule_bill_reminder(bill_data)
-            flash(translations[language]['Bill added successfully'], 'success')
-            return redirect(url_for('bill_planner_dashboard') + f'?bill_id={bill_data["Timestamp"]}&success=true')
+            session['bill_data_id'] = bill_data['Timestamp']
+            flash(trans['Bill Added'], 'success')
+            return redirect(url_for('bill_planner_dashboard') + '?success=true')
         else:
-            flash(translations[language]['Please correct the errors in the form'], 'error')
+            flash(trans['Please correct the errors in the form'], 'error')
     return render_template(
         'bill_planner_form.html',
         form=form,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
@@ -1344,56 +1509,41 @@ def bill_planner():
 @app.route('/bill_planner_dashboard')
 def bill_planner_dashboard():
     language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
     email = session.get('user_email')
-    bill_id = request.args.get('bill_id')
-    page = int(request.args.get('page', 1))
-    per_page = 10
     if not email:
-        flash(translations[language]['No user email found'], 'error')
+        flash(trans['Please submit a bill first'], 'error')
         return redirect(url_for('bill_planner'))
-    records = sheets['BillPlanner'].get_all_records()
-    bills = [r for r in records if r.get('Email') == email]
-    bills.sort(key=lambda x: parse(x.get('DueDate', '1970-01-01')), reverse=True)
-    total_bills = len(bills)
-    total_pages = ceil(total_bills / per_page)
-    start = (page - 1) * per_page
-    end = start + per_page
-    paginated_bills = bills[start:end]
+    bills = get_user_data_by_email(email, 'BillPlanner')
+    if not bills:
+        flash(trans['No bills found'], 'error')
+        return redirect(url_for('bill_planner'))
     tips = get_tips(language)
     courses = get_courses(language)
     return render_template(
         'bill_planner_dashboard.html',
-        bills=paginated_bills,
+        bills=bills,
         tips=tips,
         courses=courses,
-        page=page,
-        total_pages=total_pages,
-        bill_id=bill_id,
-        translations=translations[language],
+        translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/mark_bill_paid/<bill_id>', methods=['POST'])
+@app.route('/mark_bill_paid/<bill_id>')
 def mark_bill_paid(bill_id):
     language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
     bill = get_record_by_id(bill_id, 'BillPlanner')
     if not bill:
-        flash(translations[language]['Bill not found'], 'error')
+        flash(trans['Bill not found'], 'error')
         return redirect(url_for('bill_planner_dashboard'))
     bill['Status'] = 'Paid'
-    update_or_append_user_data(bill, 'BillPlanner')
-    flash(translations[language]['Bill marked as paid'], 'success')
+    update_or_append_user_data(bill, 'BillPlanner', update_only_specific_fields=['Status'])
+    flash(trans['Bill marked as paid'], 'success')
     return redirect(url_for('bill_planner_dashboard'))
-
-@app.route('/logout')
-def logout():
-    language = session.get('language', 'English')
-    session.clear()
-    flash(translations[language]['Logged out successfully'], 'success')
-    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
