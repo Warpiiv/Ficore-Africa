@@ -10,7 +10,7 @@ from wtforms.validators import DataRequired, Email, Optional, NumberRange, Equal
 from flask_mail import Mail, Message
 from smtplib import SMTPException, SMTPAuthenticationError
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 from dateutil.parser import parse
 import numpy as np
 import plotly.graph_objects as go
@@ -79,8 +79,8 @@ try:
         logger.error(f"Invalid GOOGLE_CREDENTIALS_JSON format: {e}")
         flash("Server error: Invalid Google Sheets credentials configuration", 'error')
         abort(500)
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
+creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+client = gspread.authorize(creds)
 except Exception as e:
     logger.error(f"Failed to initialize Google Sheets credentials: {e}")
     abort(500)
