@@ -499,7 +499,7 @@ translations = {
                 <div style="background-color: #1E7F71; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
                     <h2 style="color: #FFFFFF; margin: 0;">Dashboard na Net Worth na Ficore Africa</h2>
                     <p style="font-style: italic; color: #E0F7FA; font-size: 0.9rem; margin: 5px 0 0 0;">
-                        Fasfo na haɓaka kuɝi don Afirka
+                        Fasfo na haɓaka kuɗi don Afirka
                     </p>
                 </div>
                 <p>Mai girma {user_name},</p>
