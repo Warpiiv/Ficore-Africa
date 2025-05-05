@@ -263,7 +263,7 @@
             <div class="progress">
                 <div class="progress-bar bg-success" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
-            <form method="POST" id="submission-form" action="{{ url_for('health_score') }}">
+            <form method="POST" id="submission-form" action="{{ url_for('health_score_form') }}">
                 {{ form.hidden_tag() }}
 
                 <div class="step active" id="step-1">
