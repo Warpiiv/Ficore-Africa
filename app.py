@@ -746,8 +746,8 @@ def change_language():
         flash(translations.get(session.get('language', 'English'), translations['English'])['Invalid language selection'], 'error')
     return redirect(request.referrer or url_for('index'))
 
-@app.route('/financial_health_score', methods=['GET', 'POST'])
-def financial_health_score():
+@app.route('/health_score', methods=['GET', 'POST'])
+def health_score():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
     email = session.get('user_email')
@@ -818,7 +818,7 @@ def financial_health_score():
             update_or_append_user_data(user_data, 'HealthScore')
             if form.auto_email.data:
                 html = render_template(
-                    'email_templates/financial_health_score.html',
+                    'email_templates/health_score.html',
                     user_name=form.first_name.data,
                     health_score=health_score,
                     score_description=score_description,
@@ -841,7 +841,7 @@ def financial_health_score():
             session['user_data_id'] = user_data['Timestamp']
             chart_html, comparison_chart_html = generate_health_score_charts(json.dumps(user_data), language)
             return render_template(
-                'dashboard.html',
+                'health_score_dashboard.html',
                 tool='Financial Health Score',
                 user_data=user_data,
                 chart_html=chart_html,
@@ -859,7 +859,7 @@ def financial_health_score():
                 CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
             )
     return render_template(
-        'financial_health_score.html',
+        'health_score.html',
         form=form,
         translations=trans,
         language=language,
@@ -922,7 +922,7 @@ def net_worth():
             update_or_append_user_data(user_data, 'NetWorth')
             chart_html, comparison_chart_html = generate_net_worth_charts(json.dumps(user_data), language)
             return render_template(
-                'dashboard.html',
+                'health_score_dashboard.html',
                 tool='Net Worth',
                 user_data=user_data,
                 chart_html=chart_html,
@@ -948,7 +948,7 @@ def net_worth():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/quiz', methods=['GET', 'POST'])
+@app.route('/quiz_form', methods=['GET', 'POST'])
 def quiz():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
@@ -1006,7 +1006,7 @@ def quiz():
                 user_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(user_data, 'Quiz')
             return render_template(
-                'dashboard.html',
+                'health_score_dashboard.html',
                 tool='Financial Quiz',
                 user_data=user_data,
                 score=score,
@@ -1078,7 +1078,7 @@ def emergency_fund():
                 user_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(user_data, 'EmergencyFund')
             return render_template(
-                'dashboard.html',
+                'health_score_dashboard.html',
                 tool='Emergency Fund',
                 user_data=user_data,
                 translations=trans,
@@ -1184,7 +1184,7 @@ def budget():
                 flash(trans['Email scheduled to be sent'], 'success')
             chart_html = generate_budget_charts(json.dumps(user_data), language)
             return render_template(
-                'dashboard.html',
+                'health_score_dashboard.html',
                 tool='Budget Planner',
                 user_data=user_data,
                 chart_html=chart_html,
@@ -1259,7 +1259,7 @@ def expense_tracker():
             update_or_append_user_data(user_data, 'ExpenseTracker')
             chart_html = generate_expense_charts(form.email.data, language)
             return render_template(
-                'dashboard.html',
+                'health_score_dashboard.html',
                 tool='Expense Tracker',
                 user_data=user_data,
                 chart_html=chart_html,
@@ -1339,7 +1339,7 @@ def bill_planner():
             if form.send_email.data:
                 schedule_bill_reminder(user_data)
             return render_template(
-                'dashboard.html',
+                'health_score_dashboard.html',
                 tool='Bill Planner',
                 user_data=user_data,
                 tips=get_tips(language),
@@ -1360,13 +1360,13 @@ def bill_planner():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/dashboard', methods=['GET'])
-def dashboard():
+@app.route('/health_score_dashboard', methods=['GET'])
+def health_score_dashboard():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
     email = session.get('user_email')
     if not email:
-        flash(trans['Please log in or submit a form first to view your dashboard.'], 'warning')
+        flash(trans['Please log in or submit a form first to view your health_score_dashboard.'], 'warning')
         return redirect(url_for('index'))
     tool = request.args.get('tool')
     user_data = None
@@ -1407,7 +1407,7 @@ def dashboard():
         rank, total_users = assign_rank(user_data.get('Score', 50))
         badges = assign_badges(user_data.get('Score', 50), user_data.get('DebtLoan', 0), user_data.get('IncomeRevenue', 0), language)
         return render_template(
-            'dashboard.html',
+            'health_score_dashboard.html',
             tool=tool,
             user_data=user_data,
             chart_html=chart_html,
@@ -1430,7 +1430,7 @@ def dashboard():
         badges = assign_net_worth_badges(user_data.get('NetWorth', 0), language)
         advice = get_net_worth_advice(user_data.get('NetWorth', 0), language)
         return render_template(
-            'dashboard.html',
+            'health_score_dashboard.html',
             tool=tool,
             user_data=user_data,
             chart_html=chart_html,
@@ -1452,7 +1452,7 @@ def dashboard():
         badges = assign_quiz_badges(score, language)
         advice = get_quiz_advice(score, personality, language)
         return render_template(
-            'dashboard.html',
+            'health_score_dashboard.html',
             tool=tool,
             user_data=user_data,
             score=score,
@@ -1469,7 +1469,7 @@ def dashboard():
         )
     elif tool == 'Emergency Fund':
         return render_template(
-            'dashboard.html',
+            'health_score_dashboard.html',
             tool=tool,
             user_data=user_data,
             translations=trans,
@@ -1481,7 +1481,7 @@ def dashboard():
     elif tool == 'Budget Planner':
         chart_html = generate_budget_charts(json.dumps(user_data), language)
         return render_template(
-            'dashboard.html',
+            'health_score_dashboard.html',
             tool=tool,
             user_data=user_data,
             chart_html=chart_html,
@@ -1497,7 +1497,7 @@ def dashboard():
         chart_html = generate_expense_charts(email, language)
         balance = calculate_running_balance(email)
         return render_template(
-            'dashboard.html',
+            'health_score_dashboard.html',
             tool=tool,
             user_data=user_data,
             chart_html=chart_html,
@@ -1512,7 +1512,7 @@ def dashboard():
         )
     elif tool == 'Bill Planner':
         return render_template(
-            'dashboard.html',
+            'health_score_dashboard.html',
             tool=tool,
             user_data=user_data,
             tips=get_tips(language),
@@ -1523,7 +1523,7 @@ def dashboard():
             WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
             CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
         )
-    flash(trans['Invalid dashboard tool selected.'], 'error')
+    flash(trans['Invalid health_score_dashboard tool selected.'], 'error')
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
