@@ -465,7 +465,7 @@
         <!-- Call to Action Section -->
         <section class="cta-section">
             <p><span class="emoji">🎯</span> {{ translations['New here? Start with your Financial Health Score to get personalized recommendations.'] }}</p>
-            <a href="{{ url_for('submit') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Begin Financial Health Score Assessment'] }}">{{ translations['Begin Now'] }}</a>
+            <a href="{{ url_for('health_score_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Begin Financial Health Score Assessment'] }}">{{ translations['Begin Now'] }}</a>
         </section>
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
