@@ -1,3 +1,8 @@
+import logging
+
+# Configure logging to output to stdout (required for Render)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 import os
 import uuid
 import json
