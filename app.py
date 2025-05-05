@@ -1268,7 +1268,7 @@ def budget():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/expense_form', methods=['GET', 'POST'])
+@app.route('/expense_tracker_form', methods=['GET', 'POST'])
 def expense_tracker():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
@@ -1354,7 +1354,7 @@ def expense_tracker():
                 CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
             )
     return render_template(
-        'expense_form.html',
+        'expense_tracker_form.html',
         form=form,
         translations=trans,
         language=language,
@@ -1362,8 +1362,27 @@ def expense_tracker():
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
+    @app.route('/expense_tracker_dashboard')
+def expense_tracker_dashboard():
+    language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
+    user_data = json.loads(request.args.get('user_data', '{}'))
+    chart_html = request.args.get('chart_html', '')
+    return render_template(
+        'expense_tracker_dashboard.html',
+        tool='Expense Tracker',
+        user_data=user_data,
+        chart_html=chart_html,
+        tips=get_tips(language),
+        courses=get_courses(language),
+        translations=trans,
+        language=language,
+        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+    )
 
-@app.route('/bill_form', methods=['GET', 'POST'])
+@app.route('/bill_planner_form', methods=['GET', 'POST'])
 def bill_planner():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
