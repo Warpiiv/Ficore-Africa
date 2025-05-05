@@ -149,7 +149,7 @@
         {% endwith %}
 
         <h3>{{ translations['Add or Update a Bill'] }}</h3>
-        <form method="POST" action="{{ url_for('edit_bill') }}">
+        <form method="POST" action="{{ url_for('bill_planner_dashboard') }}">
             {{ form.hidden_tag() }}
 
             {% if bill %}
@@ -194,7 +194,7 @@
         <footer class="mt-4 text-center">
             <p>
                 <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
-                <a href="{{ url_for('bill_planner') }}" class="btn btn-secondary">{{ translations['Back to Planner'] }}</a>
+                <a href="{{ url_for('bill_planner_form') }}" class="btn btn-secondary">{{ translations['Back to Planner'] }}</a>
             </p>
             <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
             <p><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
