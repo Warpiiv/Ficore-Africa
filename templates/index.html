@@ -574,7 +574,7 @@
                             {{ translations['Track expenses by category and date'] }}
                             <span class="info-icon" data-tooltip-target="expense-tracker-tooltip" title="{{ translations['Log and edit expenses for spending insights'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('expense_tracker') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Expense Tracker'] }}">{{ translations['Start Now'] }}</a>
+                        <a href="{{ url_for('expense_tracker_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Expense Tracker'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="expense-tracker-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Log and edit expenses for spending insights'] }}</span>
