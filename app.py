@@ -728,7 +728,7 @@ def root():
 def index():
     language = session.get('language', 'English')
     return render_template(
-        'landing.html',
+        'index.html',
         translations=translations.get(language, translations['English']),
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
