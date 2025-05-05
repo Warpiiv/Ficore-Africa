@@ -110,7 +110,7 @@
 
         <h3>{{ translations['Discover Your Financial Style'] }}</h3>
         <p>{{ translations['Answer each question with Yes or No.'] }}</p>
-        <form method="POST" action="{{ url_for('quiz') }}">
+        <form method="POST" action="{{ url_for('quiz_form') }}">
             {{ form.hidden_tag() }}
 
             <label for="first_name">{{ translations['First Name'] }}:</label>
