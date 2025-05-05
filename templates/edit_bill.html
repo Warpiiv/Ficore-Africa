@@ -1,0 +1,205 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Add or edit a bill with Ficore Africa to manage your payments.">
+    <meta name="keywords" content="ficore africa, bill planner, financial management, Africa SME finance">
+    <meta name="author" content="Ficore Africa">
+    <title>{{ translations['Add/Edit Bill'] }}</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #1E7F71;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h2 {
+            color: #FFFFFF;
+            margin: 0;
+        }
+        .header p {
+            font-style: italic;
+            color: #E0F7FA;
+            font-size: 0.9rem;
+            margin: 5px 0 0 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #2E7D32;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1B5E20;
+        }
+        .info-icon {
+            cursor: pointer;
+            color: #0288D1;
+            margin-left: 5px;
+            font-size: 0.9rem;
+        }
+        .info-icon:hover {
+            color: #2E7D32;
+        }
+        .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .info-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>{{ translations['Add/Edit Bill'] }}</h2>
+            <p>{{ translations['Financial growth passport for Africa'] }}</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h3>{{ translations['Add or Update a Bill'] }}</h3>
+        <form method="POST" action="{{ url_for('edit_bill') }}">
+            {{ form.hidden_tag() }}
+
+            {% if bill %}
+                <input type="hidden" name="bill_id" value="{{ bill.id }}">
+            {% endif %}
+
+            <label for="description">{{ translations['Description'] }}:</label>
+            <input type="text" id="description" name="description" placeholder="{{ translations['e.g. Electricity bill'] }}" value="{{ bill.Description if bill else '' }}" required>
+            <span class="info-icon" aria-label="Description Info">
+                <i class="fas fa-info-circle"></i>
+                <span class="tooltip-text">{{ translations['What is this bill for?'] }}</span>
+            </span>
+
+            <label for="amount">{{ translations['Amount'] }} (₦):</label>
+            <input type="number" id="amount" name="amount" min="0" step="0.01" placeholder="{{ translations['e.g. 5000'] }}" value="{{ bill.Amount if bill else '' }}" required>
+            <span class="info-icon" aria-label="Amount Info">
+                <i class="fas fa-info-circle"></i>
+                <span class="tooltip-text">{{ translations['How much is the bill? Enter in Naira (₦).'] }}</span>
+            </span>
+
+            <label for="due_date">{{ translations['Due Date'] }}:</label>
+            <input type="date" id="due_date" name="due_date" value="{{ bill.DueDate if bill else '' }}" required>
+            <span class="info-icon" aria-label="Due Date Info">
+                <i class="fas fa-info-circle"></i>
+                <span class="tooltip-text">{{ translations['When is this bill due?'] }}</span>
+            </span>
+
+            <label for="status">{{ translations['Status'] }}:</label>
+            <select id="status" name="status" required>
+                <option value="Pending" {% if bill and bill.Status == 'Pending' %}selected{% endif %}>{{ translations['Pending'] }}</option>
+                <option value="Paid" {% if bill and bill.Status == 'Paid' %}selected{% endif %}>{{ translations['Paid'] }}</option>
+                <option value="Overdue" {% if bill and bill.Status == 'Overdue' %}selected{% endif %}>{{ translations['Overdue'] }}</option>
+            </select>
+            <span class="info-icon" aria-label="Status Info">
+                <i class="fas fa-info-circle"></i>
+                <span class="tooltip-text">{{ translations['What is the payment status of this bill?'] }}</span>
+            </span>
+
+            <button type="submit">{{ translations['Save Bill'] }}</button>
+        </form>
+
+        <footer class="mt-4 text-center">
+            <p>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
+                <a href="{{ url_for('bill_planner') }}" class="btn btn-secondary">{{ translations['Back to Planner'] }}</a>
+            </p>
+            <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
+            <p><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
+            <p>© 2025 Ficore Africa. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
