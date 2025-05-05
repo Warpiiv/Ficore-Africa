@@ -1320,8 +1320,8 @@ def budget_dashboard():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/expense_form', methods=['GET', 'POST'])
-def expense_form():
+@app.route('/expense_tracker_form', methods=['GET', 'POST'])
+def expense_tracker_form():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
     email = session.get('user_email')
@@ -1395,9 +1395,9 @@ def expense_form():
                 )
                 flash(trans['Email scheduled to be sent'], 'success')
             chart_html = generate_expense_charts(form.email.data, language)
-            return redirect(url_for('expense_dashboard', user_data=json.dumps(user_data), chart_html=chart_html))
+            return redirect(url_for('expense_tracker_dashboard', user_data=json.dumps(user_data), chart_html=chart_html))
     return render_template(
-        'expense_form.html',
+        'expense_tracker_form.html',
         form=form,
         translations=trans,
         language=language,
@@ -1406,14 +1406,14 @@ def expense_form():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/expense_dashboard')
-def expense_dashboard():
+@app.route('/expense_tracker_dashboard')
+def expense_tracker_dashboard():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
     user_data = json.loads(request.args.get('user_data', '{}'))
     chart_html = request.args.get('chart_html', '')
     return render_template(
-        'expense_dashboard.html',
+        'expense_tracker_dashboard.html',
         tool='Expense Tracker',
         user_data=user_data,
         chart_html=chart_html,
@@ -1426,8 +1426,8 @@ def expense_dashboard():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/bill_form', methods=['GET', 'POST'])
-def bill_form():
+@app.route('/bill_planner_form', methods=['GET', 'POST'])
+def bill_planner_form():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
     email = session.get('user_email')
@@ -1483,9 +1483,9 @@ def bill_form():
             if form.send_email.data:
                 schedule_bill_reminder(user_data)
                 flash(trans['Bill reminder scheduled'], 'success')
-            return redirect(url_for('bill_dashboard', user_data=json.dumps(user_data)))
+            return redirect(url_for('bill_planner_dashboard', user_data=json.dumps(user_data)))
     return render_template(
-        'bill_form.html',
+        'bill_planner_form.html',
         form=form,
         translations=trans,
         language=language,
@@ -1494,13 +1494,13 @@ def bill_form():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/bill_dashboard')
-def bill_dashboard():
+@app.route('/bill_planner_dashboard')
+def bill_planner_dashboard():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
     user_data = json.loads(request.args.get('user_data', '{}'))
     return render_template(
-        'bill_dashboard.html',
+        'bill_planner_dashboard.html',
         tool='Bill Planner',
         user_data=user_data,
         tips=get_tips(language),
