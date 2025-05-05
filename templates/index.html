@@ -515,7 +515,7 @@
                             {{ translations['Calculate your net worth from assets and liabilities'] }}
                             <span class="info-icon" data-tooltip-target="net-worth-tooltip" title="{{ translations['Net worth is assets minus liabilities'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('net_worth_form_form_form_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Net Worth Calculator'] }}">{{ translations['Start Now'] }}</a>
+                        <a href="{{ url_for('net_worth_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Net Worth Calculator'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="net-worth-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Net worth is assets minus liabilities'] }}</span>
@@ -534,7 +534,7 @@
                             {{ translations['Aims to cover 3-6 months of expenses for financial security'] }}
                             <span class="info-icon" data-tooltip-target="emergency-fund-tooltip" title="{{ translations['Aims to cover 3-6 months of expenses for financial security'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('emergency_fund_form_form_form_form_form_form_form_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Emergency Fund Calculator'] }}">{{ translations['Start Now'] }}</a>
+                        <a href="{{ url_for('emergency_fund_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Emergency Fund Calculator'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="emergency-fund-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Aims to cover 3-6 months of expenses for financial security'] }}</span>
@@ -593,7 +593,7 @@
                             {{ translations['Organize bills by amount and due date'] }}
                             <span class="info-icon" data-tooltip-target="bill-planner-tooltip" title="{{ translations['Manage and mark bills as paid'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('bill_planner_form_form_form_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Bill Planner'] }}">{{ translations['Start Now'] }}</a>
+                        <a href="{{ url_for('bill_planner_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Bill Planner'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="bill-planner-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Manage and mark bills as paid'] }}</span>
