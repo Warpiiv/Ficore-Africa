@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Welcome to Ficore Africa - Your financial growth passport for Africa. Access tools to calculate your financial health, net worth, emergency fund, and more.">
-    <meta name="keywords" content="ficore africa, financial health, net worth, emergency fund, financial quiz, budget planner, expense tracker, bill planner">
+    <meta name="keywords" content="ficore africa, financial health, net worth, emergency fund, financial quiz_form_form_form_form, udget_form planner, expense tracker, bill planner">
     <meta name="author" content="Ficore Africa">
     <!-- Open Graph and Twitter Card Tags -->
     <meta property="og:title" content="Ficore Africa - {{ translations['Financial Growth Tools'] }}">
@@ -465,7 +465,7 @@
         <!-- Call to Action Section -->
         <section class="cta-section">
             <p><span class="emoji">🎯</span> {{ translations['New here? Start with your Financial Health Score to get personalized recommendations.'] }}</p>
-            <a href="{{ url_for('health_score') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Begin Financial Health Score Assessment'] }}">{{ translations['Begin Now'] }}</a>
+            <a href="{{ url_for('health_score_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Begin Financial Health Score Assessment'] }}">{{ translations['Begin Now'] }}</a>
         </section>
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -495,7 +495,7 @@
                             {{ translations['This tool evaluates your income, expenses, and debt to provide a health score'] }}
                             <span class="info-icon" data-tooltip-target="health-score-tooltip" title="{{ translations['Evaluates income, expenses, and debt for a health score'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('index') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Health Score Assessment'] }}">{{ translations['Start Now'] }}</a>
+                        <a href="{{ url_for('health_score_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Health Score Assessment'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="health-score-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Evaluates income, expenses, and debt for a health score'] }}</span>
@@ -515,7 +515,7 @@
                             {{ translations['Calculate your net worth from assets and liabilities'] }}
                             <span class="info-icon" data-tooltip-target="net-worth-tooltip" title="{{ translations['Net worth is assets minus liabilities'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('net_worth') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Net Worth Calculator'] }}">{{ translations['Start Now'] }}</a>
+                        <a href="{{ url_for('net_worth_form_form_form_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Net Worth Calculator'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="net-worth-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Net worth is assets minus liabilities'] }}</span>
@@ -534,7 +534,7 @@
                             {{ translations['Aims to cover 3-6 months of expenses for financial security'] }}
                             <span class="info-icon" data-tooltip-target="emergency-fund-tooltip" title="{{ translations['Aims to cover 3-6 months of expenses for financial security'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('emergency_fund') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Emergency Fund Calculator'] }}">{{ translations['Start Now'] }}</a>
+                        <a href="{{ url_for('emergency_fund_form_form_form_form_form_form_form_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Emergency Fund Calculator'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="emergency-fund-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Aims to cover 3-6 months of expenses for financial security'] }}</span>
@@ -542,21 +542,21 @@
                     </div>
                 </div>
             </div>
-            <!-- Plan & Budget Section -->
-            <h4><span class="emoji">💡</span> {{ translations['Plan & Budget'] }}</h4>
-            <!-- Weekly Budget Planner -->
+            <!-- Plan & udget_form Section -->
+            <h4><span class="emoji">💡</span> {{ translations['Plan & udget_form'] }}</h4>
+            <!-- Weekly udget_form Planner -->
             <div class="col-md-4 mb-4">
                 <div class="card">
                     <div class="card-header">
-                        <span class="emoji">📅</span> {{ translations['Weekly Budget Planner'] }}
+                        <span class="emoji">📅</span> {{ translations['Weekly udget_form Planner'] }}
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Manage income and expenses with a budget'] }}
-                            <span class="info-icon" data-tooltip-target="budget-tooltip" title="{{ translations['Allocate income across expense categories'] }}" aria-label="More info">ℹ️</span>
+                            {{ translations['Manage income and expenses with a udget_form'] }}
+                            <span class="info-icon" data-tooltip-target="udget_form-tooltip" title="{{ translations['Allocate income across expense categories'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('budget') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Weekly Budget Planner'] }}">{{ translations['Start Now'] }}</a>
-                        <div class="tooltip-fallback" id="budget-tooltip">
+                        <a href="{{ url_for('udget_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Weekly udget_form Planner'] }}">{{ translations['Start Now'] }}</a>
+                        <div class="tooltip-fallback" id="udget_form-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Allocate income across expense categories'] }}</span>
                         </div>
@@ -593,7 +593,7 @@
                             {{ translations['Organize bills by amount and due date'] }}
                             <span class="info-icon" data-tooltip-target="bill-planner-tooltip" title="{{ translations['Manage and mark bills as paid'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('bill_planner') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Bill Planner'] }}">{{ translations['Start Now'] }}</a>
+                        <a href="{{ url_for('bill_planner_form_form_form_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Bill Planner'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="bill-planner-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Manage and mark bills as paid'] }}</span>
@@ -603,19 +603,19 @@
             </div>
             <!-- Know Yourself Section -->
             <h4><span class="emoji">👤</span> {{ translations['Know Yourself'] }}</h4>
-            <!-- Financial Personality Quiz -->
+            <!-- Financial Personality quiz_form_form_form_form -->
             <div class="col-md-4 mb-4">
                 <div class="card">
                     <div class="card-header">
-                        <span class="emoji">❓</span> {{ translations['Financial Personality Quiz'] }}
+                        <span class="emoji">❓</span> {{ translations['Financial Personality quiz_form_form_form_form'] }}
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Test your financial knowledge with a quiz'] }}
-                            <span class="info-icon" data-tooltip-target="quiz-tooltip" title="{{ translations['Answer questions to assess financial literacy'] }}" aria-label="More info">ℹ️</span>
+                            {{ translations['Test your financial knowledge with a quiz_form_form_form_form'] }}
+                            <span class="info-icon" data-tooltip-target="quiz_form_form_form_form-tooltip" title="{{ translations['Answer questions to assess financial literacy'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('quiz') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Personality Quiz'] }}">{{ translations['Start Now'] }}</a>
-                        <div class="tooltip-fallback" id="quiz-tooltip">
+                        <a href="{{ url_for('quiz_form_form_form_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Personality quiz_form_form_form_form'] }}">{{ translations['Start Now'] }}</a>
+                        <div class="tooltip-fallback" id="quiz_form_form_form_form-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Answer questions to assess financial literacy'] }}</span>
                         </div>
