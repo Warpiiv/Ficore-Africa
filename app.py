@@ -105,7 +105,7 @@ except Exception as e:
 
 # Open the new Google Sheet
 try:
-    spreadsheet = client.open_by_key('1Lqbko93WPhJ3-3DRJjAAMsTMp63iB_7JXEOaaAGHWpk')
+    spreadsheet = client.open_by_key('13hbiMTMRBHo9MHjWwcugngY_aSiuxII67HCf03MiZ8I')
 except Exception as e:
     logger.error(f"Error accessing Google Sheets: {e}")
     sys.exit(1)
