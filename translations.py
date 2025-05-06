@@ -47,6 +47,7 @@ translations = {
         'Invalid Email': 'Please enter a valid email address.',
         'Confirm your email': 'Confirm your email',
         'Emails Do Not Match': 'Emails do not match.',
+        'Manage income and expenses with budget': 'Manage income and expenses with budget',
         'Enter phone number (optional)': 'Enter phone number (optional)',
         'Invalid Number': 'Please enter a valid number.',
         'Language': 'Language',
@@ -891,6 +892,7 @@ translations = {
         'Discover Your Financial Style': 'Gano Salon Kuɗin Ka',
         'Plan Your Monthly Budget': 'Tsara Kasafin Kuɗin Ka na Wata',
         'Plan & budget_form': 'Tsarawa & Kasafi',
+        'Manage income and expenses with budget': 'Sarrafa Samunka da Kashe kudinka ta hanyar amfani da Budget'
         'Test your financial knowledge with a Quiz': 'Gwada ilimin kuɗin ka tare da gwaji',
         'Quiz Achiever': 'Mai Nasara a Gwaji',
         'Quiz Participant': 'Mai Shiga Gwaji',
