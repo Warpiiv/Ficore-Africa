@@ -1000,9 +1000,11 @@ def net_worth_dashboard():
         badges=badges,
         advice=advice,
         tips=get_tips(language),
-        courses=get_courses(language),
-        translations=trans,
-        language=language,
+        courses=get_courses(language):
+    trans = translations.get(language, translations['English'])
+    default_trans = translations['English']
+    return [
+        {'title': trans.get('Personal Finance 101', default_trans.get('Personal Finance 101', 'Personal Finance 101')), 'link': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'},
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
