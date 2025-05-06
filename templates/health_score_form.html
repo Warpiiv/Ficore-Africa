@@ -236,6 +236,18 @@
                 font-size: 0.9rem;
             }
         }
+        .number-display {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #495057;
+            font-size: 1rem;
+        }
+        .number-input {
+            padding-left: 10px; /* Adjust padding to avoid overlap with display */
+        }
     </style>
 </head>
 <body>
@@ -333,7 +345,8 @@
                             <span class="info-icon" aria-label="Income Info">ℹ️
                                 <span class="tooltip-text">{{ translations['Total money you receive regularly, like salary, business sales, gifts, grants, incentives, or side hustles.'] }}</span>
                             </span>
-                            {{ form.income(class="form-control number-input", type="text", pattern="[0-9,]*", min="0", max="10000000000", placeholder=translations['e.g. 150,000'], required=True, **{'aria-required': 'true'}) }}
+                            {{ form.income(class="form-control number-input", type="number", step="any", min="0", max="10000000000", placeholder=translations['e.g. 150,000'], required=True, **{'aria-required': 'true'}) }}
+                            <span class="number-display" data-for="income"></span>
                             <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
                         </div>
@@ -342,7 +355,8 @@
                             <span class="info-icon" aria-label="Expenses Info">ℹ️
                                 <span class="tooltip-text">{{ translations['All the money you spend, such as on rent, food, transport, electricity bill, gas and utilities, fine and penalties, levies, taxes, etc.'] }}</span>
                             </span>
-                            {{ form.expenses(class="form-control number-input", type="text", pattern="[0-9,]*", min="0", max="10000000000", placeholder=translations['e.g. 60,000'], required=True, **{'aria-required': 'true'}) }}
+                            {{ form.expenses(class="form-control number-input", type="number", step="any", min="0", max="10000000000", placeholder=translations['e.g. 60,000'], required=True, **{'aria-required': 'true'}) }}
+                            <span class="number-display" data-for="expenses"></span>
                             <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
                         </div>
@@ -351,7 +365,8 @@
                             <span class="info-icon" aria-label="Debt Info">ℹ️
                                 <span class="tooltip-text">{{ translations['Money you owe, like loans, IOUs, borrowings, or funds lent to you.'] }}</span>
                             </span>
-                            {{ form.debt(class="form-control number-input", type="text", pattern="[0-9,]*", min="0", max="10000000000", placeholder=translations['e.g. 25,000'], required=True, **{'aria-required': 'true'}) }}
+                            {{ form.debt(class="form-control number-input", type="number", step="any", min="0", max="10000000000", placeholder=translations['e.g. 25,000'], required=True, **{'aria-required': 'true'}) }}
+                            <span class="number-display" data-for="debt"></span>
                             <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
                         </div>
@@ -360,7 +375,8 @@
                             <span class="info-icon" aria-label="Interest Rate Info">ℹ️
                                 <span class="tooltip-text">{{ translations['Enter the annual interest rate for your debt (optional).'] }}</span>
                             </span>
-                            {{ form.interest_rate(class="form-control number-input", type="text", pattern="[0-9]*", min="0", max="100", placeholder=translations['e.g. 10%']) }}
+                            {{ form.interest_rate(class="form-control number-input", type="number", step="any", min="0", max="100", placeholder=translations['e.g. 10%']) }}
+                            <span class="number-display" data-for="interest_rate"></span>
                             <div class="valid-feedback">{{ translations['Valid percentage!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Must be between 0 and 100'] }}</div>
                         </div>
@@ -453,8 +469,8 @@
             return valid;
         }
 
-        // Real-time validation
-        document.querySelectorAll('input, select').forEach(input => {
+        // Real-time validation for non-numeric inputs
+        document.querySelectorAll('input:not([type="number"]), select').forEach(input => {
             input.addEventListener('input', () => {
                 if (input.required) {
                     if (input.type === 'email') {
@@ -476,74 +492,77 @@
             });
         });
 
-        // Format number with commas
+        // Format number with commas for display
         function formatNumber(value) {
-            const parts = value.toString().split('.');
+            if (!value && value !== 0) return '';
+            const parts = parseFloat(value).toFixed(2).split('.');
             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             return parts.join('.');
         }
 
-        // Clean number (remove commas and ensure valid number)
-        function cleanNumber(value) {
-            return value.replace(/,/g, '');
-        }
-
-        // Handle input formatting and validation
+        // Handle numeric inputs for display formatting
         document.querySelectorAll('.number-input').forEach(input => {
-            input.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/[^0-9.]/g, '');
-                if (value === '' || value === '.') {
-                    e.target.value = '';
-                    e.target.classList.remove('is-valid', 'is-invalid');
+            const displayElement = input.parentElement.querySelector('.number-display[data-for="' + input.id + '"]');
+            
+            function updateDisplay() {
+                let value = parseFloat(input.value) || 0;
+                let max = parseFloat(input.max) || Infinity;
+                let min = parseFloat(input.min) || 0;
+
+                // Validate and adjust value
+                if (value > max) {
+                    value = max;
+                    input.value = max;
+                    input.classList.add('is-invalid');
+                } else if (value < min) {
+                    value = min;
+                    input.value = min;
+                    input.classList.add('is-invalid');
+                } else if (input.required && !input.value) {
+                    input.classList.add('is-invalid');
+                    displayElement.textContent = '';
+                    return;
+                } else {
+                    input.classList.remove('is-invalid');
+                    input.classList.add('is-valid');
+                }
+
+                // Update display with formatted value
+                displayElement.textContent = formatNumber(value);
+            }
+
+            // Initialize display
+            updateDisplay();
+
+            // Handle input event
+            input.addEventListener('input', () => {
+                updateDisplay();
+            });
+
+            // Handle blur event
+            input.addEventListener('blur', () => {
+                if (!input.value && !input.required) {
+                    input.classList.remove('is-valid', 'is-invalid');
+                    displayElement.textContent = '';
                     return;
                 }
-
-                if (value.split('.').length > 2) {
-                    value = value.replace(/\.+$/, '');
-                }
-
-                let parts = value.split('.');
-                let integerPart = parts[0] || '0';
-                let decimalPart = parts[1] ? '.' + parts[1].slice(0, 2) : '';
-
-                let cleanValue = parseFloat(cleanNumber(integerPart + decimalPart)) || 0;
-                let maxValue = input.getAttribute('max') ? parseFloat(input.getAttribute('max')) : Infinity;
-                if (cleanValue > maxValue) {
-                    cleanValue = maxValue;
-                    e.target.classList.add('is-invalid');
-                } else if (cleanValue < 0) {
-                    e.target.classList.add('is-invalid');
-                } else {
-                    e.target.classList.remove('is-invalid');
-                    e.target.classList.add('is-valid');
-                }
-
-                e.target.value = formatNumber(cleanValue.toString()) + (decimalPart && !decimalPart.endsWith('.') ? decimalPart : '');
+                updateDisplay();
             });
 
-            input.addEventListener('blur', function(e) {
-                if (e.target.value === '') return;
-                let cleanValue = cleanNumber(e.target.value);
-                let numValue = parseFloat(cleanValue) || 0;
-                let maxValue = e.target.getAttribute('max') ? parseFloat(e.target.getAttribute('max')) : Infinity;
-                if (numValue > maxValue) numValue = maxValue;
-                if (numValue < 0) numValue = 0;
-                e.target.value = formatNumber(numValue.toString());
-            });
-
-            input.addEventListener('change', function(e) {
-                if (e.target.value === '') return;
-                let cleanValue = cleanNumber(e.target.value);
-                let numValue = parseFloat(cleanValue) || 0;
-                let maxValue = e.target.getAttribute('max') ? parseFloat(e.target.getAttribute('max')) : Infinity;
-                if (numValue > maxValue) numValue = maxValue;
-                if (numValue < 0) numValue = 0;
-                e.target.value = numValue.toString();
+            // Handle focus to clear display for typing
+            input.addEventListener('focus', () => {
+                displayElement.textContent = '';
             });
         });
 
         // Loading spinner
         document.getElementById('submission-form').addEventListener('submit', function(e) {
+            // Ensure numeric inputs have raw values
+            document.querySelectorAll('.number-input').forEach(input => {
+                if (input.value) {
+                    input.value = parseFloat(input.value) || 0;
+                }
+            });
             document.querySelector('.loading-spinner').style.display = 'block';
             document.getElementById('submit-btn').disabled = true;
         });
