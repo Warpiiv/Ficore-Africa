@@ -892,7 +892,7 @@ translations = {
         'Discover Your Financial Style': 'Gano Salon Kuɗin Ka',
         'Plan Your Monthly Budget': 'Tsara Kasafin Kuɗin Ka na Wata',
         'Plan & budget_form': 'Tsarawa & Kasafi',
-        'Manage income and expenses with budget': 'Sarrafa Samunka da Kashe kudinka ta hanyar amfani da Budget'
+        'Manage income and expenses with budget': 'Sarrafa Samunka da Kashe kudinka ta hanyar amfani da Budget',
         'Test your financial knowledge with a Quiz': 'Gwada ilimin kuɗin ka tare da gwaji',
         'Quiz Achiever': 'Mai Nasara a Gwaji',
         'Quiz Participant': 'Mai Shiga Gwaji',
