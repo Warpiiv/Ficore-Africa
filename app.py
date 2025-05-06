@@ -779,7 +779,7 @@ def health_score_form():
             if record.get('Timestamp') == selected_record_id:
                 form_data = record
                 break
-    form = health_score_form(
+    form = healthscoreform(
         first_name=form_data.get('FirstName') if form_data else None,
         last_name=form_data.get('LastName') if form_data else None,
         email=email,
