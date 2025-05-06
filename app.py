@@ -1,8 +1,4 @@
 import logging
-
-# Configure logging to output to stdout (required for Render)
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 import os
 import uuid
 import json
@@ -33,16 +29,6 @@ def parse_number(value):
     try:
         if not value:  # Handle empty or None values
             return 0.0
-        # Remove commas and convert to float
-        cleaned_value = str(value).replace(',', '')
-        return float(cleaned_value)
-    except (ValueError, TypeError):
-        return 0.0
-
-# Configure logging
-logging.basicConfig(filename='app.log', level=logging.ERROR, format='%(asctime)s %(levelname)s: %(message)s')
-logger = logging.getLogger(__name__)
-
 # Initialize Flask app
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
@@ -779,7 +765,7 @@ def health_score_form():
             if record.get('Timestamp') == selected_record_id:
                 form_data = record
                 break
-    form = healthscoreform(
+    form = HealthScoreForm(
         first_name=form_data.get('FirstName') if form_data else None,
         last_name=form_data.get('LastName') if form_data else None,
         email=email,
@@ -934,80 +920,95 @@ def health_score_dashboard():
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
-@app.route('/net-worth', methods=['GET', 'POST'])
+
+@app.route('/net_worth_form', methods=['GET', 'POST'])
 def net_worth_form():
     language = session.get('language', 'English')
     trans = translations.get(language, translations['English'])
+    email = session.get('user_email')
+    form_data = None
+    record_choices = [('', trans['Create New Record'])]
+    user_records = get_user_data_by_email(email, 'NetWorth') if email else []
+    if user_records:
+        for record in user_records:
+            timestamp = record.get('Timestamp', 'Unknown')
+            record_choices.append((timestamp, f"Record from {timestamp}"))
+    selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
+    if selected_record_id and email:
+        for record in user_records:
+            if record.get('Timestamp') == selected_record_id:
+                form_data = record
+                break
+
+    # Initialize the form with pre-filled data if editing
+    form = NetWorthForm(
+        first_name=form_data.get('FirstName') if form_data else None,
+        email=email,
+        language=form_data.get('Language') if form_data else language,
+        assets=form_data.get('Assets') if form_data else None,
+        liabilities=form_data.get('Liabilities') if form_data else None,
+        record_id=selected_record_id
+    )
+    form.record_id.choices = record_choices
+    if email:
+        form.email.render_kw = {'readonly': True}
 
     if request.method == 'POST':
-        # Extract form data
-        first_name = request.form.get('first_name')
-        email = request.form.get('email')
-        language = request.form.get('language')
-        assets = float(request.form.get('assets', 0))
-        liabilities = float(request.form.get('liabilities', 0))
+        if form.validate_on_submit():
+            session['language'] = form.language.data
+            session['user_email'] = form.email.data
+            session.permanent = True
 
-        # Calculate net worth
-        net_worth = assets - liabilities
+            # Extract validated form data
+            assets = parse_number(form.assets.data)
+            liabilities = parse_number(form.liabilities.data)
+            net_worth = assets - liabilities
 
-        # Prepare user data to pass to dashboard
-        user_data = {
-            'first_name': first_name,
-            'email': email,
-            'language': language,
-            'assets': assets,
-            'liabilities': liabilities,
-            'net_worth': net_worth
-        }
+            # Assign rank, badges, and advice using existing functions
+            rank_percentile = assign_net_worth_rank(net_worth)
+            badges = assign_net_worth_badges(net_worth, language)
+            advice = get_net_worth_advice(net_worth, language)
 
-        # Placeholder for chart_html, comparison_chart_html, rank_percentile, badges, advice
-        # These can be computed or fetched as needed
-        chart_html = ''  # Replace with actual chart generation logic if needed
-        comparison_chart_html = ''
-        rank_percentile = '50.0'  # Placeholder value
-        badges = []  # Placeholder
-        advice = 'Consider reducing liabilities to improve your net worth.'  # Placeholder advice
+            # Prepare user data
+            user_data = {
+                'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'FirstName': form.first_name.data,
+                'Email': form.email.data,
+                'Language': form.language.data,
+                'Assets': assets,
+                'Liabilities': liabilities,
+                'NetWorth': net_worth
+            }
+            if form.record_id.data:
+                user_data['Timestamp'] = form.record_id.data
+            update_or_append_user_data(user_data, 'NetWorth')
 
-        # Redirect to dashboard with the data
-        return redirect(url_for('net_worth_dashboard',
-                                user_data=json.dumps(user_data),
-                                chart_html=chart_html,
-                                comparison_chart_html=comparison_chart_html,
-                                rank_percentile=rank_percentile,
-                                badges=json.dumps(badges),
-                                advice=advice))
+            # Generate charts
+            try:
+                chart_html, comparison_chart_html = generate_net_worth_charts(json.dumps(user_data), language)
+            except Exception as e:
+                chart_html, comparison_chart_html = '', ''
+                flash(trans['Error generating charts'], 'danger')
 
-    # On GET, render the form
-    return render_template('net_worth_form.html', translations=trans, language=language)
-    
-@app.route('/net_worth_dashboard')
-def net_worth_dashboard():
-    language = session.get('language', 'English')
-    trans = translations.get(language, translations['English'])
-    user_data = json.loads(request.args.get('user_data', '{}'))
-    chart_html = request.args.get('chart_html', '')
-    comparison_chart_html = request.args.get('comparison_chart_html', '')
-    rank_percentile = request.args.get('rank_percentile', '50.0')
-    badges = json.loads(request.args.get('badges', '[]'))
-    advice = request.args.get('advice', '')
+            # Redirect to dashboard
+            return redirect(url_for('net_worth_dashboard',
+                                    user_data=json.dumps(user_data),
+                                    chart_html=chart_html,
+                                    comparison_chart_html=comparison_chart_html,
+                                    rank_percentile=rank_percentile,
+                                    badges=json.dumps(badges),
+                                    advice=advice))
+        else:
+            flash(trans['Form validation failed. Please check your inputs.'], 'danger')
+
     return render_template(
-        'net_worth_dashboard.html',
-        tool='Net Worth',
-        user_data=user_data,
-        chart_html=chart_html,
-        comparison_chart_html=comparison_chart_html,
-        rank_percentile=rank_percentile,
-        badges=badges,
-        advice=advice,
-        tips=get_tips(language),
-        courses=get_courses(language),
-    trans = translations.get(language, translations['English'])
-    default_trans = translations['English']
-    return [
-        {'title': trans.get('Personal Finance 101', default_trans.get('Personal Finance 101', 'Personal Finance 101')), 'link': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'},
+        'net_worth_form.html',
+        form=form,
+        translations=trans,
+        language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A']
+        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
 @app.route('/quiz_form', methods=['GET', 'POST'])
