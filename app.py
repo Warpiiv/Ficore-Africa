@@ -79,7 +79,7 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = 'ficore.ai.africa@gmail.com'
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_PASSWORD'] = os.environ.get('xxqnhgffglkfbdniatlndfghjkdfgh')
 app.config['MAIL_ENABLED'] = bool(app.config['MAIL_PASSWORD'])
 if not app.config['MAIL_PASSWORD']:
     logger.warning("SMTP_PASSWORD not set. Email functionality will be disabled.")
@@ -695,7 +695,7 @@ def send_bill_reminder_email(bill_json):
         logger.error(f"Error sending bill reminder: {e}")
 
 @celery.task
-def check_bill_reminders():
+def check_reminders():
     try:
         sheet = sheets['BillReminders']
         reminders = sheet.get_all_records()
@@ -707,14 +707,14 @@ def check_bill_reminders():
             if reminder_date <= now:
                 bill = get_record_by_id(reminder.get('BillTimestamp'), 'BillPlanner')
                 if bill and bill.get('Status') == 'Pending':
-                    send_bill_reminder_email.delay(json.dumps(bill))
+                    send_reminder_email.delay(json.dumps(bill))
                 reminder['Status'] = 'Sent'
                 update_or_append_user_data(reminder, 'BillReminders')
     except Exception as e:
         logger.error(f"Error checking bill reminders: {e}")
 
 # Schedule bill reminder using Google Sheets with date validation
-def schedule_bill_reminder(bill):
+def schedule_reminder(bill):
     language = bill.get('Language', 'English')
     try:
         due_date_str = bill.get('DueDate', '')
@@ -1574,7 +1574,7 @@ def expense_tracker_form():
                 chart_html = ''
                 flash(get_translation('Error generating charts', language), 'danger')
 
-            return redirect(url_for('expense_dashboard', chart_html=chart_html, running_balance=running_balance))
+            return redirect(url_for('expense_tracker_dashboard', chart_html=chart_html, running_balance=running_balance))
         else:
             flash(get_translation('Form validation failed. Please check your inputs.', language), 'danger')
 
@@ -1588,7 +1588,7 @@ def expense_tracker_form():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/expense_dashboard')
+@app.route('/expense_tracker_dashboard')
 def expense_dashboard():
     language = session.get('language', 'English')
     email = session.get('user_email')
@@ -1596,7 +1596,7 @@ def expense_dashboard():
     running_balance = request.args.get('running_balance', '0')
     records = get_user_data_by_email(email, 'ExpenseTracker') if email else []
     return render_template(
-        'expense_dashboard.html',
+        'expense_tracker_dashboard.html',
         tool='Expense Tracker',
         records=records,
         chart_html=chart_html,
@@ -1610,8 +1610,8 @@ def expense_dashboard():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/bill_form', methods=['GET', 'POST'])
-def bill_form():
+@app.route('/bill_planner_form', methods=['GET', 'POST'])
+def bill_planner_form():
     language = session.get('language', 'English')
     email = session.get('user_email')
     form_data = None
@@ -1676,12 +1676,12 @@ def bill_form():
                 schedule_bill_reminder(user_data)
                 flash(get_translation('Bill reminder scheduled', language), 'success')
 
-            return redirect(url_for('bill_dashboard'))
+            return redirect(url_for('bill_planner_dashboard'))
         else:
             flash(get_translation('Form validation failed. Please check your inputs.', language), 'danger')
 
     return render_template(
-        'bill_form.html',
+        'bill_planner_form.html',
         form=form,
         translations=translations.get(language, translations['English']),
         language=language,
@@ -1690,13 +1690,13 @@ def bill_form():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/bill_dashboard')
-def bill_dashboard():
+@app.route('/bill_planner_dashboard')
+def bill_planner_dashboard():
     language = session.get('language', 'English')
     email = session.get('user_email')
     records = get_user_data_by_email(email, 'BillPlanner') if email else []
     return render_template(
-        'bill_dashboard.html',
+        'bill_planner_dashboard.html',
         tool='Bill Planner',
         records=records,
         tips=get_tips(language),
@@ -1714,11 +1714,11 @@ def mark_bill_paid(bill_id):
     bill = get_record_by_id(bill_id, 'BillPlanner')
     if not bill:
         flash(get_translation('Bill not found', language), 'danger')
-        return redirect(url_for('bill_dashboard'))
+        return redirect(url_for('bill_planner_dashboard'))
     bill['Status'] = 'Paid'
     update_or_append_user_data(bill, 'BillPlanner')
     flash(get_translation('Bill marked as paid', language), 'success')
-    return redirect(url_for('bill_dashboard'))
+    return redirect(url_for('bill_planner_dashboard'))
 
 # Error handlers
 @app.errorhandler(404)
