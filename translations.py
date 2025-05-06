@@ -51,7 +51,9 @@ translations = {
         'Invalid Number': 'Please enter a valid number.',
         'Language': 'Language',
         'Create New Record': 'Create New Record',
-        'Regularly review your assets and liabilities to track progress.': 'A ringa bincika kadarori da basussuka da ake dashi domin gane inda arziki ya dosa.',
+        'Regularly review your assets and liabilities to track progress.': 'Regularly review your assets and liabilities to track progress.',
+        'Invest in low-risk assets to grow your wealth steadily.': 'Invest in low-risk assets to grow your wealth steadily.',
+        'Create a plan to pay down high-interest debt first.': 'Create a plan to pay down high-interest debt first.',
         'Select Language': 'Select Language',
         'Submit': 'Submit',
         'Please answer all questions before submitting!': 'Please answer all questions before submitting!',
@@ -842,6 +844,9 @@ translations = {
         'Plan & budget_form': 'Tsarawa & Kasafi',  # Corrected typo
         # Fix case sensitivity
         'Test your financial knowledge with a Quiz': 'Gwada ilimin kuɗin ka tare da gwaji',
+                'Regularly review your assets and liabilities to track progress.': 'A koyaushe duba kadarorin ku da abubuwan da kuke bin su don bin ci gaba.',
+        'Invest in low-risk assets to grow your wealth steadily.': 'Sanya hannun jari a cikin kadarorin da ba su da haɗari don haɓaka dukiyarku a hankali.',
+        'Create a plan to pay down high-interest debt first.': 'Ƙirƙirar wani shiri don biyan bashin da ke da babban riba da farko.',
         'Quiz Achiever': 'Mai Nasara',
         'Quiz Participant': 'Mai Shiga Jarabawa',
         'Great job! Continue to leverage your {personality} approach to build wealth.': 'Aiki mai kyau! Ci gaba da amfani da tsarin {personality} don gina arziki.',
