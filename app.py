@@ -23,12 +23,14 @@ import redis
 import atexit
 from math import ceil
 from translations import translations
-
-# Helper function to safely parse numbers with commas
-def parse_number(value):
-    try:
-        if not value:  # Handle empty or None values
-            return 0.0
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError as e:
+    logger.error("Failed to load environment variables: %s", e)
+    sys.exit(1)
+    
 # Initialize Flask app
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
