@@ -1002,7 +1002,7 @@ def net_worth_dashboard():
         tips=get_tips(language),
         courses=get_courses(language):
     trans = translations.get(language, translations['English'])
-    default_trans = translations['English']
+    default_trans = translations['English'])
     return [
         {'title': trans.get('Personal Finance 101', default_trans.get('Personal Finance 101', 'Personal Finance 101')), 'link': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru'},
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
