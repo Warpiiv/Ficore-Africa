@@ -111,7 +111,7 @@
 
         <h3>{{ translations['Calculate Your Net Worth'] }}</h3>
         <form method="POST" action="{{ url_for('net_worth_form') }}">
-            {{ form.hidden_tag() }}
+            {{ form.hidden_tag() if form else '' }}
 
             <label for="first_name">{{ translations['First Name'] }}:</label>
             <input type="text" id="first_name" name="first_name" placeholder="{{ translations['Enter your first name'] }}" required>
@@ -154,9 +154,11 @@
                 <a href="{{ url_for('net_worth_dashboard') }}" class="btn btn-secondary">{{ translations['Dashboard'] }}</a>
             </p>
             <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
-            <p><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
+            <p><a href="https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
             <p>© 2025 Ficore Africa. All rights reserved.</p>
         </footer>
     </div>
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>
