@@ -1000,7 +1000,7 @@ def net_worth_dashboard():
         badges=badges,
         advice=advice,
         tips=get_tips(language),
-        courses=get_courses(language)
+        courses=get_courses(language),
     trans = translations.get(language, translations['English'])
     default_trans = translations['English']
     return [
