@@ -27,6 +27,16 @@ import redis
 import atexit
 from math import ceil
 from translations import translations
+# Helper function to safely parse numbers with commas
+def parse_number(value):
+    try:
+        if not value:  # Handle empty or None values
+            return 0.0
+        # Remove commas and convert to float
+        cleaned_value = str(value).replace(',', '')
+        return float(cleaned_value)
+    except (ValueError, TypeError):
+        return 0.0
 
 # Configure logging
 logging.basicConfig(filename='app.log', level=logging.ERROR, format='%(asctime)s %(levelname)s: %(message)s')
@@ -749,141 +759,179 @@ def change_language():
         flash(translations.get(session.get('language', 'English'), translations['English'])['Invalid language selection'], 'error')
     return redirect(request.referrer or url_for('index'))
 
-@app.route('/health_score_form', methods=['GET', 'POST'])
-def health_score_form():
-    language = session.get('language', 'English')
-    trans = translations.get(language, translations['English'])
-    email = session.get('user_email')
-    form_data = None
-    record_choices = [('', trans['Create New Record'])]
-    user_records = get_user_data_by_email(email, 'HealthScore') if email else []
-    if user_records:
-        for record in user_records:
-            timestamp = record.get('Timestamp', 'Unknown')
-            record_choices.append((timestamp, f"Record from {timestamp}"))
-    selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
-    if selected_record_id and email:
-        for record in user_records:
-            if record.get('Timestamp') == selected_record_id:
-                form_data = record
-                break
-    form = UserForm(
-        first_name=form_data.get('FirstName') if form_data else None,
-        last_name=form_data.get('LastName') if form_data else None,
-        email=email,
-        phone=form_data.get('PhoneNumber') if form_data else None,
-        language=form_data.get('Language') if form_data else language,
-        business_name=form_data.get('BusinessName') if form_data else None,
-        user_type=form_data.get('UserType') if form_data else None,
-        income=form_data.get('IncomeRevenue') if form_data else None,
-        expenses=form_data.get('ExpensesCosts') if form_data else None,
-        debt=form_data.get('DebtLoan') if form_data else None,
-        interest_rate=form_data.get('DebtInterestRate') if form_data else None,
-        auto_email=form_data.get('AutoEmail', False) if form_data else False,
-        record_id=selected_record_id
-    )
-    form.record_id.choices = record_choices
-    if email:
-        form.email.render_kw = {'readonly': True}
-        form.confirm_email.render_kw = {'readonly': True}
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            session['language'] = form.language.data
-            session['user_email'] = form.email.data
-            session.permanent = True
-            income = parse_number(form.income.data)
-            expenses = parse_number(form.expenses.data)
-            debt = parse_number(form.debt.data)
-            interest_rate = parse_number(form.interest_rate.data or 0)
-            health_score = calculate_health_score(income, expenses, debt, interest_rate)
-            score_description = get_score_description(health_score, language)
-            rank, total_users = assign_rank(health_score)
-            badges = assign_badges(health_score, debt, income, language)
-            user_data = {
-                'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'BusinessName': form.business_name.data,
-                'IncomeRevenue': income,
-                'ExpensesCosts': expenses,
-                'DebtLoan': debt,
-                'DebtInterestRate': interest_rate,
-                'AutoEmail': str(form.auto_email.data),
-                'PhoneNumber': form.phone.data or '',
-                'FirstName': form.first_name.data,
-                'LastName': form.last_name.data or '',
-                'UserType': form.user_type.data,
-                'Email': form.email.data,
-                'Badges': ','.join(badges),
-                'Language': form.language.data,
-                'Score': health_score
-            }
-            if form.record_id.data:
-                user_data['Timestamp'] = form.record_id.data
-            update_or_append_user_data(user_data, 'HealthScore')
-            if form.auto_email.data:
-                html = render_template(
-                    'email_templates/health_score_email.html',
-                    user_name=form.first_name.data,
-                    health_score=health_score,
-                    score_description=score_description,
-                    rank=rank,
-                    total_users=total_users,
-                    course_title=trans['Recommended Course'],
-                    course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
-                    FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-                    WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-                    CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
-                    translations=trans
-                )
-                send_email_async.delay(
-                    trans['Score Report Subject'].format(user_name=form.first_name.data)),
-                    [form.email.data],
-                    html,
-                    language
-                )
-                flash(trans['Email scheduled to be sent'], 'success')
-            session['user_data_id'] = user_data['Timestamp']
-            chart_html, comparison_chart_html = generate_health_score_charts(json.dumps(user_data), language)
-            return redirect(url_for('health_score_dashboard', user_data=json.dumps(user_data), chart_html=chart_html, comparison_chart_html=comparison_chart_html, score_description=score_description, rank=rank, total_users=total_users, badges=json.dumps(badges)))
-    return render_template(
-        'health_score_form.html',
-        form=form,
-        translations=trans,
-        language=language,
-        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-    )
+    @app.route('/health_score_form', methods=['GET', 'POST'])
+    def health_score_form():
+        language = session.get('language', 'English')
+        trans = translations.get(language, translations['English'])
+        email = session.get('user_email')
+        form_data = None
+        record_choices = [('', trans['Create New Record'])]
+        user_records = get_user_data_by_email(email, 'HealthScore') if email else []
+        if user_records:
+            for record in user_records:
+                timestamp = record.get('Timestamp', 'Unknown')
+                record_choices.append((timestamp, f"Record from {timestamp}"))
+        selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
+        if selected_record_id and email:
+            for record in user_records:
+                if record.get('Timestamp') == selected_record_id:
+                    form_data = record
+                    break
+        form = UserForm(
+            first_name=form_data.get('FirstName') if form_data else None,
+            last_name=form_data.get('LastName') if form_data else None,
+            email=email,
+            phone=form_data.get('PhoneNumber') if form_data else None,
+            language=form_data.get('Language') if form_data else language,
+            business_name=form_data.get('BusinessName') if form_data else None,
+            user_type=form_data.get('UserType') if form_data else None,
+            income=form_data.get('IncomeRevenue') if form_data else None,
+            expenses=form_data.get('ExpensesCosts') if form_data else None,
+            debt=form_data.get('DebtLoan') if form_data else None,
+            interest_rate=form_data.get('DebtInterestRate') if form_data else None,
+            auto_email=form_data.get('AutoEmail', False) if form_data else False,
+            record_id=selected_record_id
+        )
+        form.record_id.choices = record_choices
+        if email:
+            form.email.render_kw = {'readonly': True}
+            form.confirm_email.render_kw = {'readonly': True}
 
-@app.route('/health_score_dashboard')
-def health_score_dashboard():
-    language = session.get('language', 'English')
-    trans = translations.get(language, translations['English'])
-    user_data = json.loads(request.args.get('user_data', '{}'))
-    chart_html = request.args.get('chart_html', '')
-    comparison_chart_html = request.args.get('comparison_chart_html', '')
-    score_description = request.args.get('score_description', '')
-    rank = request.args.get('rank', '1')
-    total_users = request.args.get('total_users', '1')
-    badges = json.loads(request.args.get('badges', '[]'))
-    return render_template(
-        'health_score_dashboard.html',
-        tool='Financial Health Score',
-        user_data=user_data,
-        chart_html=chart_html,
-        comparison_chart_html=comparison_chart_html,
-        score_description=score_description,
-        rank=rank,
-        total_users=total_users,
-        badges=badges,
-        tips=get_tips(language),
-        courses=get_courses(language),
-        translations=trans,
-        language=language,
-        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
-    )
+        if request.method == 'POST':
+            if form.validate_on_submit():
+                session['language'] = form.language.data
+                session['user_email'] = form.email.data
+                session.permanent = True
 
+                # Safely parse numeric fields
+                income = parse_number(form.income.data)
+                expenses = parse_number(form.expenses.data)
+                debt = parse_number(form.debt.data)
+                interest_rate = parse_number(form.interest_rate.data)
+
+                try:
+                    # Calculate health score and related data
+                    health_score = calculate_health_score(income, expenses, debt, interest_rate)
+                    score_description = get_score_description(health_score, language)
+                    rank, total_users = assign_rank(health_score)
+                    badges = assign_badges(health_score, debt, income, language)
+
+                    # Prepare user data
+                    user_data = {
+                        'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'BusinessName': form.business_name.data,
+                        'IncomeRevenue': income,
+                        'ExpensesCosts': expenses,
+                        'DebtLoan': debt,
+                        'DebtInterestRate': interest_rate,
+                        'AutoEmail': str(form.auto_email.data),
+                        'PhoneNumber': form.phone.data or '',
+                        'FirstName': form.first_name.data,
+                        'LastName': form.last_name.data or '',
+                        'UserType': form.user_type.data,
+                        'Email': form.email.data,
+                        'Badges': ','.join(badges),
+                        'Language': form.language.data,
+                        'Score': health_score
+                    }
+                    if form.record_id.data:
+                        user_data['Timestamp'] = form.record_id.data
+                    update_or_append_user_data(user_data, 'HealthScore')
+
+                    # Send email if requested
+                    if form.auto_email.data:
+                        html = render_template(
+                            'email_templates/health_score_email.html',
+                            user_name=form.first_name.data,
+                            health_score=health_score,
+                            score_description=score_description,
+                            rank=rank,
+                            total_users=total_users,
+                            course_title=trans['Recommended Course'],
+                            course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
+                            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+                            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+                            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
+                            translations=trans
+                        )
+                        send_email_async.delay(
+                            trans['Score Report Subject'].format(user_name=form.first_name.data),
+                            [form.email.data],
+                            html,
+                            language
+                        )
+                        flash(trans['Email scheduled to be sent'], 'success')
+
+                    session['user_data_id'] = user_data['Timestamp']
+
+                    # Generate charts with error handling
+                    try:
+                        chart_html, comparison_chart_html = generate_health_score_charts(json.dumps(user_data), language)
+                    except Exception as e:
+                        chart_html, comparison_chart_html = '', ''  # Fallback to empty strings
+                        flash(trans['Error generating charts'], 'danger')
+
+                    # Redirect to dashboard
+                    return redirect(url_for('health_score_dashboard', 
+                                        user_data=json.dumps(user_data), 
+                                        chart_html=chart_html, 
+                                        comparison_chart_html=comparison_chart_html, 
+                                        score_description=score_description, 
+                                        rank=rank, 
+                                        total_users=total_users, 
+                                        badges=json.dumps(badges)))
+                except Exception as e:
+                    flash(trans['Error processing form: {}'.format(str(e))], 'danger')
+            else:
+                flash(trans['Form validation failed. Please check your inputs.'], 'danger')
+
+        return render_template(
+            'health_score_form.html',
+            form=form,
+            translations=trans,
+            language=language,
+            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+        )
+
+    @app.route('/health_score_dashboard')
+    def health_score_dashboard():
+        language = session.get('language', 'English')
+        trans = translations.get(language, translations['English'])
+        
+        # Safely load query parameters with fallbacks
+        user_data = json.loads(request.args.get('user_data', '{}')) if request.args.get('user_data') else {}
+        chart_html = request.args.get('chart_html', '')
+        comparison_chart_html = request.args.get('comparison_chart_html', '')
+        score_description = request.args.get('score_description', trans['No description available'])
+        rank = request.args.get('rank', '1')
+        total_users = request.args.get('total_users', '1')
+        badges = json.loads(request.args.get('badges', '[]')) if request.args.get('badges') else []
+
+        # Validate required user data
+        if not user_data.get('FirstName') or not user_data.get('Score'):
+            flash(trans['Invalid dashboard access'], 'danger')
+            return redirect(url_for('health_score_form'))
+
+        return render_template(
+            'health_score_dashboard.html',
+            tool='Financial Health Score',
+            user_data=user_data,
+            chart_html=chart_html,
+            comparison_chart_html=comparison_chart_html,
+            score_description=score_description,
+            rank=rank,
+            total_users=total_users,
+            badges=badges,
+            tips=get_tips(language),
+            courses=get_courses(language),
+            translations=trans,
+            language=language,
+            FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+            WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+            CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+        )
 @app.route('/net_worth_form', methods=['GET', 'POST'])
 def net_worth_form():
     language = session.get('language', 'English')
