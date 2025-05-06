@@ -79,10 +79,10 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = 'ficore.ai.africa@gmail.com'
-app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASSWORD')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_ENABLED'] = bool(app.config['MAIL_PASSWORD'])
 if not app.config['MAIL_PASSWORD']:
-    logger.error("SMTP_PASSWORD environment variable not set")
-    sys.exit(1)
+    logger.warning("SMTP_PASSWORD not set. Email functionality will be disabled.")
 mail = Mail(app)
 
 # Initialize Google Sheets client with google-auth
@@ -306,7 +306,7 @@ def calculate_running_balance(email):
 def assign_net_worth_rank(net_worth):
     try:
         sheet = sheets['NetWorth']
-        all_net_worths = [parse_number(row.get('NetWorth', 0)) for row in sheet.get_all_records() if row.get('NetWorth') and row.get('NetWorth').strip()]
+        all_net_worths = [parse_number(row.get('NetWorth', 0)) for row in sheet.get_all_records() if row.get('NetWorth')]
         all_net_worths.append(net_worth)
         rank_percentile = 100 - np.percentile(all_net_worths, np.searchsorted(sorted(all_net_worths, reverse=True), net_worth) / len(all_net_worths) * 100)
         return round(rank_percentile, 1)
@@ -382,7 +382,7 @@ def get_average_health_score():
     try:
         sheet = sheets['HealthScore']
         records = sheet.get_all_records()
-        scores = [parse_number(row.get('Score', 0)) for row in records if row.get('Score') and row.get('Score').strip()]
+        scores = [parse_number(row.get('Score', 0)) for row in records if row.get('Score') is not None]
         return np.mean(scores) if scores else 50
     except Exception as e:
         logger.error(f"Error calculating average health score: {e}")
@@ -449,7 +449,7 @@ def generate_net_worth_charts(net_worth_data_json, language='English'):
         chart_html = pio.to_html(pie_fig, full_html=False, include_plotlyjs=True)
 
         sheet = sheets['NetWorth']
-        all_net_worths = [parse_number(row.get('NetWorth', 0)) for row in sheet.get_all_records() if row.get('NetWorth') and row.get('NetWorth').strip()]
+        all_net_worths = [parse_number(row.get('NetWorth', 0)) for row in sheet.get_all_records() if row.get('NetWorth')]
         user_net_worth = parse_number(net_worth_data.get('NetWorth', 0))
         avg_net_worth = np.mean(all_net_worths) if all_net_worths else 0
         bar_fig = go.Figure(data=[
@@ -645,8 +645,11 @@ class BillForm(FlaskForm):
     submit = SubmitField('Add Bill', render_kw={'aria-label': 'Submit Bill Form'})
 
 # Celery tasks for email sending
-@celery.task
-def send_email_async(subject, recipients, html, language='English'):
+@celery.task(bind=True, max_retries=3)
+def send_email_async(self, subject, recipients, html, language='English'):
+    if not app.config['MAIL_ENABLED']:
+        logger.warning("Email functionality is disabled. Skipping email send.")
+        return
     try:
         msg = Message(subject, sender='ficore.ai.africa@gmail.com', recipients=recipients)
         msg.html = html
@@ -654,13 +657,20 @@ def send_email_async(subject, recipients, html, language='English'):
             mail.send(msg)
     except SMTPAuthenticationError as e:
         logger.error(f"SMTP authentication error: {e}")
+        self.retry(countdown=60)
     except SMTPException as e:
         logger.error(f"SMTP error: {e}")
+        self.retry(countdown=60)
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
+        with app.app_context():
+            flash(get_translation('Failed to send email notification', language), 'warning')
 
 @celery.task
 def send_bill_reminder_email(bill_json):
+    if not app.config['MAIL_ENABLED']:
+        logger.warning("Email functionality is disabled. Skipping bill reminder.")
+        return
     bill = json.loads(bill_json)
     language = bill.get('Language', 'English')
     try:
@@ -764,7 +774,7 @@ def get_score_description(score, language='English'):
 def assign_rank(score):
     try:
         sheet = sheets['HealthScore']
-        all_scores = [parse_number(row.get('Score', 0)) for row in sheet.get_all_records() if row.get('Score') and row.get('Score').strip()]
+        all_scores = [parse_number(row.get('Score', 0)) for row in sheet.get_all_records() if row.get('Score') is not None]
         all_scores.append(score)
         sorted_scores = sorted(all_scores, reverse=True)
         rank = sorted_scores.index(score) + 1
@@ -903,7 +913,7 @@ def health_score_form():
                     user_data['Timestamp'] = form.record_id.data
                 update_or_append_user_data(user_data, 'HealthScore')
 
-                if form.auto_email.data:
+                if form.auto_email.data and app.config['MAIL_ENABLED']:
                     html = render_template(
                         'email_templates/health_score_email.html',
                         user_name=form.first_name.data,
@@ -925,6 +935,8 @@ def health_score_form():
                         language
                     )
                     flash(get_translation('Email scheduled to be sent', language), 'success')
+                elif form.auto_email.data:
+                    flash(get_translation('Email notifications are disabled', language), 'warning')
 
                 session['user_data_id'] = user_data['Timestamp']
 
