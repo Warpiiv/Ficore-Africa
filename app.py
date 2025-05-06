@@ -262,12 +262,14 @@ def assign_net_worth_badges(net_worth, language='English'):
 # Get financial tips
 def get_tips(language='English'):
     trans = translations.get(language, translations['English'])
-    return [
-        trans['Regularly review your assets and liabilities to track progress.'],
-        trans['Invest in low-risk assets to grow your wealth steadily.'],
-        trans['Create a plan to pay down high-interest debt first.']
+    default_tips = [
+        'Regularly review your assets and liabilities to track progress.',
+        'Invest in low-risk assets to grow your wealth steadily.',
+        'Create a plan to pay down high-interest debt first.'
     ]
-
+    return [
+        trans.get(tip, tip) for tip in default_tips
+    ]
 # Get recommended courses
 def get_courses(language='English'):
     trans = translations.get(language, translations['English'])
@@ -1063,6 +1065,24 @@ def quiz_form():
                     WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
                     CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
                     translations=trans
+                )
+                send_email_async.delay(
+                    trans['Quiz Report Subject'].format(user_name=form.first_name.data),
+                    [form.email.data],
+                    html,
+                    language
+                )
+                flash(trans['Email scheduled to be sent'], 'success')
+            return redirect(url_for('quiz_dashboard', user_data=json.dumps(user_data), score=score, personality=personality, badges=json.dumps(badges), advice=advice))
+    return render_template(
+        'quiz_form.html',
+        form=form,
+        translations=trans,
+        language=language,
+        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
+        translations=trans
                 )
                 send_email_async.delay(
                     trans['Quiz Report Subject'].format(user_name=form.first_name.data),
