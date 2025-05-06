@@ -835,7 +835,7 @@ def health_score_form():
                     translations=trans
                 )
                 send_email_async.delay(
-                    trans['Score Report Subject'].format(user_name=form.first_name.data),
+                    trans['Score Report Subject'].format(user_name=form.first_name.data)),
                     [form.email.data],
                     html,
                     language
