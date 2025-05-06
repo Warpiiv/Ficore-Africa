@@ -365,7 +365,7 @@
                     const max = parseFloat(input.max) || Infinity;
                     if (isNaN(value) || (input.required && !input.value)) {
                         input.classList.add('is-invalid');
-                        errorElement.textContent = input.id === 'interest_rate' ? '{{ translations["interest_rate_invalid"] }}' : '{{ translations[`${input.id}_invalid`] }}';
+                errorElement.textContent = input.id === 'interest_rate' ? '{{ translations["interest_rate_invalid"] }}' : '{{ translations[input.id + "_invalid"] }}';
                         errors.push(`${input.id} is required or invalid`);
                         valid = false;
                     } else if (value < min || value > max) {
