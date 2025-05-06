@@ -1,5 +1,5 @@
-import logging
 import os
+import sys
 import uuid
 import json
 import logging
@@ -23,6 +23,10 @@ import redis
 import atexit
 from math import ceil
 from translations import translations
+# Configure logging
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Load environment variables
 try:
     from dotenv import load_dotenv
@@ -33,7 +37,11 @@ except ImportError as e:
     
 # Initialize Flask app
 app = Flask(__name__, template_folder='templates', static_folder='static')
-app.secret_key = os.environ.get('FLASK_SECRET_KEY')
+app_secret_key = os.environ.get('FLASK_SECRET_KEY')
+if not app_secret_key:
+    logger.error("FLASK_SECRET_KEY environment variable not set")
+    sys.exit(1)
+app.secret_key = app_secret_key
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -49,8 +57,13 @@ app.config.from_mapping(cache_config)
 cache = Cache(app)
 
 # Configure Celery
-app.config['CELERY_BROKER_URL'] = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-app.config['CELERY_RESULT_BACKEND'] = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+celery_broker_url = os.environ.get('CELERY_BROKER_URL')
+celery_result_backend = os.environ.get('CELERY_RESULT_BACKEND')
+if not celery_broker_url or not celery_result_backend:
+    logger.error("CELERY_BROKER_URL or CELERY_RESULT_BACKEND environment variable not set")
+    sys.exit(1)
+app.config['CELERY_BROKER_URL'] = celery_broker_url
+app.config['CELERY_RESULT_BACKEND'] = celery_result_backend
 celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
 celery.conf.update(app.config)
 celery.conf.beat_schedule = {
@@ -59,7 +72,6 @@ celery.conf.beat_schedule = {
         'schedule': crontab(minute='*'),
     },
 }
-
 # Configure Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -68,6 +80,7 @@ app.config['MAIL_USERNAME'] = 'ficore.ai.africa@gmail.com'
 app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASSWORD')
 if not app.config['MAIL_PASSWORD']:
     logger.error("SMTP_PASSWORD environment variable not set")
+    sys.exit(1)
 mail = Mail(app)
 
 # Initialize Google Sheets client with google-auth
@@ -76,25 +89,24 @@ try:
     creds_json = os.environ.get('GOOGLE_CREDENTIALS_JSON')
     if not creds_json:
         logger.error("GOOGLE_CREDENTIALS_JSON environment variable not set")
-        abort(500)
+        sys.exit(1)
     
     creds_dict = json.loads(creds_json)
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     client = gspread.authorize(creds)
 except json.JSONDecodeError as e:
     logger.error(f"Invalid GOOGLE_CREDENTIALS_JSON format: {e}")
-    flash("Server error: Invalid Google Sheets credentials configuration", 'error')
-    abort(500)
+    sys.exit(1)
 except Exception as e:
     logger.error(f"Failed to initialize Google Sheets credentials: {e}")
-    abort(500)
+    sys.exit(1)
 
 try:
     spreadsheet = client.open_by_key('13hbiMTMRBHo9MHjWwcugngY_aSiuxII67HCf03MiZ8I')
 except Exception as e:
     logger.error(f"Error accessing Google Sheets: {e}")
-    abort(500)
-
+    sys.exit(1)
+    
 # Define worksheet configurations
 WORKSHEETS = {
     'HealthScore': {'name': 'HealthScoreSheet', 'headers': ['Timestamp', 'BusinessName', 'IncomeRevenue', 'ExpensesCosts', 'DebtLoan', 'DebtInterestRate', 'AutoEmail', 'PhoneNumber', 'FirstName', 'LastName', 'UserType', 'Email', 'Badges', 'Language', 'Score']},
@@ -491,7 +503,8 @@ class NetWorthForm(FlaskForm):
     liabilities = FloatField('Total Liabilities (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦200,000', 'aria-label': 'Total Liabilities', 'data-tooltip': 'Enter the total value of your liabilities.'})
     record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
     submit = SubmitField('Get My Net Worth', render_kw={'aria-label': 'Submit Net Worth Form'})
-
+    
+# Updated QuizForm to include auto_email
 class QuizForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired()], render_kw={'placeholder': 'e.g. John', 'aria-label': 'First Name', 'data-tooltip': 'Enter your first name.'})
     email = EmailField('Email', validators=[DataRequired(), Email()], render_kw={'placeholder': 'e.g. john.doe@example.com', 'aria-label': 'Email', 'data-tooltip': 'Enter your email address.'})
@@ -501,14 +514,17 @@ class QuizForm(FlaskForm):
     q3 = SelectField('Financial Risks', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()], render_kw={'aria-label': 'Financial Risks', 'data-tooltip': 'Are you comfortable with financial risks?'})
     q4 = SelectField('Emergency Fund', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()], render_kw={'aria-label': 'Emergency Fund', 'data-tooltip': 'Do you have an emergency fund?'})
     q5 = SelectField('Review Goals', choices=[('Yes', 'Yes'), ('No', 'No')], validators=[DataRequired()], render_kw={'aria-label': 'Review Goals', 'data-tooltip': 'Do you regularly review your financial goals?'})
+    auto_email = BooleanField('Send Email Notification', default=False, render_kw={'aria-label': 'Send Email Notification', 'data-tooltip': 'Check to receive email notifications.'})
     record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
     submit = SubmitField('Submit Quiz', render_kw={'aria-label': 'Submit Quiz Form'})
-
+    
+# Updated EmergencyFundForm to include auto_email
 class EmergencyFundForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired()], render_kw={'placeholder': 'e.g. John', 'aria-label': 'First Name', 'data-tooltip': 'Enter your first name.'})
     email = EmailField('Email', validators=[DataRequired(), Email()], render_kw={'placeholder': 'e.g. john.doe@example.com', 'aria-label': 'Email', 'data-tooltip': 'Enter your email address.'})
     language = SelectField('Language', choices=[('English', 'English'), ('Hausa', 'Hausa')], validators=[DataRequired()], render_kw={'aria-label': 'Language', 'data-tooltip': 'Select your preferred language.'})
     monthly_expenses = FloatField('Monthly Essential Expenses (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦50,000', 'aria-label': 'Monthly Essential Expenses', 'data-tooltip': 'Enter your monthly essential expenses.'})
+    auto_email = BooleanField('Send Email Notification', default=False, render_kw={'aria-label': 'Send Email Notification', 'data-tooltip': 'Check to receive email notifications.'})
     record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
     submit = SubmitField('Calculate Emergency Fund', render_kw={'aria-label': 'Submit Emergency Fund Form'})
 
@@ -1006,6 +1022,43 @@ def net_worth_form():
     return render_template(
         'net_worth_form.html',
         form=form,
+        translations=trans,
+        language=language,
+        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+    )
+
+# Add missing net_worth_dashboard route
+@app.route('/net_worth_dashboard')
+def net_worth_dashboard():
+    language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
+    
+    # Safely load query parameters with fallbacks
+    user_data = json.loads(request.args.get('user_data', '{}')) if request.args.get('user_data') else {}
+    chart_html = request.args.get('chart_html', '')
+    comparison_chart_html = request.args.get('comparison_chart_html', '')
+    rank_percentile = request.args.get('rank_percentile', '50.0')
+    badges = json.loads(request.args.get('badges', '[]')) if request.args.get('badges') else []
+    advice = request.args.get('advice', trans['No advice available'])
+
+    # Validate required user data
+    if not user_data.get('FirstName') or not user_data.get('NetWorth'):
+        flash(trans['Invalid dashboard access'], 'danger')
+        return redirect(url_for('net_worth_form'))
+
+    return render_template(
+        'net_worth_dashboard.html',
+        tool='Net Worth Calculator',
+        user_data=user_data,
+        chart_html=chart_html,
+        comparison_chart_html=comparison_chart_html,
+        rank_percentile=rank_percentile,
+        badges=badges,
+        advice=advice,
+        tips=get_tips(language),
+        courses=get_courses(language),
         translations=trans,
         language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
@@ -1671,13 +1724,13 @@ def internal_server_error(e):
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     ), 500
 
-# Cleanup Redis connections
+# Updated Redis cleanup
 def cleanup_redis():
     try:
         redis_client = redis.Redis.from_url(app.config['CELERY_BROKER_URL'])
-        redis_client.close()
+        redis_client.connection_pool.disconnect()
     except Exception as e:
-        logger.error(f"Error closing Redis connection: {e}")
+        logger.error(f"Error closing Redis connection: %s", e)
 
 atexit.register(cleanup_redis)
 
