@@ -108,7 +108,7 @@
             {% endif %}
         {% endwith %}
 
-        <h3>{{ translations['Plan Your Bills'] }}</h3>
+        <h3>{{ translations['Plan and manage your upcoming bills to avoid surprises.'] }}</h3>
         <form method="POST" action="{{ url_for('bill_planner_form') }}">
             {{ form.hidden_tag() }}
 
@@ -123,15 +123,13 @@
             <input type="email" id="email" name="email" placeholder="{{ translations['Enter your email'] }}" required>
             <span class="info-icon" aria-label="Email Info">
                 <i class="fas fa-info-circle"></i>
-                <span class="tooltip-text">{{ translations['Provide your email address to receive your bill summary.'] }}</span>
+                <span class="tooltip-text">{{ translations['Provide your email address to receive your results and personalized tips.'] }}</span>
             </span>
 
             <label for="language">{{ translations['Language'] }}:</label>
             <select id="language" name="language" required>
                 <option value="en">{{ translations['English'] }}</option>
                 <option value="ha">{{ translations['Hausa'] }}</option>
-                <option value="yo">{{ translations['Yoruba'] }}</option>
-                <option value="ig">{{ translations['Igbo'] }}</option>
             </select>
             <span class="info-icon" aria-label="Language Info">
                 <i class="fas fa-info-circle"></i>
@@ -155,3 +153,5 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>
