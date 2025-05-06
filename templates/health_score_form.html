@@ -1,4 +1,43 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="{{ language }}">
 <head>
     <meta charset="UTF-8">
@@ -236,18 +275,6 @@
                 font-size: 0.9rem;
             }
         }
-        .number-display {
-            position: absolute;
-            top: 50%;
-            left: 10px;
-            transform: translateY(-50%);
-            pointer-events: none;
-            color: #495057;
-            font-size: 1rem;
-        }
-        .number-input {
-            padding-left: 10px; /* Adjust padding to avoid overlap with display */
-        }
     </style>
 </head>
 <body>
@@ -346,7 +373,6 @@
                                 <span class="tooltip-text">{{ translations['Total money you receive regularly, like salary, business sales, gifts, grants, incentives, or side hustles.'] }}</span>
                             </span>
                             {{ form.income(class="form-control number-input", type="number", step="any", min="0", max="10000000000", placeholder=translations['e.g. 150,000'], required=True, **{'aria-required': 'true'}) }}
-                            <span class="number-display" data-for="income"></span>
                             <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
                         </div>
@@ -356,7 +382,6 @@
                                 <span class="tooltip-text">{{ translations['All the money you spend, such as on rent, food, transport, electricity bill, gas and utilities, fine and penalties, levies, taxes, etc.'] }}</span>
                             </span>
                             {{ form.expenses(class="form-control number-input", type="number", step="any", min="0", max="10000000000", placeholder=translations['e.g. 60,000'], required=True, **{'aria-required': 'true'}) }}
-                            <span class="number-display" data-for="expenses"></span>
                             <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
                         </div>
@@ -366,7 +391,6 @@
                                 <span class="tooltip-text">{{ translations['Money you owe, like loans, IOUs, borrowings, or funds lent to you.'] }}</span>
                             </span>
                             {{ form.debt(class="form-control number-input", type="number", step="any", min="0", max="10000000000", placeholder=translations['e.g. 25,000'], required=True, **{'aria-required': 'true'}) }}
-                            <span class="number-display" data-for="debt"></span>
                             <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
                         </div>
@@ -376,7 +400,6 @@
                                 <span class="tooltip-text">{{ translations['Enter the annual interest rate for your debt (optional).'] }}</span>
                             </span>
                             {{ form.interest_rate(class="form-control number-input", type="number", step="any", min="0", max="100", placeholder=translations['e.g. 10%']) }}
-                            <span class="number-display" data-for="interest_rate"></span>
                             <div class="valid-feedback">{{ translations['Valid percentage!'] }}</div>
                             <div class="invalid-feedback">{{ translations['Must be between 0 and 100'] }}</div>
                         </div>
@@ -411,7 +434,7 @@
                 <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
                 <a href="{{ url_for('health_score_dashboard') }}" class="btn btn-secondary">{{ translations['Dashboard'] }}</a>
             </p>
-            <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
+            <p>{{ translations['Contact Us'] }} <a href="/cdn-cgi/l/email-protection#eb8d828884998ec58a82c58a8d9982888aab8c868a8287c5888486">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
             <p><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
             <p>© 2025 Ficore Africa. All rights reserved.</p>
         </footer>
@@ -492,80 +515,45 @@
             });
         });
 
-        // Format number with commas for display
-        function formatNumber(value) {
-            if (!value && value !== 0) return '';
-            const parts = parseFloat(value).toFixed(2).split('.');
-            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            return parts.join('.');
-        }
-
-        // Handle numeric inputs for display formatting
+        // Handle numeric inputs with simplified formatting
         document.querySelectorAll('.number-input').forEach(input => {
-            const displayElement = input.parentElement.querySelector('.number-display[data-for="' + input.id + '"]');
-            
-            function updateDisplay() {
-                let value = parseFloat(input.value) || 0;
+            input.addEventListener('input', () => {
+                let value = input.value.replace(/[^0-9.]/g, '');
+                if (value === '') {
+                    input.classList.remove('is-valid', 'is-invalid');
+                    return;
+                }
+                let numValue = parseFloat(value) || 0;
                 let max = parseFloat(input.max) || Infinity;
                 let min = parseFloat(input.min) || 0;
 
-                // Validate and adjust value
-                if (value > max) {
-                    value = max;
-                    input.value = max;
+                if (numValue > max) {
+                    numValue = max;
                     input.classList.add('is-invalid');
-                } else if (value < min) {
-                    value = min;
-                    input.value = min;
+                } else if (numValue < min) {
+                    numValue = min;
                     input.classList.add('is-invalid');
-                } else if (input.required && !input.value) {
+                } else if (input.required && !value) {
                     input.classList.add('is-invalid');
-                    displayElement.textContent = '';
-                    return;
                 } else {
                     input.classList.remove('is-invalid');
                     input.classList.add('is-valid');
                 }
-
-                // Update display with formatted value
-                displayElement.textContent = formatNumber(value);
-            }
-
-            // Initialize display
-            updateDisplay();
-
-            // Handle input event
-            input.addEventListener('input', () => {
-                updateDisplay();
+                input.value = numValue;
             });
 
-            // Handle blur event
             input.addEventListener('blur', () => {
                 if (!input.value && !input.required) {
                     input.classList.remove('is-valid', 'is-invalid');
-                    displayElement.textContent = '';
-                    return;
                 }
-                updateDisplay();
-            });
-
-            // Handle focus to clear display for typing
-            input.addEventListener('focus', () => {
-                displayElement.textContent = '';
             });
         });
 
         // Loading spinner
         document.getElementById('submission-form').addEventListener('submit', function(e) {
-            // Ensure numeric inputs have raw values
-            document.querySelectorAll('.number-input').forEach(input => {
-                if (input.value) {
-                    input.value = parseFloat(input.value) || 0;
-                }
-            });
             document.querySelector('.loading-spinner').style.display = 'block';
             document.getElementById('submit-btn').disabled = true;
         });
     </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93ba6b913cbc4551',t:'MTc0NjU1NDg3Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
