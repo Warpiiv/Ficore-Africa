@@ -51,6 +51,7 @@ translations = {
         'Invalid Number': 'Please enter a valid number.',
         'Language': 'Language',
         'Create New Record': 'Create New Record',
+        'Regularly review your assets and liabilities to track progress.': 'A ringa bincika kadarori da basussuka da ake dashi domin gane inda arziki ya dosa.',
         'Select Language': 'Select Language',
         'Submit': 'Submit',
         'Please answer all questions before submitting!': 'Please answer all questions before submitting!',
