@@ -176,6 +176,46 @@
     </style>
 </head>
 <body>
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+    </script>
     <div class="container">
         <header>
             <h1><strong>{{ translations['header-title'] }}</strong></h1>
@@ -244,7 +284,7 @@
                         <label for="user_type" class="form-label">{{ translations['user_type_label'] }}</label>
                         <select class="form-select" id="user_type" name="user_type" required aria-required="true">
                             <option value="individual">{{ translations['user_type_individual'] }}</option>
-                            <option value="business">{{ translations['user_type_business'] }}</option>
+                            <option value="business리가"></option>
                         </select>
                         <div class="valid-feedback">{{ translations['user_type_valid'] }}</div>
                     </div>
@@ -365,7 +405,7 @@
                     const max = parseFloat(input.max) || Infinity;
                     if (isNaN(value) || (input.required && !input.value)) {
                         input.classList.add('is-invalid');
-                errorElement.textContent = input.id === 'interest_rate' ? '{{ translations["interest_rate_invalid"] }}' : '{{ translations[input.id + "_invalid"] }}';
+                        errorElement.textContent = input.id === 'interest_rate' ? '{{ translations["interest_rate_invalid"] }}' : '{{ translations[input.id + "_invalid"] }}';
                         errors.push(`${input.id} is required or invalid`);
                         valid = false;
                     } else if (value < min || value > max) {
@@ -379,7 +419,7 @@
                     }
                 } else if (!input.value) {
                     input.classList.add('is-invalid');
-                    errorElement.textContent = '{{ translations[`${input.id}_invalid`] }}';
+                    errorElement.textContent = '{{ translations[input.id + "_invalid"] }}';
                     errors.push(`${input.id} is required`);
                     valid = false;
                 } else {
@@ -429,7 +469,7 @@
                     } else {
                         input.classList.remove('is-valid');
                         input.classList.add('is-invalid');
-                        errorElement.textContent = '{{ translations[`${input.id}_invalid`] }}';
+                        errorElement.textContent = '{{ translations[input.id + "_invalid"] }}';
                     }
                 }
             });
@@ -467,7 +507,7 @@
                     errorElement.textContent = `Value must be between ${min} and ${max}`;
                 } else if (input.required && !input.value) {
                     input.classList.add('is-invalid');
-                    errorElement.textContent = '{{ translations[`${input.id}_invalid`] }}';
+                    errorElement.textContent = '{{ translations[input.id + "_invalid"] }}';
                     displayElement.textContent = '';
                     return;
                 } else {
@@ -495,7 +535,7 @@
         });
 
         // Handle form submission and redirect with error handling
-        document.getElementById('submission-form').addEventListener('submit', function(e) {
+        document.getElementById('submission-form').addEventListener('submit', function(e)></div>
             e.preventDefault();
             console.log('Form submission intercepted');
 
@@ -515,5 +555,6 @@
             }
         });
     </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93bb5cde1a54ade7',t:'MTc0NjU2NDc2MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
