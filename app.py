@@ -478,7 +478,7 @@ def generate_expense_charts(email, language='English'):
         return trans['Chart failed to load. Please try again.']
 
 # Form definitions with enhanced UI features
-class UserForm(FlaskForm):
+class HealthScoreForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired()], render_kw={'placeholder': 'e.g. John', 'aria-label': 'First Name', 'data-tooltip': 'Enter your first name.'})
     last_name = StringField('Last Name', validators=[Optional()], render_kw={'placeholder': 'e.g. Doe', 'aria-label': 'Last Name', 'data-tooltip': 'Enter your last name (optional).'})
     email = EmailField('Email', validators=[DataRequired(), Email()], render_kw={'placeholder': 'e.g. john.doe@example.com', 'aria-label': 'Email', 'data-tooltip': 'Enter your email address.'})
