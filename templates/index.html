@@ -544,7 +544,7 @@
             </div>
             <!-- Plan & Budget Section -->
             <h4><span class="emoji">💡</span> {{ translations['Plan & Budget'] }}</h4>
-            <!-- Weekly Budget Planner -->
+            <!-- Monthly Budget Planner -->
             <div class="col-md-4 mb-4">
                 <div class="card">
                     <div class="card-header">
@@ -552,10 +552,10 @@
                     </div>
                     <div class="card-body">
                         <p class="tool-description">
-                            {{ translations['Plan Your Monthly Finances'] }}
+                            {{ translations['Manage income and expenses with budget'] }}
                             <span class="info-icon" data-tooltip-target="budget_form-tooltip" title="{{ translations['Allocate income across expense categories'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('budget_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Weekly budget_form Planner'] }}">{{ translations['Start Now'] }}</a>
+                        <a href="{{ url_for('budget_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Monthly Budget Planner'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="budget_form-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Allocate income across expense categories'] }}</span>
@@ -614,7 +614,7 @@
                             {{ translations['Test your financial knowledge with a quiz'] }}
                             <span class="info-icon" data-tooltip-target="quiz_form-tooltip" title="{{ translations['Answer questions to assess financial literacy'] }}" aria-label="More info">ℹ️</span>
                         </p>
-                        <a href="{{ url_for('quiz_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Personality quiz_form'] }}">{{ translations['Start Now'] }}</a>
+                        <a href="{{ url_for('quiz_form') }}" class="btn btn-primary" role="button" aria-label="{{ translations['Start Financial Personality Quiz'] }}">{{ translations['Start Now'] }}</a>
                         <div class="tooltip-fallback" id="quiz_form-tooltip">
                             <button class="close-btn" aria-label="Close tooltip">×</button>
                             <span>{{ translations['Answer questions to assess financial literacy'] }}</span>
