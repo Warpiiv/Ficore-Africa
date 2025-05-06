@@ -934,6 +934,51 @@ def health_score_dashboard():
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
+@app.route('/net-worth', methods=['GET', 'POST'])
+def net_worth_form():
+    language = session.get('language', 'English')
+    trans = translations.get(language, translations['English'])
+
+    if request.method == 'POST':
+        # Extract form data
+        first_name = request.form.get('first_name')
+        email = request.form.get('email')
+        language = request.form.get('language')
+        assets = float(request.form.get('assets', 0))
+        liabilities = float(request.form.get('liabilities', 0))
+
+        # Calculate net worth
+        net_worth = assets - liabilities
+
+        # Prepare user data to pass to dashboard
+        user_data = {
+            'first_name': first_name,
+            'email': email,
+            'language': language,
+            'assets': assets,
+            'liabilities': liabilities,
+            'net_worth': net_worth
+        }
+
+        # Placeholder for chart_html, comparison_chart_html, rank_percentile, badges, advice
+        # These can be computed or fetched as needed
+        chart_html = ''  # Replace with actual chart generation logic if needed
+        comparison_chart_html = ''
+        rank_percentile = '50.0'  # Placeholder value
+        badges = []  # Placeholder
+        advice = 'Consider reducing liabilities to improve your net worth.'  # Placeholder advice
+
+        # Redirect to dashboard with the data
+        return redirect(url_for('net_worth_dashboard',
+                                user_data=json.dumps(user_data),
+                                chart_html=chart_html,
+                                comparison_chart_html=comparison_chart_html,
+                                rank_percentile=rank_percentile,
+                                badges=json.dumps(badges),
+                                advice=advice))
+
+    # On GET, render the form
+    return render_template('net_worth_form.html', translations=trans, language=language)
     
 @app.route('/net_worth_dashboard')
 def net_worth_dashboard():
