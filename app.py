@@ -79,12 +79,17 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = 'ficore.ai.africa@gmail.com'
-app.config['MAIL_PASSWORD'] = os.environ.get('xxqnhgffglkfbdniatlndfghjkdfgh')
+app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = 'ficore.ai.africa@gmail.com'
 app.config['MAIL_ENABLED'] = bool(app.config['MAIL_PASSWORD'])
-if not app.config['MAIL_PASSWORD']:
-    logger.warning("SMTP_PASSWORD not set. Email functionality will be disabled.")
-mail = Mail(app)
-
+if not app.config['MAIL_ENABLED']:
+    logger.warning("SMTP_PASSWORD not set in environment. Email functionality will be disabled.")
+try:
+    mail = Mail(app)
+    logger.info("Flask-Mail initialized successfully.")
+except Exception as e:
+    logger.error(f"Failed to initialize Flask-Mail: {str(e)}")
+    
 # Initialize Google Sheets client with google-auth
 scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 try:
