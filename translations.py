@@ -429,6 +429,7 @@ translations = {
         'Failed to send email due to authentication issue': 'Failed to send email due to authentication issue',
         'Failed to send email due to server issue': 'Failed to send email due to server issue',
         'Failed to save data due to Google Sheets error': 'Failed to save data due to Google Sheets error',
+        'Failed to save data due to Google Sheets API limit': 'Failed to save data due to Google Sheets API limit',
         'Email reminders not available due to missing scheduler': 'Email reminders not available due to missing scheduler',
         'Quiz Report Subject': 'Your FiCore Africa Quiz Results, {user_name}',
         'Quiz Email Body': '''
@@ -475,7 +476,8 @@ translations = {
         'Quiz Participant': 'Quiz Participant',
         'Great job! Continue to leverage your {personality} approach to build wealth.': 'Great job! Continue to leverage your {personality} approach to build wealth.',
         'Good effort! Your {personality} style is solid, but consider tracking expenses more closely.': 'Good effort! Your {personality} style is solid, but consider tracking expenses more closely.',
-        'Keep learning! Your {personality} approach can improve with regular financial reviews.': 'Keep learning! Your {personality} approach can improve with regular financial reviews.'
+        'Keep learning! Your {personality} approach can improve with regular financial reviews.': 'Keep learning! Your {personality} approach can improve with regular financial reviews.',
+        'Invalid dashboard access': 'Invalid dashboard access'
     },
     'Hausa': {
         'Welcome': 'Barka da zuwa',
@@ -774,23 +776,23 @@ translations = {
         'Calculate your net worth from assets and liabilities': 'Ƙididdige net worth ɗinka daga kadarori da basussuka',
         'Start Net Worth Calculator': 'Fara Kalkuleta na Net Worth',
         'Start Emergency Fund Calculator': 'Fara Kalkuleta na Asusun Gaggawa',
-        'Plan & Budget': 'Tsarawa & Kasafi',
+        'Plan & Budget': 'Tsarawa & Kasafin Kuɗi',
         'Weekly Budget Planner': 'Mai Tsara Kasafin Kuɗi na Mako',
-        'Manage income and expenses with a budget': 'Sarrafa kuɗin shiga da kashe kuɗi tare da kasafi',
+        'Manage income and expenses with a budget': 'Sarrafa kuɗin shiga da kashe kuɗi tare da kasafin kuɗi',
         'Allocate income across expense categories': 'Raba kuɗin shiga a cikin rukunan kashe kuɗi',
-        'Start Weekly Budget Planner': 'Fara Mai Tsara Kasafin Kuɗin Mako',
+        'Start Weekly Budget Planner': 'Fara Mai Tsara Kasafin Kuɗi na Mako',
         'Track expenses by category and date': 'Bibiyi kashe kuɗi ta rukuni da kwanan wata',
         'Log and edit expenses for spending insights': 'Yi rikodin kuma gyara kashe kuɗi don fahimtar kashe kuɗi',
         'Start Expense Tracker': 'Fara Mai Bibiyar Kashe Kuɗi',
         'Organize bills by amount and due date': 'Tsara lissafi ta adadi da ranar ƙarshe',
         'Manage and mark bills as paid': 'Sarrafa kuma yi alama lissafi kamar an biya',
         'Start Bill Planner': 'Fara Mai Tsara Lissafin Kuɗi',
-        'Know Yourself': 'San Kanka',
+        'Know Yourself': 'Sanin Kanka',
         'Test your financial knowledge with a quiz': 'Gwada ilimin kuɗin ka tare da gwaji',
         'Answer questions to assess financial literacy': 'Amsa tambayoyi don tantance ilimin kuɗi',
         'Start Financial Personality Quiz': 'Fara Gwajin Halin Kuɗi',
-        'Daily Tip: Pay yourself first before expenses': 'Shawara ta Yau: Biya kanka da farko kafin kashe kuɗi',
-        'Feature Spotlight: Try our Net Worth Calculator!': 'Fitaccen Siffa: Gwada Kalkuleta na Net Worth ɗinmu!',
+        'Daily Tip: Pay yourself first before expenses': 'Shawarar Yau: Biya kanka farko kafin kashe kuɗi',
+        'Feature Spotlight: Try our Net Worth Calculator!': 'Fitaccen Fasaha: Gwada Kalkuleta na Net Worth ɗinmu!',
         'About Ficore Africa: Empowering financial growth across Africa since 2023': 'Game da Ficore Africa: Ƙarfafa haɓakar kuɗi a duk Afirka tun 2023',
         'Return to Home': 'Koma Gida',
         'Go Back': 'Koma Baya',
@@ -808,8 +810,8 @@ translations = {
         'Pending': 'Ana Jiran',
         'Completed': 'An Kammala',
         'Overdue': 'Ya Wuce Lokaci',
-        'No data available': 'Babu bayanai. Da fatan za a cika fam din farko.',
-        'Invalid date format: {}': 'Tsarin kwanan wata mara inganci: {}.',
+        'No data available': 'Babu bayanai da aka samu. Don Allah ƙaddamar da fom ɗin farko.',
+        'Invalid date format: {}': 'Tsarin kwanan wata ba daidai ba: {}.',
         'Error adding task: {}': 'Kuskure wajen ƙara aiki: {}.',
         'Error updating task: {}': 'Kuskure wajen sabunta aiki: {}.',
         'Error completing task: {}': 'Kuskure wajen kammala aiki: {}.',
@@ -821,23 +823,23 @@ translations = {
         'Bill Reminder Body': '''
             <h1>Tunatarwar Lissafi</h1>
             <p>Mai girma {first_name},</p>
-            <p>Wannan tunatarwa ce don lissafinka: {description}</p>
+            <p>Wannan tunatarwa ce game da lissafinka: {description}</p>
             <p>Adadi: {amount}</p>
             <p>Ranar Ƙarshe: {due_date}</p>
         ''',
         'Error calculating net worth: {}': 'Kuskure wajen ƙididdige net worth: {}.',
         'Error processing quiz: {}': 'Kuskure wajen sarrafa gwaji: {}.',
         'Error calculating fund: {}': 'Kuskure wajen ƙididdige asusu: {}.',
-        'Error calculating budget: {}': 'Kuskure wajen ƙididdige kasafi: {}.',
+        'Error calculating budget: {}': 'Kuskure wajen ƙididdige kasafin kuɗi: {}.',
         'Error adding expense: {}': 'Kuskure wajen ƙara kashe kuɗi: {}.',
-        'Error updating expense: {}': 'Kuskure wajen sabunta kashe kuɗin: {}.',
-        'No dashboard available for budget': 'Babu dashboard da aka samu don kasafi.',
+        'Error updating expense: {}': 'Kuskure wajen sabunta kashe kuɗi: {}.',
+        'No dashboard available for budget': 'Babu dashboard da aka samu don kasafin kuɗi.',
         'Send Email Report': 'Aika Rahoton Imel',
         'Share Your Results': 'Raba Sakamakon Ka',
         'My Net Worth': 'Net Worth Na',
         'Check yours at': 'Duba naka a',
         'Results shared successfully!': 'An raba sakamako cikin nasara!',
-        'Results copied to clipboard!': 'An kwafi sakamako zuwa allo!',
+        'Results copied to clipboard!': 'An kwafi sakamako zuwa clipboard!',
         'Failed to copy results': 'An kasa kwafi sakamako.',
         'Your net worth is': 'Net worth ɗinka shine',
         'Ficore Africa Net Worth Dashboard': 'Dashboard na Net Worth na Ficore Africa',
@@ -845,25 +847,26 @@ translations = {
         'Your Net Worth': 'Net Worth ɗinka',
         'Rank': 'Matsayi',
         'Top': 'Sama',
-        'Your rank among users based on net worth': 'Matsayin ka a tsakanin masu amfani bisa net worth',
+        'Your rank among users based on net worth': 'Matsayinka a tsakanin masu amfani bisa net worth',
         'More info on rank': 'Ƙarin bayani kan matsayi',
         'Failed to send email due to authentication issue': 'An kasa aika imel saboda matsalar tantancewa',
         'Failed to send email due to server issue': 'An kasa aika imel saboda matsalar uwar garken',
         'Failed to save data due to Google Sheets error': 'An kasa ajiye bayanai saboda kuskuren Google Sheets',
+        'Failed to save data due to Google Sheets API limit': 'An kasa ajiye bayanai saboda iyakar Google Sheets API',
         'Email reminders not available due to missing scheduler': 'Ba a samun tunatarwar imel saboda rashin mai tsarawa',
         'Quiz Report Subject': 'Sakamakon Gwajin Ficore Africa ɗinka, {user_name}',
         'Quiz Email Body': '''
             <p>Sannu {user_name},</p>
-            <p>Ka sami {score}% a Gwajin Halin Kuɗi na Ficore Africa!</p>
+            <p>Ka sami kashi {score}% a Gwajin Halin Kuɗi na Ficore Africa!</p>
             <p>Halin kuɗin ka: {personality}</p>
             <p>Shawara: {advice}</p>
-            <p>Bincika wannan kwas da aka ba da shawara: <a href="{course_url}">{course_title}</a></p>
+            <p>Duba wannan kwas da aka ba da shawara: <a href="{course_url}">{course_title}</a></p>
             <p>Ba da ra’ayi: <a href="{FEEDBACK_FORM_URL}">Fom na Ra’ayi</a></p>
             <p>Shiga jerin jira: <a href="{WAITLIST_FORM_URL}">Fom na Jerin Jira</a></p>
             <p>Yi rijistar shawara: <a href="{CONSULTANCY_FORM_URL}">Fom na Shawara</a></p>
             <p>Yi sa’a,<br>Ƙungiyar Ficore Africa</p>
         ''',
-        'Financial Guru': 'Gwarzon Kuɗi',
+        'Financial Guru': 'Guru na Kuɗi',
         'Personal Information': 'Bayanin Mutum',
         'Your Personal Info': 'Bayanin Mutum ɗinka',
         'Monthly Budget Planner': 'Mai Tsara Kasafin Kuɗi na Wata',
@@ -876,28 +879,27 @@ translations = {
         'Hausa': 'Hausa',
         'Choose your preferred language for the quiz.': 'Zaɓi harshen da ka fi so don gwajin.',
         'Choose your preferred language for the planner.': 'Zaɓi harshen da ka fi so don mai tsarawa.',
-        'Do you save some money every month?': 'Shin kana tara kuɗi kowane wata?',
-        'Do you know how much you spend each week?': 'Shin ka san adadin da kake kashe kowane mako?',
+        'Do you save some money every month?': 'Shin kana tanadin kuɗi kowane wata?',
+        'Do you know how much you spend each week?': 'Shin ka san adadin da kake kashewa kowane mako?',
         'Do you like to plan before spending money?': 'Shin kana son tsarawa kafin kashe kuɗi?',
         'Do you keep money for emergencies?': 'Shin kana ajiye kuɗi don gaggawa?',
         'Do you check your money goals often?': 'Shin kana duba burin kuɗin ka akai-akai?',
-        'Do you avoid borrowing money when possible?': 'Shin kana guje wa ɗaukar bashi lokacin da zai yiwu?',
+        'Do you avoid borrowing money when possible?': 'Shin kana guje wa aro lokacin da zai yiwu?',
         'Do you feel okay taking small money risks?': 'Shin kana jin daɗi da ɗaukar ƙananan haɗarin kuɗi?',
         'Do you learn about saving or investing?': 'Shin kana koyo game da tanadi ko saka hannun jari?',
-        'Do you spend less than you earn?': 'Shin kana kashe kuɗi ƙasa da yadda kake samu?',
+        'Do you spend less than you earn?': 'Shin kana kashe kuɗi ƙasa da abin da kake samu?',
         'Do you talk about money with family or friends?': 'Shin kana tattauna game da kuɗi tare da dangi ko abokai?',
         'Dashboard': 'Dashboard',
-        'Personal Finance 101': 'Kulada Kudi Kashi na Farko',
         'Financial growth passport for Africa': 'Fasfo na haɓaka kuɗi don Afirka',
         'Discover Your Financial Style': 'Gano Salon Kuɗin Ka',
         'Plan Your Monthly Budget': 'Tsara Kasafin Kuɗin Ka na Wata',
-        'Plan & budget_form': 'Tsarawa & Kasafi',
-        'Manage income and expenses with budget': 'Sarrafa Samunka da Kashe kudinka ta hanyar amfani da Budget',
+        'Plan & budget_form': 'Tsarawa & Kasafin Kuɗi',
         'Test your financial knowledge with a Quiz': 'Gwada ilimin kuɗin ka tare da gwaji',
         'Quiz Achiever': 'Mai Nasara a Gwaji',
         'Quiz Participant': 'Mai Shiga Gwaji',
-        'Great job! Continue to leverage your {personality} approach to build wealth.': 'Aiki mai kyau! Ci gaba da amfani da tsarin {personality} ɗinka don gina arziki.',
-        'Good effort! Your {personality} style is solid, but consider tracking expenses more closely.': 'Ƙoƙari mai kyau! Salon {personality} ɗinka yana da ƙarfi, amma yi la’akari da bibiyar kashe kuɗi da kyau.',
-        'Keep learning! Your {personality} approach can improve with regular financial reviews.': 'Ci gaba da koyo! Tsarin {personality} ɗinka zai iya inganta tare da bita na kuɗi akai-akai.'
+        'Great job! Continue to leverage your {personality} approach to build wealth.': 'Aikin kyau! Ci gaba da yin amfani da tsarin {personality} don gina arziki.',
+        'Good effort! Your {personality} style is solid, but consider tracking expenses more closely.': 'Ƙoƙari mai kyau! Salon {personality} ɗinka yana da ƙarfi, amma ka yi la’akari da bibiyar kashe kuɗi sosai.',
+        'Keep learning! Your {personality} approach can improve with regular financial reviews.': 'Ci gaba da koyo! Tsarin {personality} ɗinka zai iya inganta tare da bita na kuɗi akai-akai.',
+        'Invalid dashboard access': 'Samun dashboard ba daidai ba'
     }
-}        
+}
