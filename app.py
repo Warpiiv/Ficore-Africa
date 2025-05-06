@@ -1474,8 +1474,8 @@ def budget_dashboard():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
-@app.route('/expense_form', methods=['GET', 'POST'])
-def expense_form():
+@app.route('/expense_tracker_form', methods=['GET', 'POST'])
+def expense_tracker_form():
     language = session.get('language', 'English')
     email = session.get('user_email')
     form_data = None
@@ -1567,7 +1567,7 @@ def expense_form():
             flash(get_translation('Form validation failed. Please check your inputs.', language), 'danger')
 
     return render_template(
-        'expense_form.html',
+        'expense_tracker_form.html',
         form=form,
         translations=translations.get(language, translations['English']),
         language=language,
