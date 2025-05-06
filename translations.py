@@ -214,6 +214,91 @@ translations = {
             </body>
             </html>
         ''',
+                'Failed to store authentication data': 'Failed to store authentication data. Please try again.',
+        'Email reminders updated successfully': 'Email reminders updated successfully.',
+        'Emergency Fund Report Subject': '📋 Your Ficore Emergency Fund Report is Ready, {user_name}!',
+        'Emergency Fund Email Body': '''
+            <html>
+            <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #1E7F71; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #FFFFFF; margin: 0;">Ficore Africa Emergency Fund Dashboard</h2>
+                    <p style="font-style: italic; color: #E0F7FA; font-size: 0.9rem; margin: 5px 0 0 0;">
+                        Financial growth passport for Africa
+                    </p>
+                </div>
+                <p>Dear {user_name},</p>
+                <p>We have calculated your Ficore Africa Emergency Fund recommendation based on your recent submission.</p>
+                <ul>
+                    <li><strong>Monthly Expenses</strong>: ₦{monthly_expenses}</li>
+                    <li><strong>Recommended Fund</strong>: ₦{recommended_fund}</li>
+                    <li><strong>Advice</strong>: Start saving a little each month to build your emergency fund.</li>
+                </ul>
+                <p>Follow the advice above to strengthen your financial security.</p>
+                <p style="margin-bottom: 10px;">
+                    Want to learn more? Check out this course: 
+                    <a href="{course_url}" style="display: inline-block; padding: 10px 20px; background-color: #FBC02D; color: #333; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">{course_title}</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Please provide feedback on your experience: 
+                    <a href="{FEEDBACK_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #2E7D32; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Feedback Form</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Want Smart Insights? Join our waitlist: 
+                    <a href="{WAITLIST_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #0288D1; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Join Waitlist</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Need expert advice? Book a consultancy: 
+                    <a href="{CONSULTANCY_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #D81B60; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Book Consultancy</a>
+                </p>
+                <p>Thank you for choosing Ficore Africa!</p>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">
+                    © 2025 Ficore Africa. All rights reserved.
+                </p>
+            </body>
+            </html>
+        ''',
+        'Budget Report Subject': '📅 Your Ficore Budget Report is Ready, {user_name}!',
+        'Budget Email Body': '''
+            <html>
+            <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #1E7F71; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #FFFFFF; margin: 0;">Ficore Africa Budget Dashboard</h2>
+                    <p style="font-style: italic; color: #E0F7FA; font-size: 0.9rem; margin: 5px 0 0 0;">
+                        Financial growth passport for Africa
+                    </p>
+                </div>
+                <p>Dear {user_name},</p>
+                <p>We have analyzed your Ficore Africa Budget based on your recent submission.</p>
+                <ul>
+                    <li><strong>Monthly Income</strong>: ₦{monthly_income}</li>
+                    <li><strong>Total Expenses</strong>: ₦{total_expenses}</li>
+                    <li><strong>Surplus/Deficit</strong>: ₦{surplus_deficit}</li>
+                    <li><strong>Advice</strong>: {advice}</li>
+                </ul>
+                <p>Follow the advice above to optimize your budget.</p>
+                <p style="margin-bottom: 10px;">
+                    Want to learn more? Check out this course: 
+                    <a href="{course_url}" style="display: inline-block; padding: 10px 20px; background-color: #FBC02D; color: #333; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">{course_title}</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Please provide feedback on your experience: 
+                    <a href="{FEEDBACK_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #2E7D32; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Feedback Form</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Want Smart Insights? Join our waitlist: 
+                    <a href="{WAITLIST_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #0288D1; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Join Waitlist</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Need expert advice? Book a consultancy: 
+                    <a href="{CONSULTANCY_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #D81B60; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Book Consultancy</a>
+                </p>
+                <p>Thank you for choosing Ficore Africa!</p>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">
+                    © 2025 Ficore Africa. All rights reserved.
+                </p>
+            </body>
+            </html>
+        ''',
         'Net Worth Report Subject': '📈 Your Ficore Net Worth Report is Ready, {user_name}!',
         'Net Worth Email Body': '''
             <html>
@@ -924,6 +1009,91 @@ translations = {
             <p>Shiga jerin jira: <a href="{WAITLIST_FORM_URL}">Fom na Jerin Jira</a></p>
             <p>Yi rijistar shawara: <a href="{CONSULTANCY_FORM_URL}">Fom na Shawara</a></p>
             <p>Yi sa’a,<br>Ƙungiyar Ficore Africa</p>
+        ''',
+                'Failed to store authentication data': 'An kasa ajiye bayanan tantancewa. Don Allah sake gwadawa.',
+        'Email reminders updated successfully': 'An sabunta tunatarwar imel cikin nasara.',
+        'Emergency Fund Report Subject': '📋 Rahoton Asusun Gaggawa na Ficore ɗinka Ya Shida, {user_name}!',
+        'Emergency Fund Email Body': '''
+            <html>
+            <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #1E7F71; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #FFFFFF; margin: 0;">Dashboard na Asusun Gaggawa na Ficore Africa</h2>
+                    <p style="font-style: italic; color: #E0F7FA; font-size: 0.9rem; margin: 5px 0 0 0;">
+                        Fasfo na haɓaka kuɗi don Afirka
+                    </p>
+                </div>
+                <p>Mai girma {user_name},</p>
+                <p>Mun ƙididdige shawarar Asusun Gaggawa na Ficore Africa ɗinka bisa ga ƙaddamarwar ka ta baya-bayan nan.</p>
+                <ul>
+                    <li><strong>Kashe Kuɗin Wata</strong>: ₦{monthly_expenses}</li>
+                    <li><strong>Asusun da Aka Shawarta</strong>: ₦{recommended_fund}</li>
+                    <li><strong>Shawara</strong>: Fara ajiye kaɗan kowane wata don gina asusun gaggawa na ka.</li>
+                </ul>
+                <p>Bi shawarar da ke sama don ƙarfafa tsaron kuɗin ka.</p>
+                <p style="margin-bottom: 10px;">
+                    Kana son ƙarin koyo? Duba wannan kwas: 
+                    <a href="{course_url}" style="display: inline-block; padding: 10px 20px; background-color: #FBC02D; color: #333; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">{course_title}</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Don Allah ba da ra’ayi kan kwarewar ka: 
+                    <a href="{FEEDBACK_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #2E7D32; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Fom na Ra’ayi</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Kana son Fahimta Mai Wayo? Shiga jerin jira: 
+                    <a href="{WAITLIST_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #0288D1; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Shiga Jerin Jira</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Kana buƙatar shawarar ƙwararru? Yi rijistar shawara: 
+                    <a href="{CONSULTANCY_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #D81B60; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Yi Rijistar Shawara</a>
+                </p>
+                <p>Na gode don zaɓin Ficore Africa!</p>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">
+                    © 2025 Ficore Africa. Duk haƙƙoƙin sun tanade.
+                </p>
+            </body>
+            </html>
+        ''',
+        'Budget Report Subject': '📅 Rahoton Kasafin Kuɗi na Ficore ɗinka Ya Shida, {user_name}!',
+        'Budget Email Body': '''
+            <html>
+            <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #1E7F71; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #FFFFFF; margin: 0;">Dashboard na Kasafin Kuɗi na Ficore Africa</h2>
+                    <p style="font-style: italic; color: #E0F7FA; font-size: 0.9rem; margin: 5px 0 0 0;">
+                        Fasfo na haɓaka kuɗi don Afirka
+                    </p>
+                </div>
+                <p>Mai girma {user_name},</p>
+                <p>Mun bincika Kasafin Kuɗi na Ficore Africa ɗinka bisa ga ƙaddamarwar ka ta baya-bayan nan.</p>
+                <ul>
+                    <li><strong>Kuɗin Shiga na Wata</strong>: ₦{monthly_income}</li>
+                    <li><strong>Jimillar Kashe Kuɗi</strong>: ₦{total_expenses}</li>
+                    <li><strong>Raba/Kasawa</strong>: ₦{surplus_deficit}</li>
+                    <li><strong>Shawara</strong>: {advice}</li>
+                </ul>
+                <p>Bi shawarar da ke sama don inganta kasafin kuɗin ka.</p>
+                <p style="margin-bottom: 10px;">
+                    Kana son ƙarin koyo? Duba wannan kwas: 
+                    <a href="{course_url}" style="display: inline-block; padding: 10px 20px; background-color: #FBC02D; color: #333; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">{course_title}</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Don Allah ba da ra’ayi kan kwarewar ka: 
+                    <a href="{FEEDBACK_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #2E7D32; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Fom na Ra’ayi</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Kana son Fahimta Mai Wayo? Shiga jerin jira: 
+                    <a href="{WAITLIST_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #0288D1; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Shiga Jerin Jira</a>
+                </p>
+                <p style="margin-bottom: 10px;">
+                    Kana buƙatar shawarar ƙwararru? Yi rijistar shawara: 
+                    <a href="{CONSULTANCY_FORM_URL}" style="display: inline-block; padding: 10px 20px; background-color: #D81B60; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Yi Rijistar Shawara</a>
+                </p>
+                <p>Na gode don zaɓin Ficore Africa!</p>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">
+                    © 2025 Ficore Africa. Duk haƙƙoƙin sun tanade.
+                </p>
+            </body>
+            </html>
         ''',
         'Financial Guru': 'Guru na Kuɗi',
         'Personal Information': 'Bayanin Mutum',
