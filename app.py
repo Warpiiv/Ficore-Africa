@@ -732,18 +732,96 @@ class EmergencyFundForm(FlaskForm):
     submit = SubmitField('Calculate Emergency Fund', render_kw={'aria-label': 'Submit Emergency Fund Form'})
 
 class BudgetForm(FlaskForm):
-    first_name = StringField('First Name', validators=[DataRequired()], render_kw={'placeholder': 'e.g. John', 'aria-label': 'First Name', 'data-tooltip': 'Enter your first name.'})
-    email = EmailField('Email', validators=[DataRequired(), Email()], render_kw={'placeholder': 'e.g. john.doe@example.com', 'aria-label': 'Email', 'data-tooltip': 'Enter your email address.'})
-    confirm_email = EmailField('Confirm Email', validators=[DataRequired(), Email(), EqualTo('email', message='Emails must match')], render_kw={'placeholder': 'e.g. john.doe@example.com', 'aria-label': 'Confirm Email', 'data-tooltip': 'Re-enter your email to confirm.'})
-    language = SelectField('Language', choices=[('English', 'English'), ('Hausa', 'Hausa')], validators=[DataRequired()], render_kw={'aria-label': 'Language', 'data-tooltip': 'Select your preferred language.'})
-    income = FloatField('Total Monthly Income (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦150,000', 'aria-label': 'Total Monthly Income', 'data-tooltip': 'Enter your total monthly income.'})
-    housing = FloatField('Housing Expenses (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦50,000', 'aria-label': 'Housing Expenses', 'data-tooltip': 'Enter your monthly housing expenses.'})
-    food = FloatField('Food Expenses (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦30,000', 'aria-label': 'Food Expenses', 'data-tooltip': 'Enter your monthly food expenses.'})
-    transport = FloatField('Transport Expenses (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦20,000', 'aria-label': 'Transport Expenses', 'data-tooltip': 'Enter your monthly transport expenses.'})
-    other = FloatField('Other Expenses (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. ₦10,000', 'aria-label': 'Other Expenses', 'data-tooltip': 'Enter other monthly expenses.'})
-    auto_email = BooleanField('Send Email Notification', default=False, render_kw={'aria-label': 'Send Email Notification', 'data-tooltip': 'Check to receive email notifications.'})
-    record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
-    submit = SubmitField('Plan My Budget', render_kw={'aria-label': 'Submit Budget Form'})
+    def __init__(self, language='English', *args, **kwargs):
+        super(BudgetForm, self).__init__(*args, **kwargs)
+        self.language = language
+        # Set translated labels and tooltips
+        t = translations.get(self.language, translations['English'])
+        self.first_name.label.text = t['First Name']
+        self.email.label.text = t['Email']
+        self.confirm_email.label.text = t['Confirm Email']
+        self.language.label.text = t['Language']
+        self.income.label.text = t['Total Monthly Income']
+        self.housing.label.text = t['Housing Expenses']
+        self.food.label.text = t['Food Expenses']
+        self.transport.label.text = t['Transport Expenses']
+        self.other.label.text = t['Other Expenses']
+        self.auto_email.label.text = t['Send Email Notification']
+        self.record_id.label.text = t['Select Record to Edit']
+        self.submit.label.text = t['Plan My Budget']
+        self.first_name.render_kw['data-tooltip'] = t['Enter your first name.']
+        self.email.render_kw['data-tooltip'] = t['Enter your email address.']
+        self.confirm_email.render_kw['data-tooltip'] = t['Re-enter your email to confirm.']
+        self.language.render_kw['data-tooltip'] = t['Select your preferred language.']
+        self.income.render_kw['data-tooltip'] = t['Enter your monthly income.']
+        self.housing.render_kw['data-tooltip'] = t['Enter your housing expenses.']
+        self.food.render_kw['data-tooltip'] = t['Enter your food expenses.']
+        self.transport.render_kw['data-tooltip'] = t['Enter your transport expenses.']
+        self.other.render_kw['data-tooltip'] = t['Enter your other expenses.']
+        self.auto_email.render_kw['data-tooltip'] = t['Check to receive email report.']
+        self.record_id.render_kw['data-tooltip'] = t['Select a previous record or create new.']
+        self.income.render_kw['placeholder'] = t['e.g. ₦150,000']
+        self.housing.render_kw['placeholder'] = t['e.g. ₦50,000']
+        self.food.render_kw['placeholder'] = t['e.g. ₦30,000']
+        self.transport.render_kw['placeholder'] = t['e.g. ₦20,000']
+        self.other.render_kw['placeholder'] = t['e.g. ₦10,000']
+        self.record_id.choices = [('', t['Create New Record'])]
+
+    # Custom validator for two decimal places
+    def validate_two_decimals(form, field):
+        if field.data is not None:
+            if not str(float(field.data)).endswith('.0') and len(str(float(field.data)).split('.')[-1]) > 2:
+                raise ValidationError(translations.get(form.language, translations['English'])['Two decimal places required'])
+
+    first_name = StringField(
+        validators=[DataRequired()],
+        render_kw={'placeholder': 'e.g. John', 'aria-label': 'First Name'}
+    )
+    email = EmailField(
+        validators=[DataRequired(), Email()],
+        render_kw={'placeholder': 'e.g. john.doe@example.com', 'aria-label': 'Email'}
+    )
+    confirm_email = EmailField(
+        validators=[DataRequired(), Email(), EqualTo('email', message=lambda form, field: translations.get(form.language, translations['English'])['Emails must match'])],
+        render_kw={'placeholder': 'e.g. john.doe@example.com', 'aria-label': 'Confirm Email'}
+    )
+    language = SelectField(
+        choices=[('English', 'English'), ('Hausa', 'Hausa')],
+        validators=[DataRequired()],
+        render_kw={'aria-label': 'Language'}
+    )
+    income = FloatField(
+        validators=[DataRequired(), NumberRange(min=0, max=100000000), validate_two_decimals],
+        render_kw={'placeholder': 'e.g. ₦150,000', 'aria-label': 'Monthly Income'}
+    )
+    housing = FloatField(
+        validators=[DataRequired(), NumberRange(min=0, max=100000000), validate_two_decimals],
+        render_kw={'placeholder': 'e.g. ₦50,000', 'aria-label': 'Housing Expenses'}
+    )
+    food = FloatField(
+        validators=[DataRequired(), NumberRange(min=0, max=100000000), validate_two_decimals],
+        render_kw={'placeholder': 'e.g. ₦30,000', 'aria-label': 'Food Expenses'}
+    )
+    transport = FloatField(
+        validators=[DataRequired(), NumberRange(min=0, max=100000000), validate_two_decimals],
+        render_kw={'placeholder': 'e.g. ₦20,000', 'aria-label': 'Transport Expenses'}
+    )
+    other = FloatField(
+        validators=[DataRequired(), NumberRange(min=0, max=100000000), validate_two_decimals],
+        render_kw={'placeholder': 'e.g. ₦10,000', 'aria-label': 'Other Expenses'}
+    )
+    auto_email = BooleanField(
+        default=False,
+        render_kw={'aria-label': 'Send Email Report'}
+    )
+    record_id = SelectField(
+        choices=[('', 'Create New Record')],
+        validators=[Optional()],
+        render_kw={'aria-label': 'Select Record'}
+    )
+    submit = SubmitField(
+        render_kw={'aria-label': 'Submit Budget Form'}
+    )
 
 class ExpenseForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired()], render_kw={'placeholder': 'e.g. John', 'aria-label': 'First Name', 'data-tooltip': 'Enter your first name.'})
