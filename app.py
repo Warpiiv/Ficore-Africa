@@ -1585,19 +1585,25 @@ def budget_form():
                 user_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(user_data, 'Budget')
 
-            if form.auto_email.data:
-                html = render_template(
-                    'email_templates/budget_email.html',
-                    user_name=form.first_name.data,
-                    income=income,
-                    total_expenses=total_expenses,
-                    savings=savings,
-                    surplus_deficit=surplus_deficit,
-                    FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-                    WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-                    CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
-                    translations=translations.get(language, translations['English'])
-                )
+if form.auto_email.data:
+    course = {
+        'url': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
+        'title': 'Ficore Africa Financial Tips'
+    }
+    html = render_template(
+        'email_templates/budget_email.html',
+        user_name=form.first_name.data,
+        income=income,
+        total_expenses=total_expenses,
+        savings=savings,
+        surplus_deficit=surplus_deficit,
+        course_url=course['url'],
+        course_title=course['title'],
+        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
+        translations=translations.get(language, translations['English'])
+    )
                 send_email_async.delay(
                     get_translation('Budget Report Subject', language).format(user_name=form.first_name.data),
                     [form.email.data],
