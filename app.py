@@ -1517,18 +1517,20 @@ def budget_form():
     language = session.get('language', 'English')
     email = session.get('user_email')
     form_data = None
-    record_choices = [('', get_translation('Create New Record', language))]
+    record_choices = [('', translations[language]['Create New Record'])]
     user_records = get_user_data_by_email(email, 'Budget') if email else []
     if user_records:
         for record in user_records:
             timestamp = record.get('Timestamp', 'Unknown')
             record_choices.append((timestamp, f"Record from {timestamp}"))
+    
     selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
     if selected_record_id and email:
         for record in user_records:
             if record.get('Timestamp') == selected_record_id:
                 form_data = record
                 break
+    
     form = BudgetForm(
         first_name=form_data.get('FirstName') if form_data else None,
         email=email,
@@ -1544,39 +1546,42 @@ def budget_form():
     if email:
         form.email.render_kw = {'readonly': True}
         form.confirm_email.render_kw = {'readonly': True}
+    
     if request.method == 'POST':
         if form.validate_on_submit():
             session['language'] = form.language.data
             session['user_email'] = form.email.data
             session['first_name'] = form.first_name.data
             session.permanent = True
-
+            
             store_authentication_data({
                 'first_name': form.first_name.data,
                 'email': form.email.data,
                 'language': form.language.data
             })
-
-            income = parse_number(form.income.data)
-            housing = parse_number(form.housing.data)
-            food = parse_number(form.food.data)
-            transport = parse_number(form.transport.data)
-            other = parse_number(form.other.data)
-            total_expenses = housing + food + transport + other
-            savings = max(0, income * 0.1)
-            surplus_deficit = income - total_expenses - savings
-
+            
+            # Parse form data
+            monthly_income = parse_number(form.income.data)
+            housing_expenses = parse_number(form.housing.data)
+            food_expenses = parse_number(form.food.data)
+            transport_expenses = parse_number(form.transport.data)
+            other_expenses = parse_number(form.other.data)
+            total_expenses = housing_expenses + food_expenses + transport_expenses + other_expenses
+            savings = max(0, monthly_income * 0.1)
+            surplus_deficit = monthly_income - total_expenses - savings
+            
+            # Create user_data
             user_data = {
                 'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'FirstName': form.first_name.data,
                 'Email': form.email.data,
                 'AutoEmail': str(form.auto_email.data),
                 'Language': form.language.data,
-                'MonthlyIncome': income,
-                'HousingExpenses': housing,
-                'FoodExpenses': food,
-                'TransportExpenses': transport,
-                'OtherExpenses': other,
+                'MonthlyIncome': monthly_income,
+                'HousingExpenses': housing_expenses,
+                'FoodExpenses': food_expenses,
+                'TransportExpenses': transport_expenses,
+                'OtherExpenses': other_expenses,
                 'TotalExpenses': total_expenses,
                 'Savings': savings,
                 'SurplusDeficit': surplus_deficit
@@ -1584,48 +1589,54 @@ def budget_form():
             if form.record_id.data:
                 user_data['Timestamp'] = form.record_id.data
             update_or_append_user_data(user_data, 'Budget')
-
-if form.auto_email.data:
-    course = {
-        'url': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
-        'title': 'Ficore Africa Financial Tips'
-    }
-    html = render_template(
-        'email_templates/budget_email.html',
-        user_name=form.first_name.data,
-        income=income,
-        housing=housing,
-        food=food,
-        transport=transport,
-        other=other,
-        total_expenses=total_expenses,
-        savings=savings,
-        surplus_deficit=surplus_deficit,
-        course_url=course['url'],
-        course_title=course['title'],
-        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
-        translations=translations.get(language, translations['English'])
-    )
+            
+            # Store user_data in session
+            session['user_data'] = user_data
+            
+            # Send email if auto_email is selected
+            if form.auto_email.data:
+                course = {
+                    'url': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
+                    'title': 'Ficore Africa Financial Tips'
+                }
+                html = render_template(
+                    'email_templates/budget_email.html',
+                    user_name=user_data['FirstName'],
+                    income=user_data['MonthlyIncome'],
+                    housing_expenses=user_data['HousingExpenses'],
+                    food_expenses=user_data['FoodExpenses'],
+                    transport_expenses=user_data['TransportExpenses'],
+                    other_expenses=user_data['OtherExpenses'],
+                    total_expenses=user_data['TotalExpenses'],
+                    savings=user_data['Savings'],
+                    surplus_deficit=user_data['SurplusDeficit'],
+                    course_url=course['url'],
+                    course_title=course['title'],
+                    translations=translations.get(language, translations['English']),
+                    FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+                    WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+                    CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+                )
                 send_email_async.delay(
-                    get_translation('Budget Report Subject', language).format(user_name=form.first_name.data),
-                    [form.email.data],
+                    translations[language]['Budget Report Subject'].format(user_name=user_data['FirstName']),
+                    [user_data['Email']],
                     html,
                     language
                 )
-                flash(get_translation('Email scheduled to be sent', language), 'success')
-
+                flash(translations[language]['Email scheduled to be sent'], 'success')
+            
+            # Generate chart
             try:
                 chart_html = generate_budget_charts(json.dumps(user_data), language)
             except Exception as e:
                 chart_html = ''
-                flash(get_translation('Error generating charts', language), 'danger')
-
+                flash(translations[language]['Error generating charts'], 'danger')
+            
+            # Redirect to budget_dashboard
             return redirect(url_for('budget_dashboard', user_data=json.dumps(user_data), chart_html=chart_html))
         else:
-            flash(get_translation('Form validation failed. Please check your inputs.', language), 'danger')
-
+            flash(translations[language]['Form validation failed. Please check your inputs.'], 'danger')
+    
     return render_template(
         'budget_form.html',
         form=form,
@@ -1643,25 +1654,108 @@ def budget_dashboard():
     if not user_data or not chart_html:
         return redirect(url_for('budget_form'))
     
-    user_data = json.loads(user_data)  # Assuming user_data is JSON-encoded
+    user_data = json.loads(user_data)
     language = user_data.get('language', 'English')
+    
+    # Extract fields
+    first_name = user_data.get('FirstName')
+    monthly_income = user_data.get('MonthlyIncome')
+    housing_expenses = user_data.get('HousingExpenses')
+    food_expenses = user_data.get('FoodExpenses')
+    transport_expenses = user_data.get('TransportExpenses')
+    other_expenses = user_data.get('OtherExpenses')
+    total_expenses = user_data.get('TotalExpenses')
+    savings = user_data.get('Savings')
+    surplus_deficit = user_data.get('SurplusDeficit')
+    
+    # Placeholder logic
+    rank = user_data.get('rank', 1)
+    total_users = user_data.get('total_users', 100)
+    badges = user_data.get('badges', ['Early Adopter'] if user_data.get('Timestamp', '') < '2025-01-01' else [])
     
     course = {
         'url': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
         'title': 'Ficore Africa Financial Tips'
     }
     
+    # Store user_data in session
+    session['user_data'] = user_data
+    user_data_json = json.dumps(user_data)
+    
     return render_template(
         'budget_dashboard.html',
-        user_data=user_data,
+        first_name=first_name,
+        monthly_income=monthly_income,
+        housing_expenses=housing_expenses,
+        food_expenses=food_expenses,
+        transport_expenses=transport_expenses,
+        other_expenses=other_expenses,
+        total_expenses=total_expenses,
+        savings=savings,
+        surplus_deficit=surplus_deficit,
+        rank=rank,
+        total_users=total_users,
+        badges=badges,
         chart_html=chart_html,
         course_url=course['url'],
         course_title=course['title'],
+        user_data_json=user_data_json,
         translations=translations.get(language, translations['English']),
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
+
+@app.route('/send_budget_email', methods=['POST'])
+def send_budget_email():
+    user_data_json = request.form.get('user_data_json')
+    if not user_data_json:
+        flash(translations['English']['No user data available'], 'danger')
+        return redirect(url_for('budget_form'))
+    
+    try:
+        user_data = json.loads(user_data_json)
+    except json.JSONDecodeError:
+        flash(translations['English']['Invalid user data'], 'danger')
+        return redirect(url_for('budget_form'))
+    
+    language = user_data.get('language', 'English')
+    email = user_data.get('Email')
+    if not email:
+        flash(translations[language]['No email provided'], 'danger')
+        return redirect(url_for('budget_dashboard', user_data=user_data_json))
+    
+    # Render email template
+    html = render_template(
+        'email_templates/budget_email.html',
+        user_name=user_data.get('FirstName'),
+        income=user_data.get('MonthlyIncome'),
+        housing_expenses=user_data.get('HousingExpenses'),
+        food_expenses=user_data.get('FoodExpenses'),
+        transport_expenses=user_data.get('TransportExpenses'),
+        other_expenses=user_data.get('OtherExpenses'),
+        total_expenses=user_data.get('TotalExpenses'),
+        savings=user_data.get('Savings'),
+        surplus_deficit=user_data.get('SurplusDeficit'),
+        course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
+        course_title='Ficore Africa Financial Tips',
+        translations=translations.get(language, translations['English']),
+        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
+        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
+        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+    )
+    
+    # Send email (assuming send_email_async exists)
+    send_email_async.delay(
+        translations[language]['Budget Report Subject'].format(user_name=user_data.get('FirstName')),
+        [email],
+        html,
+        language
+    )
+    
+    flash(translations[language]['Email scheduled to be sent'], 'success')
+    return redirect(url_for('budget_dashboard', user_data=user_data_json))
+    
 @app.route('/expense_tracker_form', methods=['GET', 'POST'])
 def expense_tracker_form():
     language = session.get('language', 'English')
