@@ -1479,7 +1479,7 @@ def quiz_form():
             'QuizScore': quiz_score,
             'Personality': personality
         }
-
+        
         def calculate_quiz_results(q1, q2, q3, q4, q5, language='English'):
     score = sum(1 for q in [q1, q2, q3, q4, q5] if q == 'Yes')
     if score >= 4:
@@ -1489,7 +1489,6 @@ def quiz_form():
     else:
         personality = get_translation('Learner', language)
     return score, personality
-        
         try:
             update_or_append_user_data(user_data, 'Quiz')
         except Exception as e:
