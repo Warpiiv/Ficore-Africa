@@ -1512,6 +1512,33 @@ def emergency_fund_dashboard():
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
 
+def calculate_rank_and_total_users(email, user_surplus_deficit):
+    all_records = get_user_data_by_email(None, 'Budget')  # None to get all records
+    total_users = len(all_records)
+    sorted_records = sorted(all_records, key=lambda x: float(x.get('SurplusDeficit', 0)), reverse=True)
+    rank = 1
+    for i, record in enumerate(sorted_records):
+        if record['Email'] == email and float(record['SurplusDeficit']) == user_surplus_deficit:
+            rank = i + 1
+            break
+    return rank, total_users
+
+def calculate_badges(email, user_data):
+    badges = set()
+    timestamp = datetime.strptime(user_data['Timestamp'], '%Y-%m-%d %H:%M:%S')
+    if timestamp < datetime(2026, 1, 1):
+        badges.add('Early Adopter')
+    user_records = get_user_data_by_email(email, 'Budget')
+    if len(user_records) >= 3:
+        badges.add('Budget Master')
+    if float(user_data['Savings']) > 0.2 * float(user_data['MonthlyIncome']):
+        badges.add('Saver')
+    if len(user_records) >= 2:
+        sorted_records = sorted(user_records, key=lambda x: datetime.strptime(x['Timestamp'], '%Y-%m-%d %H:%M:%S'), reverse=True)
+        if all(float(record['SurplusDeficit']) >= 0 for record in sorted_records[:2]):
+            badges.add('Balanced Budget')
+    return ','.join(badges) if badges else ''
+
 @app.route('/budget_form', methods=['GET', 'POST'])
 def budget_form():
     language = session.get('language', 'English')
@@ -1588,6 +1615,14 @@ def budget_form():
             }
             if form.record_id.data:
                 user_data['Timestamp'] = form.record_id.data
+            
+            # Calculate rank, total_users, and badges
+            rank, total_users = calculate_rank_and_total_users(user_data['Email'], user_data['SurplusDeficit'])
+            badges = calculate_badges(user_data['Email'], user_data)
+            user_data['Rank'] = rank
+            user_data['TotalUsers'] = total_users
+            user_data['Badges'] = badges
+            
             update_or_append_user_data(user_data, 'Budget')
             
             # Store user_data in session
@@ -1602,7 +1637,7 @@ def budget_form():
                 html = render_template(
                     'email_templates/budget_email.html',
                     user_name=user_data['FirstName'],
-                    income=user_data['MonthlyIncome'],
+                    monthly_income=user_data['MonthlyIncome'],
                     housing_expenses=user_data['HousingExpenses'],
                     food_expenses=user_data['FoodExpenses'],
                     transport_expenses=user_data['TransportExpenses'],
@@ -1632,7 +1667,7 @@ def budget_form():
                 chart_html = ''
                 flash(translations[language]['Error generating charts'], 'danger')
             
-            # Redirect to budget_dashboard
+            # Redirect to budget_dashboard with additional fields
             return redirect(url_for('budget_dashboard', user_data=json.dumps(user_data), chart_html=chart_html))
         else:
             flash(translations[language]['Form validation failed. Please check your inputs.'], 'danger')
@@ -1649,38 +1684,31 @@ def budget_form():
 
 @app.route('/budget_dashboard')
 def budget_dashboard():
-    user_data = request.args.get('user_data')
-    chart_html = request.args.get('chart_html')
-    if not user_data or not chart_html:
+    language = session.get('language', 'English')
+    user_data_json = request.args.get('user_data')
+    chart_html = request.args.get('chart_html', '')
+    
+    if not user_data_json:
         return redirect(url_for('budget_form'))
     
-    user_data = json.loads(user_data)
-    language = user_data.get('language', 'English')
-    
-    # Extract fields
-    first_name = user_data.get('FirstName')
-    monthly_income = user_data.get('MonthlyIncome')
-    housing_expenses = user_data.get('HousingExpenses')
-    food_expenses = user_data.get('FoodExpenses')
-    transport_expenses = user_data.get('TransportExpenses')
-    other_expenses = user_data.get('OtherExpenses')
-    total_expenses = user_data.get('TotalExpenses')
-    savings = user_data.get('Savings')
-    surplus_deficit = user_data.get('SurplusDeficit')
-    
-    # Placeholder logic
-    rank = user_data.get('rank', 1)
-    total_users = user_data.get('total_users', 100)
-    badges = user_data.get('badges', ['Early Adopter'] if user_data.get('Timestamp', '') < '2025-01-01' else [])
+    user_data = json.loads(user_data_json)
+    first_name = user_data.get('FirstName', 'User')
+    monthly_income = float(user_data.get('MonthlyIncome', 0))
+    housing_expenses = float(user_data.get('HousingExpenses', 0))
+    food_expenses = float(user_data.get('FoodExpenses', 0))
+    transport_expenses = float(user_data.get('TransportExpenses', 0))
+    other_expenses = float(user_data.get('OtherExpenses', 0))
+    total_expenses = float(user_data.get('TotalExpenses', 0))
+    savings = float(user_data.get('Savings', 0))
+    surplus_deficit = float(user_data.get('SurplusDeficit', 0))
+    rank = int(user_data.get('Rank', 1))
+    total_users = int(user_data.get('TotalUsers', 1))
+    badges = user_data.get('Badges', '').split(',') if user_data.get('Badges') else []
     
     course = {
         'url': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
-        'title': 'Ficore Africa Financial Tips'
+        'title': translations[language]['Ficore Africa Financial Tips']
     }
-    
-    # Store user_data in session
-    session['user_data'] = user_data
-    user_data_json = json.dumps(user_data)
     
     return render_template(
         'budget_dashboard.html',
@@ -1697,15 +1725,16 @@ def budget_dashboard():
         total_users=total_users,
         badges=badges,
         chart_html=chart_html,
+        translations=translations.get(language, translations['English']),
+        language=language,
         course_url=course['url'],
         course_title=course['title'],
         user_data_json=user_data_json,
-        translations=translations.get(language, translations['English']),
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
-
+    
 @app.route('/send_budget_email', methods=['POST'])
 def send_budget_email():
     user_data_json = request.form.get('user_data_json')
