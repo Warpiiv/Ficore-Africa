@@ -284,6 +284,17 @@
                 </div>
 
                 <div class="form-group">
+                    {{ form.confirm_email.label(class="form-label", for="confirm_email") }}
+                    {{ form.confirm_email(class="form-control", id="confirm_email", placeholder=translations['Confirm your email'], required=True, **{'aria-required': 'true'}) }}
+                    <span class="info-icon" aria-label="Confirm Email Info">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text">{{ translations['Re-enter your email to confirm.'] }}</span>
+                    </span>
+                    <div class="valid-feedback">{{ translations['Emails match!'] }}</div>
+                    <div class="invalid-feedback">{{ translations['Emails must match'] }}</div>
+                </div>
+
+                <div class="form-group">
                     {{ form.language.label(class="form-label", for="language") }}
                     {{ form.language(class="form-select", id="language", required=True, **{'aria-required': 'true'}) }}
                     <span class="info-icon" aria-label="Language Info">
@@ -292,6 +303,17 @@
                     </span>
                     <div class="valid-feedback">{{ translations['Language selected!'] }}</div>
                     <div class="invalid-feedback">{{ translations['Language required'] }}</div>
+                </div>
+
+                <div class="form-group">
+                    {{ form.record_id.label(class="form-label", for="record_id") }}
+                    {{ form.record_id(class="form-select", id="record_id") }}
+                    <span class="info-icon" aria-label="Record ID Info">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text">{{ translations['Select a previous record to edit or create a new one.'] }}</span>
+                    </span>
+                    <div class="valid-feedback">{{ translations['Record selected!'] }}</div>
+                    <div class="invalid-feedback">{{ translations['Invalid selection'] }}</div>
                 </div>
 
                 <div class="form-group">
@@ -340,7 +362,7 @@
                     {{ form.transport_expenses.label(class="form-label", for="transport_expenses") }}
                     <div style="position: relative;">
                         {{ form.transport_expenses(class="form-control number-input", type="number", step="0.01", min="0", id="transport_expenses", placeholder=translations['e.g. 10,000'], required=True, **{'aria-required': 'true'}) }}
-                        <span class="number-display" data-for="transport_expenses"></span>
+                        <span class="number-display" data-for="transport_expenses"></span
                         <span class="info-icon" aria-label="Transport Expenses Info">
                             <i class="fas fa-info-circle"></i>
                             <span class="tooltip-text">{{ translations['Monthly cost of transport—bus, bike, taxi, or fuel.'] }}</span>
@@ -368,6 +390,17 @@
                     {{ translations['Budget Surplus/Deficit: ₦'] }}<span id="budget-amount">0</span>
                 </p>
 
+                <div class="form-group">
+                    <div class="form-check">
+                        {{ form.auto_email(class="form-check-input", id="auto_email") }}
+                        {{ form.auto_email.label(class="form-check-label", for="auto_email") }}
+                        <span class="info-icon" aria-label="Auto Email Info">
+                            <i class="fas fa-info-circle"></i>
+                            <span class="tooltip-text">{{ translations['Check to receive a budget report via email.'] }}</span>
+                        </span>
+                    </div>
+                </div>
+
                 <div class="text-center">
                     <button type="submit" class="btn btn-primary" id="submit-btn">{{ translations['Start Planning Your Budget!'] }}</button>
                 </div>
@@ -383,7 +416,7 @@
                 <a href="{{ url_for('budget_dashboard') }}" class="btn btn-secondary">{{ translations['Dashboard'] }}</a>
             </p>
             <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
-            <p><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
+            <p><a href="https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
             <p>© 2025 Ficore Africa. All rights reserved.</p>
         </footer>
     </div>
@@ -395,12 +428,25 @@
             input.addEventListener('input', () => {
                 if (input.required) {
                     if (input.type === 'email') {
-                        if (input.value.match(/^\S+@\S+\.\S+$/)) {
-                            input.classList.remove('is-invalid');
-                            input.classList.add('is-valid');
-                        } else {
-                            input.classList.remove('is-valid');
-                            input.classList.add('is-invalid');
+                        const emailInput = document.getElementById('email');
+                        const confirmEmailInput = document.getElementById('confirm_email');
+                        if (input.id === 'email' || input.id === 'confirm_email') {
+                            if (input.value.match(/^\S+@\S+\.\S+$/)) {
+                                if (emailInput.value === confirmEmailInput.value && emailInput.value) {
+                                    emailInput.classList.remove('is-invalid');
+                                    emailInput.classList.add('is-valid');
+                                    confirmEmailInput.classList.remove('is-invalid');
+                                    confirmEmailInput.classList.add('is-valid');
+                                } else {
+                                    emailInput.classList.remove('is-valid');
+                                    emailInput.classList.add('is-invalid');
+                                    confirmEmailInput.classList.remove('is-valid');
+                                    confirmEmailInput.classList.add('is-invalid');
+                                }
+                            } else {
+                                input.classList.remove('is-valid');
+                                input.classList.add('is-invalid');
+                            }
                         }
                     } else if (input.value) {
                         input.classList.remove('is-invalid');
