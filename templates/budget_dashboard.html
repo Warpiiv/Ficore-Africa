@@ -12,9 +12,13 @@
         body {
             font-family: Arial, sans-serif;
             color: #333;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #E3F2FD, #F5F7FA);
+        }
+        .container {
             max-width: 600px;
             margin: 0 auto;
-            padding: 20px;
         }
         .header {
             background-color: #1E7F71;
@@ -22,6 +26,7 @@
             border-radius: 10px;
             text-align: center;
             margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         .header h2 {
             color: #FFFFFF;
@@ -50,10 +55,12 @@
         }
         li {
             margin-bottom: 10px;
+            font-size: 1rem;
         }
         li strong {
             display: inline-block;
-            width: 120px;
+            width: 150px;
+            color: #0288D1;
         }
         .badge {
             display: inline-block;
@@ -95,6 +102,7 @@
             font-weight: 500;
             border-radius: 8px;
             color: white;
+            cursor: pointer;
         }
         .budget-value {
             font-weight: 700;
@@ -102,6 +110,18 @@
         }
         .deficit {
             color: #D32F2F;
+        }
+        @media (max-width: 576px) {
+            .container {
+                padding: 10px;
+            }
+            .card {
+                padding: 1rem;
+            }
+            li strong {
+                width: 100%;
+                display: block;
+            }
         }
     </style>
 </head>
@@ -158,7 +178,7 @@
                         {% endif %}
                     </ul>
                 </li>
-                <li><strong>{{ translations['Rank'] }}:</strong> #{{ rank }} {{ translations['out of'] }} {{ total_users }} {{ translations['users'] }}</li>
+                <li role="status" aria-label="{{ translations['Your ranking'] }}"><strong>{{ translations['Rank'] }}:</strong> #{{ rank }} {{ translations['out of'] }} {{ total_users }} {{ translations['users'] }}</li>
             </ul>
         </div>
 
@@ -170,9 +190,11 @@
         <div class="card">
             <h3>{{ translations['Your Badges'] }}</h3>
             {% if badges %}
-                {% for badge in badges %}
-                    <span class="badge">{{ translations.get(badge, badge) }}</span>
-                {% endfor %}
+                <div role="list" aria-label="{{ translations['Earned badges'] }}">
+                    {% for badge in badges %}
+                        <span class="badge" role="listitem" aria-label="{{ translations.get(badge, badge) }}">{{ translations.get(badge, badge) }}</span>
+                    {% endfor %}
+                </div>
             {% else %}
                 <p>{{ translations['No Badges Yet'] }}</p>
             {% endif %}
@@ -217,11 +239,15 @@
 
     <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
     <script>
+        function formatCurrency(value) {
+            return '{{ format_currency(value) }}'.replace('value', parseFloat(value).toFixed(2));
+        }
+
         document.getElementById('share-button').addEventListener('click', function () {
             const monthlyIncome = {{ monthly_income | tojson }};
             const totalExpenses = {{ total_expenses | tojson }};
             const surplusDeficit = {{ surplus_deficit | tojson }};
-            const shareText = `${translations['My Budget']}\n${translations['Monthly Income']}: ${monthlyIncome.toLocaleString('en-US', { style: 'currency', currency: 'NGN' })}\n${translations['Total Expenses']}: ${totalExpenses.toLocaleString('en-US', { style: 'currency', currency: 'NGN' })}\n${translations['Surplus/Deficit']}: ${surplusDeficit.toLocaleString('en-US', { style: 'currency', currency: 'NGN' })}\n${translations['Check yours at']}: ${window.location.origin}`;
+            const shareText = `${translations['My Budget']}\n${translations['Monthly Income']}: ${formatCurrency(monthlyIncome)}\n${translations['Total Expenses']}: ${formatCurrency(totalExpenses)}\n${translations['Surplus/Deficit']}: ${formatCurrency(surplusDeficit)}\n${translations['Check yours at']}: ${window.location.origin}`;
             const shareData = {
                 title: translations['My Budget Results'],
                 text: shareText,
@@ -245,7 +271,7 @@
         });
     </script>
     {% macro format_currency(value, currency='NGN') %}
-        {{ '{:,.2f}'.format(abs(float(value))) }} {{ currency }}
+        {{ '{:,.2f}'.format(float(value)) }} {{ currency }}
     {% endmacro %}
 </body>
 </html>
