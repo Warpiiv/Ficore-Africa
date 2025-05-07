@@ -1638,26 +1638,30 @@ if form.auto_email.data:
 
 @app.route('/budget_dashboard')
 def budget_dashboard():
-    language = session.get('language', 'English')
-    user_data = json.loads(request.args.get('user_data', '{}'))
-    chart_html = request.args.get('chart_html', '')
-    if not user_data.get('FirstName') or not user_data.get('MonthlyIncome'):
-        flash(get_translation('Invalid dashboard access', language), 'danger')
+    user_data = request.args.get('user_data')
+    chart_html = request.args.get('chart_html')
+    if not user_data or not chart_html:
         return redirect(url_for('budget_form'))
+    
+    user_data = json.loads(user_data)  # Assuming user_data is JSON-encoded
+    language = user_data.get('language', 'English')
+    
+    course = {
+        'url': 'https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
+        'title': 'Ficore Africa Financial Tips'
+    }
+    
     return render_template(
         'budget_dashboard.html',
-        tool='Budget Planner',
         user_data=user_data,
         chart_html=chart_html,
-        tips=get_tips(language),
-        courses=get_courses(language),
+        course_url=course['url'],
+        course_title=course['title'],
         translations=translations.get(language, translations['English']),
-        language=language,
         FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
         WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
         CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
     )
-
 @app.route('/expense_tracker_form', methods=['GET', 'POST'])
 def expense_tracker_form():
     language = session.get('language', 'English')
