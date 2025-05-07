@@ -208,6 +208,17 @@
             color: #0288D1;
             font-size: 0.9rem;
         }
+        .budget-value {
+            font-weight: 700;
+        }
+        .deficit {
+            color: #D32F2F;
+        }
+        .advice-list {
+            list-style-type: disc;
+            padding-left: 20px;
+            margin-top: 0.5rem;
+        }
         .loading-spinner {
             display: none;
             margin-top: 1rem;
@@ -266,7 +277,7 @@
                     {{ form.first_name(class="form-control", id="first_name", placeholder=translations['Enter your first name'], required=True, **{'aria-required': 'true'}) }}
                     <span class="info-icon" aria-label="First Name Info">
                         <i class="fas fa-info-circle"></i>
-                        <span class="tooltip-text">{{ translations['Enter your first name to personalize your results.'] }}</span>
+                        <span class="tooltip-text">{{ translations['Enter your first name for your report.'] }}</span>
                     </span>
                     <div class="valid-feedback">{{ translations['Looks good!'] }}</div>
                     <div class="invalid-feedback">{{ translations['First Name Required'] }}</div>
@@ -277,7 +288,7 @@
                     {{ form.email(class="form-control", id="email", placeholder=translations['Enter your email'], required=True, **{'aria-required': 'true'}) }}
                     <span class="info-icon" aria-label="Email Info">
                         <i class="fas fa-info-circle"></i>
-                        <span class="tooltip-text">{{ translations['Get budgeting tips in your inbox.'] }}</span>
+                        <span class="tooltip-text">{{ translations['Get your budget report by email.'] }}</span>
                     </span>
                     <div class="valid-feedback">{{ translations['Looks good!'] }}</div>
                     <div class="invalid-feedback">{{ translations['Invalid Email'] }}</div>
@@ -299,7 +310,7 @@
                     {{ form.language(class="form-select", id="language", required=True, **{'aria-required': 'true'}) }}
                     <span class="info-icon" aria-label="Language Info">
                         <i class="fas fa-info-circle"></i>
-                        <span class="tooltip-text">{{ translations['Choose your preferred language for the planner.'] }}</span>
+                        <span class="tooltip-text">{{ translations['Choose your language.'] }}</span>
                     </span>
                     <div class="valid-feedback">{{ translations['Language selected!'] }}</div>
                     <div class="invalid-feedback">{{ translations['Language required'] }}</div>
@@ -310,20 +321,20 @@
                     {{ form.record_id(class="form-select", id="record_id") }}
                     <span class="info-icon" aria-label="Record ID Info">
                         <i class="fas fa-info-circle"></i>
-                        <span class="tooltip-text">{{ translations['Select a previous record to edit or create a new one.'] }}</span>
+                        <span class="tooltip-text">{{ translations['Select a previous budget to edit or start new.'] }}</span>
                     </span>
                     <div class="valid-feedback">{{ translations['Record selected!'] }}</div>
                     <div class="invalid-feedback">{{ translations['Invalid selection'] }}</div>
                 </div>
 
                 <div class="form-group">
-                    {{ form.monthly_income.label(class="form-label", for="monthly_income") }}
+                    {{ form.income.label(class="form-label", for="income") }}
                     <div style="position: relative;">
-                        {{ form.monthly_income(class="form-control number-input", type="number", step="0.01", min="0", id="monthly_income", placeholder=translations['e.g. 150,000'], required=True, **{'aria-required': 'true'}) }}
-                        <span class="number-display" data-for="monthly_income"></span>
+                        {{ form.income(class="form-control number-input", type="number", step="0.01", min="0", id="income", placeholder=translations['e.g. ₦150,000'], required=True, **{'aria-required': 'true'}) }}
+                        <span class="number-display" data-for="income"></span>
                         <span class="info-icon" aria-label="Monthly Income Info">
                             <i class="fas fa-info-circle"></i>
-                            <span class="tooltip-text">{{ translations['Enter your total monthly earnings, including salary and side income.'] }}</span>
+                            <span class="tooltip-text">{{ translations['Your monthly pay or income.'] }}</span>
                         </span>
                     </div>
                     <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
@@ -331,13 +342,13 @@
                 </div>
 
                 <div class="form-group">
-                    {{ form.housing_expenses.label(class="form-label", for="housing_expenses") }}
+                    {{ form.housing.label(class="form-label", for="housing") }}
                     <div style="position: relative;">
-                        {{ form.housing_expenses(class="form-control number-input", type="number", step="0.01", min="0", id="housing_expenses", placeholder=translations['e.g. 30,000'], required=True, **{'aria-required': 'true'}) }}
-                        <span class="number-display" data-for="housing_expenses"></span>
+                        {{ form.housing(class="form-control number-input", type="number", step="0.01", min="0", id="housing", placeholder=translations['e.g. ₦30,000'], required=True, **{'aria-required': 'true'}) }}
+                        <span class="number-display" data-for="housing"></span>
                         <span class="info-icon" aria-label="Housing Expenses Info">
                             <i class="fas fa-info-circle"></i>
-                            <span class="tooltip-text">{{ translations['Include rent, electricity, water, and related housing bills.'] }}</span>
+                            <span class="tooltip-text">{{ translations['Rent, electricity, or water bills.'] }}</span>
                         </span>
                     </div>
                     <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
@@ -345,13 +356,13 @@
                 </div>
 
                 <div class="form-group">
-                    {{ form.food_expenses.label(class="form-label", for="food_expenses") }}
+                    {{ form.food.label(class="form-label", for="food") }}
                     <div style="position: relative;">
-                        {{ form.food_expenses(class="form-control number-input", type="number", step="0.01", min="0", id="food_expenses", placeholder=translations['e.g. 45,000'], required=True, **{'aria-required': 'true'}) }}
-                        <span class="number-display" data-for="food_expenses"></span>
+                        {{ form.food(class="form-control number-input", type="number", step="0.01", min="0", id="food", placeholder=translations['e.g. ₦45,000'], required=True, **{'aria-required': 'true'}) }}
+                        <span class="number-display" data-for="food"></span>
                         <span class="info-icon" aria-label="Food Expenses Info">
                             <i class="fas fa-info-circle"></i>
-                            <span class="tooltip-text">{{ translations['Estimate how much you spend on food monthly.'] }}</span>
+                            <span class="tooltip-text">{{ translations['Money spent on food each month.'] }}</span>
                         </span>
                     </div>
                     <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
@@ -359,13 +370,13 @@
                 </div>
 
                 <div class="form-group">
-                    {{ form.transport_expenses.label(class="form-label", for="transport_expenses") }}
+                    {{ form.transport.label(class="form-label", for="transport") }}
                     <div style="position: relative;">
-                        {{ form.transport_expenses(class="form-control number-input", type="number", step="0.01", min="0", id="transport_expenses", placeholder=translations['e.g. 10,000'], required=True, **{'aria-required': 'true'}) }}
-                        <span class="number-display" data-for="transport_expenses"></span>
+                        {{ form.transport(class="form-control number-input", type="number", step="0.01", min="0", id="transport", placeholder=translations['e.g. ₦10,000'], required=True, **{'aria-required': 'true'}) }}
+                        <span class="number-display" data-for="transport"></span>
                         <span class="info-icon" aria-label="Transport Expenses Info">
                             <i class="fas fa-info-circle"></i>
-                            <span class="tooltip-text">{{ translations['Monthly cost of transport—bus, bike, taxi, or fuel.'] }}</span>
+                            <span class="tooltip-text">{{ translations['Bus, bike, taxi, or fuel costs.'] }}</span>
                         </span>
                     </div>
                     <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
@@ -373,22 +384,18 @@
                 </div>
 
                 <div class="form-group">
-                    {{ form.other_expenses.label(class="form-label", for="other_expenses") }}
+                    {{ form.other.label(class="form-label", for="other") }}
                     <div style="position: relative;">
-                        {{ form.other_expenses(class="form-control number-input", type="number", step="0.01", min="0", id="other_expenses", placeholder=translations['e.g. 20,000'], required=True, **{'aria-required': 'true'}) }}
-                        <span class="number-display" data-for="other_expenses"></span>
+                        {{ form.other(class="form-control number-input", type="number", step="0.01", min="0", id="other", placeholder=translations['e.g. ₦20,000'], required=True, **{'aria-required': 'true'}) }}
+                        <span class="number-display" data-for="other"></span>
                         <span class="info-icon" aria-label="Other Expenses Info">
                             <i class="fas fa-info-circle"></i>
-                            <span class="tooltip-text">{{ translations['Include internet, airtime, clothes, or personal spending.'] }}</span>
+                            <span class="tooltip-text">{{ translations['Internet, clothes, or other spending.'] }}</span>
                         </span>
                     </div>
                     <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
                     <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
                 </div>
-
-                <p id="budget-preview" class="budget-preview" style="display: none;">
-                    {{ translations['Budget Surplus/Deficit: ₦'] }}<span id="budget-amount">0</span>
-                </p>
 
                 <div class="form-group">
                     <div class="form-check">
@@ -396,9 +403,14 @@
                         {{ form.auto_email.label(class="form-check-label", for="auto_email") }}
                         <span class="info-icon" aria-label="Auto Email Info">
                             <i class="fas fa-info-circle"></i>
-                            <span class="tooltip-text">{{ translations['Check to receive a budget report via email.'] }}</span>
+                            <span class="tooltip-text">{{ translations['Get your budget report by email.'] }}</span>
                         </span>
                     </div>
+                </div>
+
+                <div class="budget-preview" id="budget-preview" style="display: none;">
+                    <p>{{ translations['Budget Surplus/Deficit'] }}: <span class="budget-value {{ 'deficit' if surplus_deficit < 0 else '' }}" id="budget-amount">0</span></p>
+                    <ul class="advice-list" id="budget-advice" style="display: none;"></ul>
                 </div>
 
                 <div class="text-center">
@@ -415,7 +427,9 @@
                 <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
             </p>
             <p>{{ translations['Contact Us'] }} <a href="mailto:ficore.ai.africa@gmail.com">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
-            <p><a href="https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
+            <p><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
+            <p><a href="{{ WAITLIST_FORM_URL }}" target="_blank">{{ translations['Join Waitlist'] }}</a></p>
+            <p><a href="{{ CONSULTANCY_FORM_URL }}" target="_blank">{{ translations['Book Consultancy'] }}</a></p>
             <p>© 2025 Ficore Africa. All rights reserved.</p>
         </footer>
     </div>
@@ -460,7 +474,7 @@
 
         // Format number with commas for display
         function formatNumber(value) {
-            if (!value && value !== 0) return '';
+            if (!value && value !== 0) return '0.00';
             const parts = parseFloat(value).toFixed(2).split('.');
             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             return parts.join('.');
@@ -471,6 +485,7 @@
             const displayElement = input.parentElement.querySelector('.number-display[data-for="' + input.id + '"]');
             const budgetPreview = document.getElementById('budget-preview');
             const budgetAmount = document.getElementById('budget-amount');
+            const adviceList = document.getElementById('budget-advice');
 
             function updateDisplay() {
                 let value = parseFloat(input.value) || 0;
@@ -495,23 +510,60 @@
                 }
 
                 // Update display with formatted value
-                displayElement.textContent = formatNumber(value);
+                displayElement.textContent = '₦' + formatNumber(value);
 
                 // Update budget preview
-                const income = parseFloat(document.getElementById('monthly_income').value) || 0;
-                const housing = parseFloat(document.getElementById('housing_expenses').value) || 0;
-                const food = parseFloat(document.getElementById('food_expenses').value) || 0;
-                const transport = parseFloat(document.getElementById('transport_expenses').value) || 0;
-                const other = parseFloat(document.getElementById('other_expenses').value) || 0;
+                const income = parseFloat(document.getElementById('income').value) || 0;
+                const housing = parseFloat(document.getElementById('housing').value) || 0;
+                const food = parseFloat(document.getElementById('food').value) || 0;
+                const transport = parseFloat(document.getElementById('transport').value) || 0;
+                const other = parseFloat(document.getElementById('other').value) || 0;
                 const totalExpenses = housing + food + transport + other;
                 const savings = Math.max(0, income * 0.1);
                 const surplusDeficit = income - totalExpenses - savings;
 
+                // Update surplus/deficit
                 if (income > 0 || totalExpenses > 0) {
-                    budgetAmount.textContent = formatNumber(surplusDeficit);
+                    budgetAmount.textContent = '₦' + formatNumber(surplusDeficit);
+                    budgetAmount.className = 'budget-value' + (surplusDeficit < 0 ? ' deficit' : '');
                     budgetPreview.style.display = 'block';
                 } else {
                     budgetPreview.style.display = 'none';
+                }
+
+                // Update advice
+                adviceList.innerHTML = '';
+                let adviceItems = [];
+                if (surplusDeficit >= 0) {
+                    adviceItems.push("{{ translations['Great job! Save or invest your surplus to grow your wealth.'] }}");
+                    if (housing > income * 0.4) {
+                        adviceItems.push("{{ translations['Housing costs are high. Look for cheaper rent or utilities.'] }}");
+                    }
+                    if (food > income * 0.3) {
+                        adviceItems.push("{{ translations['Food spending is high. Try cooking at home more.'] }}");
+                    }
+                } else {
+                    adviceItems.push("{{ translations['Reduce non-essential spending to balance your budget.'] }}");
+                    if (housing > income * 0.4) {
+                        adviceItems.push("{{ translations['Housing costs are high. Look for cheaper rent or utilities.'] }}");
+                    }
+                    if (food > income * 0.3) {
+                        adviceItems.push("{{ translations['Food spending is high. Try cooking at home more.'] }}");
+                    }
+                    if (other > income * 0.2) {
+                        adviceItems.push("{{ translations['Other spending is high. Cut back on non-essentials like clothes or entertainment.'] }}");
+                    }
+                }
+
+                if (adviceItems.length > 0) {
+                    adviceItems.forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = item;
+                        adviceList.appendChild(li);
+                    });
+                    adviceList.style.display = 'block';
+                } else {
+                    adviceList.style.display = 'none';
                 }
             }
 
@@ -529,6 +581,7 @@
                     input.classList.remove('is-valid', 'is-invalid');
                     displayElement.textContent = '';
                     budgetPreview.style.display = 'none';
+                    adviceList.style.display = 'none';
                     return;
                 }
                 updateDisplay();
