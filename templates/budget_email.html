@@ -53,12 +53,16 @@
     </div>
     <p>Dear {{ user_name }},</p>
     <p>Here’s your Ficore Africa Budget analysis based on your recent submission.</p>
-    <ul>
-        <li><strong>Income</strong>: {{ income }} ₦</li>
-        <li><strong>Total Expenses</strong>: {{ total_expenses }} ₦</li>
-        <li><strong>Savings</strong>: {{ savings }} ₦</li>
-        <li><strong>Surplus/Deficit</strong>: {{ surplus_deficit }} ₦</li>
-    </ul>
+<ul>
+    <li><strong>{{ translations['Income'] }}</strong>: {{ income | format_currency('NGN') }}</li>
+    <li><strong>{{ translations['Housing'] }}</strong>: {{ housing | format_currency('NGN') }}</li>
+    <li><strong>{{ translations['Food'] }}</strong>: {{ food | format_currency('NGN') }}</li>
+    <li><strong>{{ translations['Transport'] }}</strong>: {{ transport | format_currency('NGN') }}</li>
+    <li><strong>{{ translations['Other'] }}</strong>: {{ other | format_currency('NGN') }}</li>
+    <li><strong>{{ translations['Total Expenses'] }}</strong>: {{ total_expenses | format_currency('NGN') }}</li>
+    <li><strong>{{ translations['Savings'] }}</strong>: {{ savings | format_currency('NGN') }}</li>
+    <li><strong>{{ translations['Surplus/Deficit'] }}</strong>: {{ surplus_deficit | format_currency('NGN') }}</li>
+</ul>
     <p>Adjust your spending to optimize savings and surplus.</p>
     <p style="margin-bottom: 10px;">
         Want to learn more? Check out this course:
@@ -80,5 +84,9 @@
     <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">
         © 2025 Ficore Africa. All rights reserved.
     </p>
+        {% macro format_currency(value, currency='NGN') %}
+    {{ '{:,.2f}'.format(abs(float(value))) }} {{ currency }}
+{% endmacro %}
+        
 </body>
 </html>
