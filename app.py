@@ -395,46 +395,71 @@ def get_average_health_score():
 
 # Generate health score charts with caching
 @cache.memoize(timeout=300)
-def generate_health_score_charts(user_data_json, language='English'):
-    user_data = json.loads(user_data_json)
-    try:
-        income = parse_number(user_data.get('IncomeRevenue', 0))
-        debt = parse_number(user_data.get('DebtLoan', 0))
-        ratio_message = get_translation('Your asset-to-liability ratio is healthy.', language) if income >= 2 * debt else get_translation('Your liabilities are high. Consider strategies to reduce debt.', language)
-        bar_fig = go.Figure(data=[
-            go.Bar(name=get_translation('Income (₦)', language), x=['Income'], y=[income], marker_color='#2E7D32'),
-            go.Bar(name=get_translation('Debt (₦)', language), x=['Debt'], y=[debt], marker_color='#DC3545')
-        ])
-        bar_fig.update_layout(
-            title=get_translation('Asset-Liability Breakdown', language),
-            barmode='group',
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(size=12),
-            annotations=[dict(text=ratio_message, xref="paper", yref="paper", x=0.5, y=1.1, showarrow=False)],
-            hovermode='closest'
+def generate_health_score_charts(income_revenue, debt_loan, health_score, average_score, language):
+    """
+    Generate Plotly charts for health score visualization.
+    Args:
+        income_revenue (float): Money received monthly.
+        debt_loan (float): Total money owed.
+        health_score (float): User's financial health score.
+        average_score (float): Average health score of all users.
+        language (str): Language for translations.
+    Returns:
+        tuple: HTML strings for asset chart and comparison chart.
+    """
+    translations = {
+        'English': {
+            'Money You Get': 'Money You Get',
+            'Money You Owe': 'Money You Owe',
+            'Your Score': 'Your Score',
+            'Average Score': 'Average Score',
+            'Financial Health': 'Financial Health'
+        },
+        'Hausa': {
+            'Money You Get': 'Kuɗin da Kuke Samu',
+            'Money You Owe': 'Kuɗin da Kuke Bin Bashi',
+            'Your Score': 'Makin Ku',
+            'Average Score': 'Matsakaicin Maki',
+            'Financial Health': 'Lafiyar Kuɗi'
+        }
+    }
+    
+    # Asset vs. Liability Chart
+    fig1 = go.Figure(data=[
+        go.Bar(
+            x=[translations[language]['Money You Get'], translations[language]['Money You Owe']],
+            y=[income_revenue, debt_loan],
+            marker_color=['#2E7D32', '#D32F2F']
         )
-        chart_html = pio.to_html(bar_fig, full_html=False, include_plotlyjs=True)
-
-        average_score = get_average_health_score()
-        bar_fig = go.Figure(data=[
-            go.Bar(name=get_translation('Your Score', language), x=['You'], y=[user_data.get('Score', 0)], marker_color='#2E7D32'),
-            go.Bar(name=get_translation('Average Score', language), x=['Average'], y=[average_score], marker_color='#0288D1')
-        ])
-        bar_fig.update_layout(
-            title=get_translation('Comparison to Peers', language),
-            barmode='group',
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(size=12),
-            hovermode='closest'
+    ])
+    fig1.update_layout(
+        title=translations[language]['Financial Health'],
+        yaxis_title='Amount (₦)',
+        showlegend=False,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)'
+    )
+    chart_html = to_html(fig1, include_plotlyjs=True, full_html=False)
+    
+    # Score Comparison Chart
+    fig2 = go.Figure(data=[
+        go.Bar(
+            x=[translations[language]['Your Score'], translations[language]['Average Score']],
+            y=[health_score, average_score],
+            marker_color=['#0288D1', '#FFB300']
         )
-        comparison_chart_html = pio.to_html(bar_fig, full_html=False, include_plotlyjs=True)
-        return chart_html, comparison_chart_html
-    except Exception as e:
-        logger.error(f"Error generating health score charts: {e}")
-        return get_translation('Chart failed to load. Please try again.', language), ""
-
+    ])
+    fig2.update_layout(
+        title=translations[language]['Financial Health'],
+        yaxis_title='Score',
+        showlegend=False,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)'
+    )
+    comparison_chart_html = to_html(fig2, include_plotlyjs=False, full_html=False)
+    
+    return chart_html, comparison_chart_html
+    
 # Generate net worth charts with caching
 @cache.memoize(timeout=300)
 def generate_net_worth_charts(net_worth_data_json, language='English'):
@@ -544,22 +569,137 @@ def generate_expense_charts(email, language='English'):
 
 # Form definitions with enhanced UI features
 class HealthScoreForm(FlaskForm):
-    first_name = StringField('First Name', validators=[DataRequired()], render_kw={'placeholder': 'Enter your first name', 'aria-label': 'First Name', 'data-tooltip': 'Enter your first name.'})
-    last_name = StringField('Last Name', validators=[Optional()], render_kw={'placeholder': 'Enter your last name (optional)', 'aria-label': 'Last Name', 'data-tooltip': 'Enter your last name (optional).'})
-    email = EmailField('Email', validators=[DataRequired(), Email()], render_kw={'placeholder': 'Enter your email', 'aria-label': 'Email', 'data-tooltip': 'Enter your email address.'})
-    confirm_email = EmailField('Confirm Email', validators=[DataRequired(), Email(), EqualTo('email', message='Emails must match')], render_kw={'placeholder': 'Re-enter your email', 'aria-label': 'Confirm Email', 'data-tooltip': 'Re-enter your email to confirm.'})
-    phone = StringField('Phone Number', validators=[Optional()], render_kw={'placeholder': 'Enter your phone number (optional)', 'aria-label': 'Phone Number', 'data-tooltip': 'Enter your phone number (optional).'})
-    language = SelectField('Language', choices=[('English', 'English'), ('Hausa', 'Hausa')], validators=[DataRequired()], render_kw={'aria-label': 'Language', 'data-tooltip': 'Select your preferred language.'})
-    business_name = StringField('Business Name', validators=[DataRequired()], render_kw={'placeholder': 'e.g. My Business or Personal', 'aria-label': 'Business Name', 'data-tooltip': 'Enter your business name or "Personal".'})
-    user_type = SelectField('User Type', choices=[('Individual', 'Individual'), ('Business', 'Business')], validators=[DataRequired()], render_kw={'aria-label': 'User Type', 'data-tooltip': 'Select if you are an individual or business.'})
-    income = FloatField('Monthly Income (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. 150,000', 'aria-label': 'Monthly Income', 'data-tooltip': 'Total money you receive regularly, like salary, business sales, gifts, grants, incentives, or side hustles.'})
-    expenses = FloatField('Monthly Expenses (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. 60,000', 'aria-label': 'Monthly Expenses', 'data-tooltip': 'All the money you spend, such as on rent, food, transport, electricity bill, gas and utilities, fine and penalties, levies, taxes, etc.'})
-    debt = FloatField('Total Debt (₦)', validators=[DataRequired(), NumberRange(min=0, max=10000000000)], render_kw={'placeholder': 'e.g. 25,000', 'aria-label': 'Total Debt', 'data-tooltip': 'Money you owe, like loans, IOUs, borrowings, or funds lent to you.'})
-    interest_rate = FloatField('Debt Interest Rate (%)', validators=[Optional(), NumberRange(min=0, max=100)], render_kw={'placeholder': 'e.g. 10%', 'aria-label': 'Debt Interest Rate', 'data-tooltip': 'Enter the annual interest rate for your debt (optional).'})
-    auto_email = BooleanField('Send Email Notification', default=False, render_kw={'aria-label': 'Send Email Notification', 'data-tooltip': 'Check to receive email notifications.'})
-    record_id = SelectField('Select Record to Edit', choices=[('', 'Create New Record')], validators=[Optional()], render_kw={'aria-label': 'Select Record', 'data-tooltip': 'Select a previous record to edit or create a new one.'})
-    submit = SubmitField('Submit', render_kw={'aria-label': 'Submit Financial Health Form'})
-    
+    first_name = StringField(
+        'First Name',
+        validators=[DataRequired()],
+        render_kw={
+            'placeholder': 'Enter your first name',
+            'aria-label': 'Your first name',
+            'data-tooltip': 'Your first name, like John or Aisha.'
+        }
+    )
+    last_name = StringField(
+        'Last Name',
+        validators=[Optional()],
+        render_kw={
+            'placeholder': 'Enter your last name (optional)',
+            'aria-label': 'Your last name',
+            'data-tooltip': 'Your last name, like Okeke or Musa (you can skip this).'
+        }
+    )
+    email = EmailField(
+        'Email',
+        validators=[DataRequired(), Email()],
+        render_kw={
+            'placeholder': 'Enter your email',
+            'aria-label': 'Your email address',
+            'data-tooltip': 'Your email, like example@gmail.com, to get your score.'
+        }
+    )
+    confirm_email = EmailField(
+        'Confirm Email',
+        validators=[DataRequired(), Email(), EqualTo('email', message='Emails must match')],
+        render_kw={
+            'placeholder': 'Re-enter your email',
+            'aria-label': 'Confirm your email address',
+            'data-tooltip': 'Type your email again to make sure it’s correct.'
+        }
+    )
+    phone_number = StringField(
+        'Phone Number',
+        validators=[Optional()],
+        render_kw={
+            'placeholder': 'Enter your phone number (optional)',
+            'aria-label': 'Your phone number',
+            'data-tooltip': 'Your mobile number, like 08012345678 (you can skip this).'
+        }
+    )
+    language = SelectField(
+        'Language',
+        choices=[('English', 'English'), ('Hausa', 'Hausa')],
+        validators=[DataRequired()],
+        render_kw={
+            'aria-label': 'Select your language',
+            'data-tooltip': 'Choose English or Hausa for the form.'
+        }
+    )
+    business_name = StringField(
+        'Business Name',
+        validators=[DataRequired()],
+        render_kw={
+            'placeholder': 'Type personal name if no business',
+            'aria-label': 'Your business or personal name',
+            'data-tooltip': 'Name of your business, or your name if you don’t have a business.'
+        }
+    )
+    user_type = SelectField(
+        'User Type',
+        choices=[('Individual', 'Individual'), ('Business', 'Business')],
+        validators=[DataRequired()],
+        render_kw={
+            'aria-label': 'Are you an individual or business?',
+            'data-tooltip': 'Choose Individual if it’s just you, or Business if you have a shop or company.'
+        }
+    )
+    income_revenue = FloatField(
+        'Money You Get Every Month (₦)',
+        validators=[DataRequired(), NumberRange(min=0, max=10000000000)],
+        render_kw={
+            'placeholder': 'e.g. 150,000',
+            'aria-label': 'Money you get every month',
+            'data-tooltip': 'All money you receive, like salary, sales from your shop, gifts, or side jobs.'
+        }
+    )
+    expenses_costs = FloatField(
+        'Money You Spend Every Month (₦)',
+        validators=[DataRequired(), NumberRange(min=0, max=10000000000)],
+        render_kw={
+            'placeholder': 'e.g. 60,000',
+            'aria-label': 'Money you spend every month',
+            'data-tooltip': 'Money you spend on things like food, rent, transport, bills, or taxes.'
+        }
+    )
+    debt_loan = FloatField(
+        'Money You Owe (₦)',
+        validators=[DataRequired(), NumberRange(min=0, max=10000000000)],
+        render_kw={
+            'placeholder': 'e.g. 25,000',
+            'aria-label': 'Money you owe',
+            'data-tooltip': 'Money you borrowed from friends, family, or a bank loan you need to pay back.'
+        }
+    )
+    debt_interest_rate = FloatField(
+        'Extra Percentage on Money You Owe (%)',
+        validators=[Optional(), NumberRange(min=0, max=100)],
+        render_kw={
+            'placeholder': 'e.g. 10%',
+            'aria-label': 'Extra percentage on money you owe',
+            'data-tooltip': 'Extra percentage you pay on a bank loan or borrowing, like 10% (you can skip this if you don’t know).'
+        }
+    )
+    auto_email = BooleanField(
+        'Send Me My Score by Email',
+        default=False,
+        render_kw={
+            'aria-label': 'Send score by email',
+            'data-tooltip': 'Check this to get your financial health score sent to your email.'
+        }
+    )
+    record_id = SelectField(
+        'Select Record to Edit',
+        choices=[('', 'Create New Record')],
+        validators=[Optional()],
+        render_kw={
+            'aria-label': 'Select a previous record',
+            'data-tooltip': 'Choose a previous form you filled to edit it, or select "Create New Record" for a new one.'
+        }
+    )
+    submit = SubmitField(
+        'Submit',
+        render_kw={
+            'aria-label': 'Submit your financial information'
+        }
+    )    
 class NetWorthForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired()], render_kw={'placeholder': 'e.g. John', 'aria-label': 'First Name', 'data-tooltip': 'Enter your first name.'})
     email = EmailField('Email', validators=[DataRequired(), Email()], render_kw={'placeholder': 'e.g. john.doe@example.com', 'aria-label': 'Email', 'data-tooltip': 'Enter your email address.'})
@@ -747,22 +887,41 @@ def schedule_reminder(bill):
         flash(get_translation('Failed to schedule bill reminder due to server error', language), 'error')
 
 # Calculate health score
-def calculate_health_score(income, expenses, debt, interest_rate):
-    try:
-        score = 100
-        expense_ratio = expenses / income if income > 0 else 1
-        debt_ratio = debt / income if income > 0 else 1
-        score -= min(expense_ratio * 40, 40)
-        score -= min(debt_ratio * 30, 30)
-        if interest_rate:
-            score -= min(interest_rate * 0.5, 20)
-        return max(0, min(100, round(score)))
-    except ZeroDivisionError:
+def calculate_health_score(income_revenue, expenses_costs, debt_loan, debt_interest_rate):
+    """
+    Calculate financial health score based on user inputs.
+    Args:
+        income_revenue (float): Money received monthly (e.g., salary, sales).
+        expenses_costs (float): Money spent monthly (e.g., rent, food).
+        debt_loan (float): Total money owed (e.g., borrowings, loans).
+        debt_interest_rate (float): Annual interest rate on debt (%).
+    Returns:
+        float: Health score between 0 and 100.
+    """
+    if not income_revenue or income_revenue <= 0:
         return 0
-    except Exception as e:
-        logger.error(f"Error calculating health score: {e}")
-        return 50
-
+    
+    score = 100
+    expense_ratio = expenses_costs / income_revenue
+    debt_ratio = debt_loan / income_revenue
+    
+    # Deduct based on expense ratio (up to 40 points)
+    if expense_ratio > 1:
+        score -= 40
+    else:
+        score -= 40 * expense_ratio
+    
+    # Deduct based on debt ratio (up to 30 points)
+    if debt_ratio > 1:
+        score -= 30
+    else:
+        score -= 30 * debt_ratio
+    
+    # Deduct based on interest rate (up to 20 points)
+    if debt_interest_rate:
+        score -= min(0.5 * debt_interest_rate, 20)
+    
+    return max(0, round(score, 2))
 # Get score description
 def get_score_description(score, language='English'):
     if score >= 80:
@@ -837,133 +996,136 @@ def change_language():
 @app.route('/health_score_form', methods=['GET', 'POST'])
 def health_score_form():
     language = session.get('language', 'English')
-    email = session.get('user_email')
-    form_data = None
-    record_choices = [('', get_translation('Create New Record', language))]
-    user_records = get_user_data_by_email(email, 'HealthScore') if email else []
-    if user_records:
-        for record in user_records:
-            timestamp = record.get('Timestamp', 'Unknown')
-            record_choices.append((timestamp, f"Record from {timestamp}"))
-    selected_record_id = request.args.get('record_id', '') if request.method == 'GET' else None
-    if selected_record_id and email:
-        for record in user_records:
-            if record.get('Timestamp') == selected_record_id:
-                form_data = record
-                break
-    form = HealthScoreForm(
-        first_name=form_data.get('FirstName') if form_data else None,
-        last_name=form_data.get('LastName') if form_data else None,
-        email=email,
-        phone=form_data.get('PhoneNumber') if form_data else None,
-        language=form_data.get('Language') if form_data else language,
-        business_name=form_data.get('BusinessName') if form_data else None,
-        user_type=form_data.get('UserType') if form_data else None,
-        income=form_data.get('IncomeRevenue') if form_data else None,
-        expenses=form_data.get('ExpensesCosts') if form_data else None,
-        debt=form_data.get('DebtLoan') if form_data else None,
-        interest_rate=form_data.get('DebtInterestRate') if form_data else None,
-        auto_email=form_data.get('AutoEmail', False) if form_data else False,
-        record_id=selected_record_id
-    )
-    form.record_id.choices = record_choices
-    if email:
-        form.email.render_kw = {'readonly': True}
-        form.confirm_email.render_kw = {'readonly': True}
-
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            session['language'] = form.language.data
-            session['user_email'] = form.email.data
-            session['first_name'] = form.first_name.data
-            session.permanent = True
-
-            store_authentication_data({
-                'first_name': form.first_name.data,
-                'last_name': form.last_name.data,
-                'email': form.email.data,
-                'phone': form.phone.data,
-                'language': form.language.data
-            })
-
-            income = parse_number(form.income.data)
-            expenses = parse_number(form.expenses.data)
-            debt = parse_number(form.debt.data)
-            interest_rate = parse_number(form.interest_rate.data)
-
+    form = HealthScoreForm()
+    
+    # Populate record_id choices for existing records
+    user_email = session.get('user_email', '')
+    if user_email:
+        user_data = get_user_data_by_email('HealthScoreSheet', user_email)
+        form.record_id.choices = [('', 'Create New Record')] + [(row['Timestamp'], row['Timestamp']) for row in user_data]
+    
+    if request.method == 'GET':
+        # Pre-fill form for logged-in user or editing a record
+        if user_email:
+            form.email.data = user_email
+            form.email.render_kw['readonly'] = True
+            form.confirm_email.data = user_email
+            form.confirm_email.render_kw['readonly'] = True
+        record_id = request.args.get('record_id')
+        if record_id:
+            user_data = get_user_data_by_email('HealthScoreSheet', user_email)
+            record = next((row for row in user_data if row['Timestamp'] == record_id), None)
+            if record:
+                form.first_name.data = record['FirstName']
+                form.last_name.data = record['LastName']
+                form.phone_number.data = record['PhoneNumber']
+                form.language.data = record['Language']
+                form.business_name.data = record['BusinessName']
+                form.user_type.data = record['UserType']
+                form.income_revenue.data = record['IncomeRevenue']
+                form.expenses_costs.data = record['ExpensesCosts']
+                form.debt_loan.data = record['DebtLoan']
+                form.debt_interest_rate.data = record['DebtInterestRate']
+                form.auto_email.data = record['AutoEmail'].lower() == 'true'
+                form.record_id.data = record_id
+    
+    if form.validate_on_submit():
+        # Store session data
+        session['language'] = form.language.data
+        session['user_email'] = form.email.data
+        session['first_name'] = form.first_name.data
+        session['session_id'] = session.get('session_id', str(uuid.uuid4()))
+        
+        # Store authentication data
+        store_authentication_data(form.email.data, session['session_id'])
+        
+        # Parse numeric inputs
+        income = parse_number(form.income_revenue.data)
+        expenses = parse_number(form.expenses_costs.data)
+        debt = parse_number(form.debt_loan.data)
+        interest_rate = parse_number(form.debt_interest_rate.data) or 0
+        
+        # Calculate health score
+        health_score = calculate_health_score(income, expenses, debt, interest_rate)
+        score_description = get_score_description(health_score, form.language.data)
+        rank, total_users = assign_rank(health_score, 'HealthScoreSheet')
+        badges = assign_badges(health_score, debt, True)
+        
+        # Prepare user data for Google Sheets
+        user_data = {
+            'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'BusinessName': form.business_name.data,
+            'IncomeRevenue': income,
+            'ExpensesCosts': expenses,
+            'DebtLoan': debt,
+            'DebtInterestRate': interest_rate,
+            'AutoEmail': str(form.auto_email.data),
+            'PhoneNumber': form.phone_number.data or '',
+            'FirstName': form.first_name.data,
+            'LastName': form.last_name.data or '',
+            'UserType': form.user_type.data,
+            'Email': form.email.data,
+            'Badges': ','.join(badges),
+            'Language': form.language.data,
+            'Score': health_score
+        }
+        
+        # Store data in Google Sheets
+        try:
+            update_or_append_user_data('HealthScoreSheet', user_data, form.record_id.data)
+        except Exception as e:
+            flash(get_translation('Error saving data. Please try again.', form.language.data), 'danger')
+            return render_template(
+                'health_score_form.html',
+                form=form,
+                translations=translations.get(form.language.data, translations['English']),
+                language=form.language.data
+            )
+        
+        # Send email if enabled
+        if form.auto_email.data and app.config.get('MAIL_ENABLED', False):
             try:
-                health_score = calculate_health_score(income, expenses, debt, interest_rate)
-                score_description = get_score_description(health_score, language)
-                rank, total_users = assign_rank(health_score)
-                badges = assign_badges(health_score, debt, income, language)
-
-                user_data = {
-                    'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    'BusinessName': form.business_name.data,
-                    'IncomeRevenue': income,
-                    'ExpensesCosts': expenses,
-                    'DebtLoan': debt,
-                    'DebtInterestRate': interest_rate,
-                    'AutoEmail': str(form.auto_email.data),
-                    'PhoneNumber': form.phone.data or '',
-                    'FirstName': form.first_name.data,
-                    'LastName': form.last_name.data or '',
-                    'UserType': form.user_type.data,
-                    'Email': form.email.data,
-                    'Badges': ','.join(badges),
-                    'Language': form.language.data,
-                    'Score': health_score
-                }
-                if form.record_id.data:
-                    user_data['Timestamp'] = form.record_id.data
-                update_or_append_user_data(user_data, 'HealthScore')
-
-                if form.auto_email.data and app.config['MAIL_ENABLED']:
-                    html = render_template(
-                        'email_templates/health_score_email.html',
-                        user_name=form.first_name.data,
-                        health_score=health_score,
-                        score_description=score_description,
-                        rank=rank,
-                        total_users=total_users,
-                        course_title=get_translation('Recommended Course', language),
-                        course_url='https://youtube.com/@ficore.africa?si=xRuw7Ozcqbfmveru',
-                        FEEDBACK_FORM_URL='https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ',
-                        WAITLIST_FORM_URL='https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo',
-                        CONSULTANCY_FORM_URL='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A',
-                        translations=translations.get(language, translations['English'])
-                    )
-                    send_email_async.delay(
-                        get_translation('Score Report Subject', language).format(user_name=form.first_name.data),
-                        [form.email.data],
-                        html,
-                        language
-                    )
-                    flash(get_translation('Email scheduled to be sent', language), 'success')
-                elif form.auto_email.data:
-                    flash(get_translation('Email notifications are disabled', language), 'warning')
-
-                session['user_data_id'] = user_data['Timestamp']
-
-                try:
-                    chart_html, comparison_chart_html = generate_health_score_charts(json.dumps(user_data), language)
-                except Exception as e:
-                    chart_html, comparison_chart_html = '', ''
-                    flash(get_translation('Error generating charts', language), 'danger')
-
-                return redirect(url_for('health_score_dashboard', 
-                                    user_data=json.dumps(user_data), 
-                                    chart_html=chart_html, 
-                                    comparison_chart_html=comparison_chart_html, 
-                                    score_description=score_description, 
-                                    rank=rank, 
-                                    total_users=total_users, 
-                                    badges=json.dumps(badges)))
+                send_email_async(
+                    form.email.data,
+                    get_translation('Your Financial Health Score', form.language.data),
+                    'email_templates/health_score_email.html',
+                    first_name=form.first_name.data,
+                    health_score=health_score,
+                    score_description=score_description,
+                    rank=rank,
+                    total_users=total_users,
+                    course=get_courses(form.language.data)[0],
+                    consultancy_form_url='https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A'
+                )
             except Exception as e:
-                flash(get_translation('Error processing form: {}'.format(str(e)), language), 'danger')
-        else:
-            flash(get_translation('Form validation failed. Please check your inputs.', language), 'danger')
-
+                flash(get_translation('Error sending email. Your score is still saved.', form.language.data), 'warning')
+        
+        # Generate charts
+        try:
+            chart_html, comparison_chart_html = generate_health_score_charts(
+                income=income,
+                debt=debt,
+                health_score=health_score,
+                average_score=get_average_health_score('HealthScoreSheet'),
+                language=form.language.data
+            )
+        except Exception as e:
+            flash(get_translation('Error generating charts. Your score is still available.', form.language.data), 'warning')
+            chart_html = comparison_chart_html = ''
+        
+        # Store dashboard data in session
+        session['health_score_data'] = {
+            'user_data': user_data,
+            'chart_html': chart_html,
+            'comparison_chart_html': comparison_chart_html,
+            'score_description': score_description,
+            'rank': rank,
+            'total_users': total_users,
+            'badges': badges
+        }
+        
+        return redirect(url_for('health_score_dashboard'))
+    
     return render_template(
         'health_score_form.html',
         form=form,
@@ -977,28 +1139,23 @@ def health_score_form():
 @app.route('/health_score_dashboard')
 def health_score_dashboard():
     language = session.get('language', 'English')
-    user_data = json.loads(request.args.get('user_data', '{}')) if request.args.get('user_data') else {}
-    chart_html = request.args.get('chart_html', '')
-    comparison_chart_html = request.args.get('comparison_chart_html', '')
-    score_description = request.args.get('score_description', get_translation('No description available', language))
-    rank = request.args.get('rank', '1')
-    total_users = request.args.get('total_users', '1')
-    badges = json.loads(request.args.get('badges', '[]')) if request.args.get('badges') else []
-
-    if not user_data.get('FirstName') or not user_data.get('Score'):
-        flash(get_translation('Invalid dashboard access', language), 'danger')
+    data = session.get('health_score_data', {})
+    
+    # Validate dashboard access
+    if not data.get('user_data', {}).get('FirstName'):
+        flash(get_translation('Invalid dashboard access. Please complete the form.', language), 'danger')
         return redirect(url_for('health_score_form'))
-
+    
     return render_template(
         'health_score_dashboard.html',
         tool='Financial Health Score',
-        user_data=user_data,
-        chart_html=chart_html,
-        comparison_chart_html=comparison_chart_html,
-        score_description=score_description,
-        rank=rank,
-        total_users=total_users,
-        badges=badges,
+        user_data=data.get('user_data', {}),
+        chart_html=data.get('chart_html', ''),
+        comparison_chart_html=data.get('comparison_chart_html', ''),
+        score_description=data.get('score_description', ''),
+        rank=data.get('rank', '1'),
+        total_users=data.get('total_users', '1'),
+        badges=data.get('badges', []),
         tips=get_tips(language),
         courses=get_courses(language),
         translations=translations.get(language, translations['English']),
