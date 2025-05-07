@@ -38,187 +38,447 @@
         return gk_fileData[filename] || "";
         }
         </script><!DOCTYPE html>
-<html lang="en">
+<html lang="{{ language }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ translations['Financial Health Score'] }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Calculate your financial health score with Ficore Africa and get personalized insights.">
+    <meta name="keywords" content="ficore africa, financial health, score calculator, Africa SME finance">
+    <meta name="author" content="Ficore Africa">
+    <title>Ficore Africa - Financial Health Score</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <style>
-        .form-step { display: none; }
-        .form-step.active { display: block; }
-        .invalid-feedback { display: none; }
-        .form-control.is-invalid ~ .invalid-feedback,
-        .form-select.is-invalid ~ .invalid-feedback { display: block; }
-        .progress { height: 30px; }
-        .progress-bar { transition: width 0.3s ease-in-out; }
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: linear-gradient(135deg, #E3F2FD, #F5F7FA);
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+        header {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .logo-container {
+            margin-bottom: 1rem;
+        }
+        .logo-container img {
+            max-width: 200px;
+        }
+        .form-card {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .form-card:hover {
+            transform: translateY(-5px);
+        }
+        h3 {
+            color: #2E7D32;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        .form-label {
+            color: #0288D1;
+            font-weight: 500;
+        }
+        .form-control, .form-select {
+            border: 2px solid #0288D1;
+            border-radius: 8px;
+            padding: 10px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            min-height: 48px;
+            font-size: 1rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #2E7D32;
+            box-shadow: 0 0 8px rgba(46, 125, 50, 0.3);
+            outline: none;
+        }
+        .form-control:invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 8px rgba(220, 53, 69, 0.3);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2E7D32, #0288D1);
+            border: none;
+            padding: 12px 24px;
+            font-weight: 600;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            color: white;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            min-width: 120px;
+            min-height: 48px;
+        }
+        .btn-primary:hover {
+            transform: scale(1.05);
+            background: linear-gradient(135deg, #1B5E20, #01579B);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+            border: 1px solid #4CAF50;
+        }
+        .btn-primary:active {
+            transform: scale(0.95);
+        }
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s ease, height 0.3s ease;
+        }
+        .btn-primary:hover::after {
+            width: 200px;
+            height: 200px;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            border: none;
+            padding: 12px 24px;
+            font-weight: 600;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            color: white;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            min-width: 120px;
+            min-height: 48px;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: scale(1.05);
+        }
+        .alert {
+            margin-top: 1rem;
+            border-radius: 8px;
+        }
+        .info-icon {
+            cursor: pointer;
+            color: #0288D1;
+            margin-left: 5px;
+            font-size: 0.9rem;
+        }
+        .info-icon:hover {
+            color: #2E7D32;
+        }
+        .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .info-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        .form-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        .financial-section {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .step {
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+        .progress {
+            margin-bottom: 1.5rem;
+        }
+        .valid-feedback {
+            color: #28a745;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .invalid-feedback {
+            color: #dc3545;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .form-control.is-valid ~ .valid-feedback {
+            display: block;
+        }
+        .form-control.is-invalid ~ .invalid-feedback {
+            display: block;
+        }
+        .form-control.is-valid {
+            border-color: #28a745;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+        .loading-spinner {
+            display: none;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .loading-spinner i {
+            font-size: 1.5rem;
+            color: #2E7D32;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 576px) {
+            .container {
+                padding: 10px;
+            }
+            header, .form-card {
+                padding: 1rem;
+            }
+            .logo-container img {
+                max-width: 150px;
+            }
+            .btn-primary, .btn-secondary {
+                font-size: 1rem;
+                padding: 10px 20px;
+            }
+            .form-control, .form-select {
+                font-size: 0.9rem;
+            }
+        }
+        .number-display {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #495057;
+            font-size: 1rem;
+        }
+        .number-input {
+            padding-left: 10px; /* Adjust padding to avoid overlap with display */
+        }
     </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h1 class="text-center mb-4">{{ translations['Financial Health Score'] }}</h1>
-        <div class="progress mb-4">
-            <div class="progress-bar" role="progressbar" style="width: 33%;" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100">Step 1</div>
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='img/ficore_logo.png') }}" alt="Ficore Africa Logo">
+            </div>
+            <h1><strong>{{ translations['Financial Health Score'] }}</strong></h1>
+            <p>{{ translations['Get Your Score'] }}</p>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="form-card">
+            <h3>{{ translations['Calculate Your Financial Health Score'] }}</h3>
+            <div class="progress">
+                <div class="progress-bar bg-success" role="progressbar" style="width: 33%;" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <form method="POST" id="submission-form" action="{{ url_for('health_score_form') }}">
+                {{ form.hidden_tag() }}
+
+                <div class="step active" id="step-1">
+                    <h3>{{ translations['Personal Information'] }}</h3>
+                    <div class="form-group">
+                        {{ form.first_name.label(class="form-label") }}
+                        {{ form.first_name(class="form-control", placeholder=translations['Enter your first name'], required=True, **{'aria-required': 'true'}) }}
+                        <div class="valid-feedback">{{ translations['Looks good!'] }}</div>
+                        <div class="invalid-feedback">{{ translations['First Name Required'] }}</div>
+                    </div>
+                    <div class="form-group">
+                        {{ form.last_name.label(class="form-label його
+                        {{ form.last_name(class="form-control", placeholder=translations['Enter your last name (optional)']) }}
+                        <div class="valid-feedback">{{ translations['Looks good!'] }}</div>
+                    </div>
+                    <div class="form-group">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control", placeholder=translations['Enter your email'], required=True, **{'aria-required': 'true'}) }}
+                        <div class="valid-feedback">{{ translations['Looks good!'] }}</div>
+                        <div class="invalid-feedback">{{ translations['Invalid Email'] }}</div>
+                    </div>
+                    <div class="form-group">
+                        {{ form.confirm_email.label(class="form-label") }}
+                        {{ form.confirm_email(class="form-control", placeholder=translations['Re-enter your email'], required=True, **{'aria-required': 'true'}) }}
+                        <div class="valid-feedback">{{ translations['Looks good!'] }}</div>
+                        <div class="invalid-feedback">{{ translations['Emails must match'] }}</div>
+                    </div>
+                    <div class="form-group">
+                        {{ form.phone.label(class="form-label") }}
+                        {{ form.phone(class="form-control", placeholder=translations['Enter your phone number (optional)']) }}
+                        <div class="valid-feedback">{{ translations['Looks good!'] }}</div>
+                    </div>
+                    <div class="form-group">
+                        {{ form.language.label(class="form-label") }}
+                        {{ form.language(class="form-select", **{'aria-required': 'true'}) }}
+                        <div class="valid-feedback">{{ translations['Language selected!'] }}</div>
+                    </div>
+                    <div class="text-center">
+                        <button type="button" class="btn btn-primary next-step">{{ translations['Next'] }}</button>
+                    </div>
+                </div>
+
+                <div class="step" id="step-2">
+                    <h3>{{ translations['Business Information'] }}</h3>
+                    <div class="form-group">
+                        {{ form.business_name.label(class="form-label") }}
+                        {{ form.business_name(class="form-control", placeholder=translations['e.g. My Business or Personal'], required=True, **{'aria-required': 'true'}) }}
+                        <div class="valid-feedback">{{ translations['Looks good!'] }}</div>
+                        <div class="invalid-feedback">{{ translations['Business Name Required'] }}</div>
+                    </div>
+                    <div class="form-group">
+                        {{ form.user_type.label(class="form-label") }}
+                        {{ form.user_type(class="form-select", **{'aria-required': 'true'}) }}
+                        <div class="valid-feedback">{{ translations['User Type selected!'] }}</div>
+                    </div>
+                    <div class="text-center">
+                        <button type="button" class="btn btn-secondary prev-step">{{ translations['Previous'] }}</button>
+                        <button type="button" class="btn btn-primary next-step">{{ translations['Next'] }}</button>
+                    </div>
+                </div>
+
+                <div class="step" id="step-3">
+                    <h3>{{ translations['Financial Information'] }}</h3>
+                    <div class="financial-section">
+                        <div class="form-group">
+                            {{ form.income.label(class="form-label") }}
+                            <span class="info-icon" aria-label="Income Info">ℹ️
+                                <span class="tooltip-text">{{ translations['Total money you receive regularly, like salary, business sales, gifts, grants, incentives, or side hustles.'] }}</span>
+                            </span>
+                            {{ form.income(class="form-control number-input", type="number", step="any", min="0", max="10000000000", placeholder=translations['e.g. 150,000'], required=True, **{'aria-required': 'true'}) }}
+                            <span class="number-display" data-for="income"></span>
+                            <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
+                            <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
+                        </div>
+                        <div class="form-group">
+                            {{ form.expenses.label(class="form-label") }}
+                            <span class="info-icon" aria-label="Expenses Info">ℹ️
+                                <span class="tooltip-text">{{ translations['All the money you spend, such as on rent, food, transport, electricity bill, gas and utilities, fine and penalties, levies, taxes, etc.'] }}</span>
+                            </span>
+                            {{ form.expenses(class="form-control number-input", type="number", step="any", min="0", max="10000000000", placeholder=translations['e.g. 60,000'], required=True, **{'aria-required': 'true'}) }}
+                            <span class="number-display" data-for="expenses"></span>
+                            <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
+                            <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
+                        </div>
+                        <div class="form-group">
+                            {{ form.debt.label(class="form-label") }}
+                            <span class="info-icon" aria-label="Debt Info">ℹ️
+                                <span class="tooltip-text">{{ translations['Money you owe, like loans, IOUs, borrowings, or funds lent to you.'] }}</span>
+                            </span>
+                            {{ form.debt(class="form-control number-input", type="number", step="any", min="0", max="10000000000", placeholder=translations['e.g. 25,000'], required=True, **{'aria-required': 'true'}) }}
+                            <span class="number-display" data-for="debt"></span>
+                            <div class="valid-feedback">{{ translations['Valid amount!'] }}</div>
+                            <div class="invalid-feedback">{{ translations['Invalid Number'] }}</div>
+                        </div>
+                        <div class="form-group">
+                            {{ form.interest_rate.label(class="form-label") }}
+                            <span class="info-icon" aria-label="Interest Rate Info">ℹ️
+                                <span class="tooltip-text">{{ translations['Enter the annual interest rate for your debt (optional).'] }}</span>
+                            </span>
+                            {{ form.interest_rate(class="form-control number-input", type="number", step="any", min="0", max="100", placeholder=translations['e.g. 10%']) }}
+                            <span class="number-display" data-for="interest_rate"></span>
+                            <div class="valid-feedback">{{ translations['Valid percentage!'] }}</div>
+                            <div class="invalid-feedback">{{ translations['Must be between 0 and 100'] }}</div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        {{ form.auto_email.label(class="form-label") }}
+                        {{ form.auto_email(class="form-check-input", type="checkbox") }}
+                        <div class="valid-feedback">{{ translations['Preference saved!'] }}</div>
+                    </div>
+                    <div class="form-group">
+                        {{ form.record_id.label(class="form-label") }}
+                        {{ form.record_id(class="form-select") }}
+                        <div class="valid-feedback">{{ translations['Record selected!'] }}</div>
+                    </div>
+                    <p>
+                        {{ translations['New to finances? Click here to get guided tips on how to fill this form.'] }}
+                        <a href="https://youtube.com/@ficore.africa?si=myoEpotNALfGK4eI" target="_blank">{{ translations['Getting Started with Ficore Africa'] }}</a>
+                    </p>
+                    <div class="text-center">
+                        <button type="button" class="btn btn-secondary prev-step">{{ translations['Previous'] }}</button>
+                        <button type="submit" class="btn btn-primary" id="submit-btn">{{ translations['Submit'] }}</button>
+                    </div>
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner"></i> {{ translations['Analyzing your score...'] }}
+                    </div>
+                </div>
+            </form>
         </div>
-        <form id="submission-form" method="POST" action="{{ url_for('health_score_form') }}">
-            {{ form.hidden_tag() }}
 
-            <!-- Step 1: Personal Details -->
-            <div class="form-step active" id="step-1">
-                <h2>{{ translations['Personal Details'] }}</h2>
-                <div class="form-group mb-3">
-                    <label for="first_name" class="form-label">{{ translations['First Name'] }}</label>
-                    <input type="text" class="form-control" id="first_name" name="first_name" required aria-required="true" value="{{ form.first_name.data or '' }}">
-                    <div class="invalid-feedback">{{ translations['First name is required'] }}</div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="last_name" class="form-label">{{ translations['Last Name'] }}</label>
-                    <input type="text" class="form-control" id="last_name" name="last_name" required aria-required="true" value="{{ form.last_name.data or '' }}">
-                    <div class="invalid-feedback">{{ translations['Last name is required'] }}</div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="email" class="form-label">{{ translations['Email'] }}</label>
-                    <input type="email" class="form-control" id="email" name="email" required aria-required="true" value="{{ form.email.data or '' }}">
-                    <div class="invalid-feedback">{{ translations['Valid email is required'] }}</div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="confirm_email" class="form-label">{{ translations['Confirm Email'] }}</label>
-                    <input type="email" class="form-control" id="confirm_email" name="confirm_email" required aria-required="true" value="{{ form.confirm_email.data or '' }}">
-                    <div class="invalid-feedback">{{ translations['Emails must match'] }}</div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="phone" class="form-label">{{ translations['Phone Number'] }}</label>
-                    <input type="tel" class="form-control" id="phone" name="phone" required aria-required="true" value="{{ form.phone.data or '' }}">
-                    <div class="invalid-feedback">{{ translations['Valid phone number is required'] }}</div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="language" class="form-label">{{ translations['Language'] }}</label>
-                    <select class="form-select" id="language" name="language" required aria-required="true">
-                        <option value="English" {% if form.language.data == 'English' %}selected{% endif %}>{{ translations['language_option_en'] }}</option>
-                        <option value="Hausa" {% if form.language.data == 'Hausa' %}selected{% endif %}>{{ translations['language_option_ha'] }}</option>
-                    </select>
-                    <div class="invalid-feedback">{{ translations['Language is required'] }}</div>
-                </div>
-                <button type="button" class="btn btn-primary next-step">{{ translations['Next'] }}</button>
-            </div>
-
-            <!-- Step 2: Business Details -->
-            <div class="form-step" id="step-2">
-                <h2>{{ translations['Business Details'] }}</h2>
-                <div class="form-group mb-3">
-                    <label for="business_name" class="form-label">{{ translations['Business Name'] }}</label>
-                    <input type="text" class="form-control" id="business_name" name="business_name" required aria-required="true" value="{{ form.business_name.data or '' }}">
-                    <div class="invalid-feedback">{{ translations['Business name is required'] }}</div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="user_type" class="form-label">{{ translations['User Type'] }}</label>
-                    <select class="form-select" id="user_type" name="user_type" required aria-required="true">
-                        <option value="Individual" {% if form.user_type.data == 'Individual' %}selected{% endif %}>{{ translations['user_type_individual'] }}</option>
-                        <option value="Business" {% if form.user_type.data == 'Business' %}selected{% endif %}>{{ translations['user_type_business'] }}</option>
-                    </select>
-                    <div class="invalid-feedback">{{ translations['User type is required'] }}</div>
-                </div>
-                <button type="button" class="btn btn-secondary prev-step">{{ translations['Previous'] }}</button>
-                <button type="button" class="btn btn-primary next-step">{{ translations['Next'] }}</button>
-            </div>
-
-            <!-- Step 3: Financial Data -->
-            <div class="form-step" id="step-3">
-                <h2>{{ translations['Financial Data'] }}</h2>
-                <div class="form-group mb-3">
-                    <label for="income" class="form-label">{{ translations['Monthly Income'] }}</label>
-                    <input type="number" class="form-control" id="income" name="income" required aria-required="true" min="0" step="0.01" value="{{ form.income.data or '' }}">
-                    <div class="invalid-feedback">{{ translations['Valid income is required'] }}</div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="expenses" class="form-label">{{ translations['Monthly Expenses'] }}</label>
-                    <input type="number" class="form-control" id="expenses" name="expenses" required aria-required="true" min="0" step="0.01" value="{{ form.expenses.data or '' }}">
-                    <div class="invalid-feedback">{{ translations['Valid expenses are required'] }}</div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="debt" class="form-label">{{ translations['Total Debt'] }}</label>
-                    <input type="number" class="form-control" id="debt" name="debt" required aria-required="true" min="0" step="0.01" value="{{ form.debt.data or '' }}">
-                    <div class="invalid-feedback">{{ translations['Valid debt amount is required'] }}</div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="interest_rate" class="form-label">{{ translations['Debt Interest Rate'] }}</label>
-                    <input type="number" class="form-control" id="interest_rate" name="interest_rate" required aria-required="true" min="0" max="100" step="0.01" value="{{ form.interest_rate.data or '' }}">
-                    <div class="invalid-feedback">{{ translations['Valid interest rate is required'] }}</div>
-                </div>
-                <div class="form-group mb-3">
-                    <label for="auto_email" class="form-label">{{ translations['auto_email_label'] }}</label>
-                    <input type="checkbox" class="form-check-input" id="auto_email" name="auto_email" {% if form.auto_email.data %}checked{% endif %}>
-                    <div class="valid-feedback">{{ translations['auto_email_valid'] }}</div>
-                </div>
-                <button type="button" class="btn btn-secondary prev-step">{{ translations['Previous'] }}</button>
-                <button type="submit" class="btn btn-success">{{ translations['Submit'] }}</button>
-            </div>
-        </form>
+        <footer class="mt-4 text-center">
+            <p>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">{{ translations['Home'] }}</a>
+                <a href="{{ url_for('health_score_dashboard') }}" class="btn btn-secondary">{{ translations['Dashboard'] }}</a>
+            </p>
+            <p>{{ translations['Contact Us'] }} <a href="/cdn-cgi/l/email-protection#ab8d828884998ec58a82c58a8d9982888aab8c868a8287c5888486">{{ translations['Click to Email'] }}</a> {{ translations['for support'] }}</p>
+            <p><a href="{{ FEEDBACK_FORM_URL }}" target="_blank">{{ translations['Provide Feedback'] }}</a></p>
+            <p>© 2025 Ficore Africa. All rights reserved.</p>
+        </footer>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/interactivity.js') }}"></script>
     <script>
-        const form = document.getElementById('submission-form');
-        const steps = document.querySelectorAll('.form-step');
+        // Multi-step form logic
+        const steps = document.querySelectorAll('.step');
         const nextButtons = document.querySelectorAll('.next-step');
         const prevButtons = document.querySelectorAll('.prev-step');
         const progressBar = document.querySelector('.progress-bar');
         let currentStep = 0;
 
-        function updateStep(step) {
-            steps.forEach((s, index) => {
-                s.classList.toggle('active', index === step);
+        function updateStep() {
+            steps.forEach((step, index) => {
+                step.classList.toggle('active', index === currentStep);
             });
-            const progress = (step + 1) / steps.length * 100;
-            progressBar.style.width = `${progress}%`;
-            progressBar.textContent = `Step ${step + 1}`;
-            progressBar.setAttribute('aria-valuenow', progress);
-        }
-
-        function validateStep(step) {
-            const inputs = steps[step].querySelectorAll('input[required], select[required]');
-            let isValid = true;
-            inputs.forEach(input => {
-                input.classList.remove('is-invalid');
-                if (!input.checkValidity()) {
-                    input.classList.add('is-invalid');
-                    isValid = false;
-                }
-                if (input.type === 'email' && input.id === 'confirm_email') {
-                    const email = document.getElementById('email').value;
-                    if (input.value !== email) {
-                        input.classList.add('is-invalid');
-                        isValid = false;
-                    }
-                }
-                if (input.type === 'number') {
-                    const value = parseFloat(input.value);
-                    if (input.min && value < parseFloat(input.min)) {
-                        input.classList.add('is-invalid');
-                        isValid = false;
-                    }
-                    if (input.max && value > parseFloat(input.max)) {
-                        input.classList.add('is-invalid');
-                        isValid = false;
-                    }
-                }
-            });
-            if (!isValid) {
-                const firstInvalid = steps[step].querySelector('.is-invalid');
-                if (firstInvalid) {
-                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    firstInvalid.focus();
-                }
-            }
-            return isValid;
+            progressBar.style.width = `${((currentStep + 1) / steps.length) * 100}%`;
         }
 
         nextButtons.forEach(button => {
             button.addEventListener('click', () => {
-                if (validateStep(currentStep)) {
-                    currentStep++;
-                    if (currentStep < steps.length) {
-                        updateStep(currentStep);
+                if (currentStep < steps.length - 1) {
+                    if (validateStep(currentStep)) {
+                        currentStep++;
+                        updateStep();
                     }
                 }
             });
@@ -226,39 +486,126 @@
 
         prevButtons.forEach(button => {
             button.addEventListener('click', () => {
-                currentStep--;
-                updateStep(currentStep);
+                if (currentStep > 0) {
+                    currentStep--;
+                    updateStep();
+                }
             });
         });
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (validateStep(currentStep)) {
-                try {
-                    form.submit();
-                } catch (error) {
-                    console.error('Submission error:', error);
-                    alert('{{ translations["Submission failed. Please try again."] }}');
-                }
-            }
-        });
-
-        // Real-time validation
-        form.querySelectorAll('input, select').forEach(input => {
-            input.addEventListener('input', () => {
-                if (input.checkValidity()) {
-                    input.classList.remove('is-invalid');
-                } else {
+        function validateStep(stepIndex) {
+            const inputs = steps[stepIndex].querySelectorAll('input[required], select[required]');
+            let valid = true;
+            inputs.forEach(input => {
+                if (!input.value || (input.type === 'email' && !input.value.match(/^\S+@\S+\.\S+$/))) {
                     input.classList.add('is-invalid');
+                    valid = false;
+                } else {
+                    input.classList.remove('is-invalid');
+                    input.classList.add('is-valid');
                 }
-                if (input.id === 'confirm_email') {
-                    const email = document.getElementById('email').value;
-                    if (input.value !== email) {
+            });
+            return valid;
+        }
+
+        // Real-time validation for non-numeric inputs
+        document.querySelectorAll('input:not([type="number"]), select').forEach(input => {
+            input.addEventListener('input', () => {
+                if (input.required) {
+                    if (input.type === 'email') {
+                        if (input.value.match(/^\S+@\S+\.\S+$/)) {
+                            input.classList.remove('is-invalid');
+                            input.classList.add('is-valid');
+                        } else {
+                            input.classList.remove('is-valid');
+                            input.classList.add('is-invalid');
+                        }
+                    } else if (input.value) {
+                        input.classList.remove('is-invalid');
+                        input.classList.add('is-valid');
+                    } else {
+                        input.classList.remove('is-valid');
                         input.classList.add('is-invalid');
                     }
                 }
             });
         });
+
+        // Optimized number formatting using toLocaleString
+        function formatNumber(value) {
+            if (!value && value !== 0) return '';
+            return parseFloat(value).toLocaleString('en-US', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            });
+        }
+
+        // Handle numeric inputs for display formatting
+        document.querySelectorAll('.number-input').forEach(input => {
+            const displayElement = input.parentElement.querySelector('.number-display[data-for="' + input.id + '"]');
+            
+            function updateDisplay() {
+                let value = parseFloat(input.value) || 0;
+                let max = parseFloat(input.max) || Infinity;
+                let min = parseFloat(input.min) || 0;
+
+                // Validate and adjust value
+                if (value > max) {
+                    value = max;
+                    input.value = max;
+                    input.classList.add('is-invalid');
+                } else if (value < min) {
+                    value = min;
+                    input.value = min;
+                    input.classList.add('is-invalid');
+                } else if (input.required && !input.value) {
+                    input.classList.add('is-invalid');
+                    displayElement.textContent = '';
+                    return;
+                } else {
+                    input.classList.remove('is-invalid');
+                    input.classList.add('is-valid');
+                }
+
+                // Update display with formatted value
+                displayElement.textContent = formatNumber(value);
+            }
+
+            // Initialize display
+            updateDisplay();
+
+            // Handle input event
+            input.addEventListener('input', () => {
+                updateDisplay();
+            });
+
+            // Handle blur event
+            input.addEventListener('blur', () => {
+                if (!input.value && !input.required) {
+                    input.classList.remove('is-valid', 'is-invalid');
+                    displayElement.textContent = '';
+                    return;
+                }
+                updateDisplay();
+            });
+
+            // Handle focus to clear display for typing
+            input.addEventListener('focus', () => {
+                displayElement.textContent = '';
+            });
+        });
+
+        // Loading spinner
+        document.getElementById('submission-form').addEventListener('submit', function(e) {
+            // Ensure numeric inputs have raw values
+            document.querySelectorAll('.number-input').forEach(input => {
+                if (input.value) {
+                    input.value = parseFloat(input.value) || 0;
+                }
+            });
+            document.querySelector('.loading-spinner').style.display = 'block';
+            document.getElementById('submit-btn').disabled = true;
+        });
     </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93ba6b913cbc4551',t:'MTc0NjU1NDg3Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
