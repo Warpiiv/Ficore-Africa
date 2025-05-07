@@ -62,31 +62,29 @@
     <li><strong>{{ translations['Total Expenses'] }}</strong>: {{ total_expenses | format_currency('NGN') }}</li>
     <li><strong>{{ translations['Savings'] }}</strong>: {{ savings | format_currency('NGN') }}</li>
     <li><strong>{{ translations['Surplus/Deficit'] }}</strong>: {{ surplus_deficit | format_currency('NGN') }}</li>
-</ul>
-    <p>Adjust your spending to optimize savings and surplus.</p>
+</ul><p>Adjust your spending to optimize savings and surplus.</p>
     <p style="margin-bottom: 10px;">
         Want to learn more? Check out this course:
         <a href="{{ course_url }}" style="display: inline-block; padding: 10px 20px; background-color: #FBC02D; color: #333; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">{{ course_title }}</a>
     </p>
     <p style="margin-bottom: 10px;">
         Please provide feedback on your experience:
-        <a href="{{ FEEDBACK_FORM_URL }}" style="display: inline-block; padding: 10px 20px; background-color: #2E7D32; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Feedback Form</a>
+        <a href="https://forms.gle/1g1FVulyf7ZvvXr7G0q7hAKwbGJMxV4blpjBuqrSjKzQ" style="display: inline-block; padding: 10px 20px; background-color: #2E7D32; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Feedback Form</a>
     </p>
     <p style="margin-bottom: 10px;">
         Want Smart Insights? Join our waitlist:
-        <a href="{{ WAITLIST_FORM_URL }}" style="display: inline-block; padding: 10px 20px; background-color: #0288D1; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Join Waitlist</a>
+        <a href="https://forms.gle/17e0XYcp-z3hCl0I-j2JkHoKKJrp4PfgujsK8D7uqNxo" style="display: inline-block; padding: 10px 20px; background-color: #0288D1; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Join Waitlist</a>
     </p>
     <p style="margin-bottom: 10px;">
         Need expert advice? Book a consultancy:
-        <a href="{{ CONSULTANCY_FORM_URL }}" style="display: inline-block; padding: 10px 20px; background-color: #D81B60; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Book Consultancy</a>
+        <a href="https://forms.gle/1TKvlT7OTvNS70YNd8DaPpswvqd9y7hKydxKr07gpK9A" style="display: inline-block; padding: 10px 20px; background-color: #D81B60; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem;">Book Consultancy</a>
     </p>
     <p>Thank you for choosing Ficore Africa!</p>
     <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">
         © 2025 Ficore Africa. All rights reserved.
     </p>
-        {% macro format_currency(value, currency='NGN') %}
-    {{ '{:,.2f}'.format(abs(float(value))) }} {{ currency }}
-{% endmacro %}
-        
+    {% macro format_currency(value, currency='NGN') %}
+        {{ '{:,.2f}'.format(abs(float(value))) }} {{ currency }}
+    {% endmacro %}
 </body>
 </html>
