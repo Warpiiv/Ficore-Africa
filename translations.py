@@ -1,4 +1,3 @@
-```python
 translations = {
     'English': {
         'Welcome': 'Welcome',
