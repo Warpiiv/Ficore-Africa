@@ -1,0 +1,544 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficore Africa</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #E3F2FD, #F5F7FA);
+            color: #333;
+        }
+        .navbar {
+            background: linear-gradient(45deg, rgba(46, 125, 50, 0.8), rgba(2, 136, 209, 0.8));
+            background-size: 200% 200%;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            animation: gradientShift 5s ease infinite;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .navbar h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            background: linear-gradient(45deg, #2E7D32, #0288D1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textShine 3s ease infinite;
+        }
+        .navbar form {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+        .navbar select {
+            padding: 8px;
+            border-radius: 5px;
+            border: 2px solid #0288D1;
+            margin-right: 10px;
+            min-width: 100px;
+        }
+        .navbar .refresh-button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(135deg, #2E7D32, #0288D1);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            margin-right: 10px;
+        }
+        .navbar .refresh-button:hover {
+            background: linear-gradient(135deg, #1B5E20, #01579B);
+        }
+        .navbar .refresh-button i {
+            margin-right: 5px;
+        }
+        .hero {
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/static/images/hero-bg.jpg');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            padding: 20px;
+        }
+        .hero h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #2E7D32, #0288D1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textShine 3s ease infinite;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        @keyframes textShine {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            max-width: 600px;
+        }
+        .hero .cta-button {
+            padding: 15px 35px;
+            background: linear-gradient(135deg, #2E7D32, #0288D1);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 1.3rem;
+            display: inline-block;
+        }
+        .hero .cta-button:hover {
+            background: linear-gradient(135deg, #1B5E20, #01579B);
+        }
+        .tools-section {
+            padding: 60px 20px;
+            background-color: white;
+            text-align: center;
+        }
+        .tools-section h2 {
+            font-size: 2rem;
+            margin-bottom: 40px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #2E7D32, #0288D1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textShine 3s ease infinite;
+        }
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .tool-card {
+            background-color: #E3F2FD;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: left;
+            position: relative;
+        }
+        .tool-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #2E7D32, #0288D1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textShine 3s ease infinite;
+        }
+        .tool-card p {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .tool-card a {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #2E7D32, #0288D1);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            display: inline-block;
+        }
+        .tool-card a:hover {
+            background: linear-gradient(135deg, #1B5E20, #01579B);
+        }
+        .tool-card .coming-soon {
+            padding: 12px 25px;
+            background: #B0BEC5;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            display: inline-block;
+            cursor: not-allowed;
+        }
+        .tool-card .coming-soon:hover {
+            background: #90A4AE;
+        }
+        .tool-card .notify-me {
+            padding: 12px 25px;
+            background: #B0BEC5;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .tool-card .notify-me:hover {
+            background: #90A4AE;
+        }
+        .testimonials-section {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(227, 242, 253, 0.8);
+            border: 2px solid #0288D1;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .testimonials-section strong {
+            font-size: 1.2rem;
+            color: #2E7D32;
+        }
+        .testimonials-section .testimonial {
+            margin: 15px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            display: inline-block;
+            max-width: 400px;
+        }
+        .testimonials-section .testimonial .initials {
+            width: 40px;
+            height: 40px;
+            background: #0288D1;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        .testimonials-section .testimonial span.name {
+            color: #2E7D32;
+            font-weight: bold;
+        }
+        .recommended-learning {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(227, 242, 253, 0.8);
+            border: 2px solid #0288D1;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .recommended-learning strong {
+            font-size: 1.2rem;
+            color: #2E7D32;
+        }
+        .recommended-learning p {
+            margin: 10px 0;
+            color: #666;
+        }
+        .why-section {
+            padding: 50px 20px;
+            background: linear-gradient(135deg, #E3F2FD, #F5F7FA);
+            text-align: center;
+        }
+        .why-section h2 {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #2E7D32, #0288D1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textShine 3s ease infinite;
+        }
+        .why-list {
+            list-style: none;
+            padding: 0;
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: left;
+        }
+        .why-list li {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .why-list li i {
+            color: #0288D1;
+            margin-right: 10px;
+        }
+        .about-section {
+            padding: 30px 20px;
+            background: white;
+            text-align: center;
+        }
+        .about-section p {
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 1rem;
+            color: #666;
+        }
+        .footer {
+            background: linear-gradient(45deg, #2E7D32, #0288D1);
+            background-size: 200% 200%;
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            animation: gradientShift 5s ease infinite;
+        }
+        .footer p {
+            margin: 0 0 20px 0;
+            font-size: 0.9rem;
+        }
+        .footer a {
+            color: #E0F7FA;
+            text-decoration: none;
+            margin: 0 15px;
+            display: inline-block;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .footer .footer-buttons {
+            margin-top: 20px;
+        }
+        .footer .footer-buttons a {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #2E7D32, #0288D1);
+            border-radius: 5px;
+            font-size: 1rem;
+            margin: 0 10px;
+        }
+        .footer .footer-buttons a:hover {
+            background: linear-gradient(135deg, #1B5E20, #01579B);
+        }
+        .footer .footer-buttons a i {
+            margin-right: 5px;
+        }
+        .social-icons {
+            margin-top: 15px;
+        }
+        .social-icons a {
+            font-size: 1.5rem;
+            margin: 0 15px;
+            color: white;
+        }
+        .social-icons a:hover {
+            color: #E0F7FA;
+        }
+        @media (max-width: 768px) {
+            .hero h2 {
+                font-size: 1.8rem;
+            }
+            .hero p {
+                font-size: 1rem;
+            }
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+            .navbar h1 {
+                font-size: 1.2rem;
+            }
+            .navbar form {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+            .navbar select {
+                margin-bottom: 10px;
+            }
+            .tool-card a, .tool-card .coming-soon, .tool-card .notify-me {
+                font-size: 1.1rem;
+                padding: 15px 30px;
+            }
+            .footer .footer-buttons a {
+                display: block;
+                margin: 10px 0;
+                font-size: 1.1rem;
+            }
+            .hero .cta-button {
+                font-size: 1.1rem;
+                padding: 12px 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>Ficore Africa</h1>
+        <div style="display: flex; align-items: center;">
+            <form action="{{ url_for('index') }}" method="GET" style="margin-right: 10px;">
+                <input type="hidden" name="tool" value="{{ tool }}">
+                <select name="language" onchange="this.form.submit()" aria-label="{{ trans['Choose your language'] or 'Choose your language' }}">
+                    <option value="en" {% if language == 'en' %}selected{% endif %}>English</option>
+                    <option value="ha" {% if language == 'ha' %}selected{% endif %}>Hausa</option>
+                </select>
+            </form>
+            <button class="refresh-button" onclick="window.location.reload()" title="Reload the page">
+                <i class="fas fa-sync-alt"></i> {{ trans['Refresh'] or 'Refresh' }}
+            </button>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h2>Your All-in-One Toolkit for Personal & SME Financial Health Across Africa</h2>
+        <p>Track income, calculate net worth, plan budgets, and grow with confidence.</p>
+        <a href="{{ url_for('health_score') }}" class="cta-button">Get Your Free Financial Health Score</a>
+    </section>
+
+    <section class="tools-section">
+        <h2>{{ trans['Choose a Tool'] or 'Choose a Tool' }}</h2>
+        <div class="tools-grid">
+            <div class="tool-card">
+                <h3>{{ trans['Financial Health Score'] or 'Financial Health Score' }}</h3>
+                <p>{{ trans['Your Financial Health Summary'] or 'Evaluates income, expenses, and debt for a health score' }}</p>
+                <a href="{{ url_for('health_score') }}" aria-label="{{ trans['Start Financial Health Score Assessment'] or 'Start Financial Health Score Assessment' }}">{{ trans['Start'] or 'Start' }}</a>
+            </div>
+            <div class="tool-card">
+                <h3>{{ trans['Monthly Budget Planner'] or 'Monthly Budget Planner' }}</h3>
+                <p>{{ trans['Monthly Budget Planner'] or 'Allocate income across expense categories' }}</p>
+                <a href="{{ url_for('budget_step1') }}" aria-label="{{ trans['Start Monthly Budget Planner'] or 'Start Monthly Budget Planner' }}">{{ trans['Start'] or 'Start' }}</a>
+            </div>
+            <div class="tool-card">
+                <h3>{{ trans['Personality Quiz'] or 'Personality Quiz' }}</h3>
+                <p>{{ trans['Answer questions to assess financial literacy'] or 'Answer questions to assess financial literacy' }}</p>
+                <a href="{{ url_for('quiz') }}" aria-label="{{ trans['Start Personality Quiz'] or 'Start Personality Quiz' }}">{{ trans['Start'] or 'Start' }}</a>
+            </div>
+            <div class="tool-card">
+                <h3>{{ trans['Net Worth Calculator'] or 'Net Worth Calculator' }}</h3>
+                <p>{{ trans['Net worth is assets minus liabilities'] or 'Net worth is assets minus liabilities' }}</p>
+                <a href="{{ WAITLIST_FORM_URL }}" class="notify-me" aria-label="{{ trans['Coming Soon'] or 'Coming Soon' }}">Coming Soon</a>
+            </div>
+            <div class="tool-card">
+                <h3>{{ trans['Emergency Fund Calculator'] or 'Emergency Fund Calculator' }}</h3>
+                <p>{{ trans['Aims to cover 3-6 months of expenses for financial security'] or 'Aims to cover 3-6 months of expenses for financial security' }}</p>
+                <a href="{{ WAITLIST_FORM_URL }}" class="notify-me" aria-label="{{ trans['Coming Soon'] or 'Coming Soon' }}">Coming Soon</a>
+            </div>
+            <div class="tool-card">
+                <h3>{{ trans['Expense Tracker'] or 'Expense Tracker' }}</h3>
+                <p>{{ trans['Log and edit expenses for spending insights'] or 'Log and edit expenses for spending insights' }}</p>
+                <a href="{{ WAITLIST_FORM_URL }}" class="notify-me" aria-label="{{ trans['Coming Soon'] or 'Coming Soon' }}">Coming Soon</a>
+            </div>
+            <div class="tool-card">
+                <h3>{{ trans['Bill Planner'] or 'Bill Planner' }}</h3>
+                <p>{{ trans['Manage and mark bills as paid'] or 'Manage and mark bills as paid' }}</p>
+                <a href="{{ WAITLIST_FORM_URL }}" class="notify-me" aria-label="{{ trans['Coming Soon'] or 'Coming Soon' }}">Coming Soon</a>
+            </div>
+        </div>
+        <div class="testimonials-section">
+            <strong><i class="fas fa-quote-left"></i> {{ trans['What people are saying about Us'] or 'What people are saying about Us' }}</strong>
+            <div class="testimonial">
+                <span class="initials">MU</span> <span>“I explored the features earlier today and was impressed... I thought it was only for SMEs, but even individuals can benefit. The learning section is on another level.” — <span class="name">Maisarata Uqubatu</span></span>
+            </div>
+            <div class="testimonial">
+                <span class="initials">AA</span> <span>“🔥 Ficore 🔥🔥🔥🔥🔥” — <span class="name">Abubakar Abdulkadir</span>, Software Engineer for Sustainable Solutions</span>
+            </div>
+            <div class="testimonial">
+                <span class="initials">ASU</span> <span>“I’ve been following the Ficore project and I’m impressed. It’s clear there's potential, and I’m curious to know more—especially if there's a customer support channel included. I'd love to contribute if needed!” — <span class="name">Aminu Sani Usman</span></span>
+            </div>
+        </div>
+        <div class="recommended-learning">
+            <strong><i class="fas fa-book"></i> {{ trans['Recommended Learning'] or 'Recommended Learning' }}</strong>
+            <p>{{ trans['Learn more about budgeting!'] or 'Learn more about budgeting!' }}</p>
+        </div>
+    </section>
+
+    <section class="why-section">
+        <h2>{{ trans['Why Ficore Africa?'] or 'Why Ficore Africa?' }}</h2>
+        <ul class="why-list">
+            <li><i class="fas fa-check-circle"></i>{{ trans['Localized for Africa with support for Naira and regional financial contexts'] or 'Localized for Africa with support for Naira and regional financial contexts' }}</li>
+            <li><i class="fas fa-check-circle"></i>{{ trans['Empowers financial literacy with easy-to-use tools'] or 'Empowers financial literacy with easy-to-use tools' }}</li>
+            <li><i class="fas fa-check-circle"></i>{{ trans['Provides actionable insights for better financial decisions'] or 'Provides actionable insights for better financial decisions' }}</li>
+        </ul>
+    </section>
+
+    <section class="about-section">
+        <p>{{ trans['About Ficore Africa: Empowering financial growth across Africa since 2023'] or 'About Ficore Africa: Empowering financial growth across Africa since 2023' }}</p>
+    </section>
+
+    <footer class="footer">
+        <p>{{ trans['Contact Us'] or 'Contact Us' }}: {{ trans['Click to Email'] or 'Click to Email' }} ficoreafrica@gmail.com {{ trans['for support'] or 'for support' }}</p>
+        <div class="social-icons">
+            <a href="{{ linkedin_url }}" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+            <a href="{{ twitter_url }}" target="_blank" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+            <a href="https://www.facebook.com/profile.php?id=61575627944628&mibextid=ZbWKwL" target="_blank" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+        </div>
+        <div class="footer-buttons">
+            <a href="mailto:ficoreafrica@gmail.com"><i class="fas fa-envelope"></i> {{ trans['Click to Email'] or 'Click to Email' }}</a>
+            <a href="{{ FEEDBACK_FORM_URL }}" target="_blank"><i class="fas fa-comment"></i> {{ trans['Provide Feedback'] or 'Provide Feedback' }}</a>
+            <a href="{{ WAITLIST_FORM_URL }}" target="_blank"><i class="fas fa-users"></i> {{ trans['Join Waitlist'] or 'Join Waitlist' }}</a>
+            <a href="{{ CONSULTANCY_FORM_URL }}" target="_blank"><i class="fas fa-briefcase"></i> {{ trans['Book Consultancy'] or 'Book Consultancy' }}</a>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.8.3/plotly.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tips = [
+                "{{ trans['Quick Tips'] or 'Quick Tips' }}: {{ trans['Spend less on non-essentials to balance your budget'] or 'Spend less on non-essentials to balance your budget' }}",
+                "{{ trans['Recommended Platform'] or 'For Learning' }}: {{ trans['Ficore Learning Hub'] or 'Learn more at Ficore Learning Hub!' }}"
+            ];
+            const randomTip = tips[Math.floor(Math.random() * tips.length)];
+            const tipElement = document.createElement('p');
+            tipElement.textContent = randomTip;
+            tipElement.style.textAlign = 'center';
+            tipElement.style.marginTop = '20px';
+            tipElement.style.color = '#0288D1';
+            document.querySelector('.tools-section').appendChild(tipElement);
+        });
+    </script>
+</body>
+</html>
