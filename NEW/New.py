@@ -177,6 +177,7 @@ WAITLIST_FORM_URL = os.getenv('WAITLIST_FORM_URL', 'https://docs.google.com/form
 CONSULTANCY_FORM_URL = os.getenv('CONSULTANCY_FORM_URL', 'https://docs.google.com/forms/consultancy')
 LINKEDIN_URL = os.getenv('LINKEDIN_URL', 'https://www.linkedin.com/in/ficore-africa')
 TWITTER_URL = os.getenv('TWITTER_URL', 'https://x.com/Ficore_Africa')
+FACEBOOK_URL = os.getenv('FACEBOOK_URL', 'https://www.facebook.com/profile.php?id=61575627944628&mibextid=ZbWKwL')
 INVESTING_COURSE_URL = 'https://youtube.com/@ficore.africa'
 SAVINGS_COURSE_URL = 'https://www.youtube.com/@FICORE.AFRICA'
 DEBT_COURSE_URL = 'https://www.youtube.com/@FICORE.AFRICA'
@@ -690,6 +691,7 @@ def index():
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
         LINKEDIN_URL=LINKEDIN_URL,
         TWITTER_URL=TWITTER_URL,
+        FACEBOOK_URL=FACEBOOK_URL,
         tool=tool,
         language=language
     )
@@ -717,6 +719,7 @@ def budget_step1():
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
         LINKEDIN_URL=LINKEDIN_URL,
         TWITTER_URL=TWITTER_URL,
+        FACEBOOK_URL=FACEBOOK_URL,
         step=1,
         language=language
     )
@@ -744,6 +747,7 @@ def budget_step2():
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
         LINKEDIN_URL=LINKEDIN_URL,
         TWITTER_URL=TWITTER_URL,
+        FACEBOOK_URL=FACEBOOK_URL,
         step=2,
         language=language
     )
@@ -776,6 +780,7 @@ def budget_step3():
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
         LINKEDIN_URL=LINKEDIN_URL,
         TWITTER_URL=TWITTER_URL,
+        FACEBOOK_URL=FACEBOOK_URL,
         step=3,
         language=language
     )
@@ -849,6 +854,7 @@ def budget_step4():
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
         LINKEDIN_URL=LINKEDIN_URL,
         TWITTER_URL=TWITTER_URL,
+        FACEBOOK_URL=FACEBOOK_URL,
         step=4,
         language=language
     )
@@ -906,6 +912,7 @@ def budget_dashboard():
             CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
             LINKEDIN_URL=LINKEDIN_URL,
             TWITTER_URL=TWITTER_URL,
+            FACEBOOK_URL=FACEBOOK_URL,
             language=language
         )
     except Exception as e:
@@ -1000,6 +1007,7 @@ def health_score():
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
         LINKEDIN_URL=LINKEDIN_URL,
         TWITTER_URL=TWITTER_URL,
+        FACEBOOK_URL=FACEBOOK_URL,
         language=language
     )
 
@@ -1081,6 +1089,7 @@ def health_dashboard(step=1):
             CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
             LINKEDIN_URL=LINKEDIN_URL,
             TWITTER_URL=TWITTER_URL,
+            FACEBOOK_URL=FACEBOOK_URL,
             language=language
         )
 
@@ -1181,6 +1190,7 @@ def quiz():
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
         LINKEDIN_URL=LINKEDIN_URL,
         TWITTER_URL=TWITTER_URL,
+        FACEBOOK_URL=FACEBOOK_URL,
         language=language
     )
 
@@ -1201,6 +1211,7 @@ def quiz_results():
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
         LINKEDIN_URL=LINKEDIN_URL,
         TWITTER_URL=TWITTER_URL,
+        FACEBOOK_URL=FACEBOOK_URL,
         language=language
     )
 
@@ -1221,6 +1232,7 @@ def page_not_found(e):
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
         LINKEDIN_URL=LINKEDIN_URL,
         TWITTER_URL=TWITTER_URL,
+        FACEBOOK_URL=FACEBOOK_URL,
         language=language
     ), 404
 
@@ -1237,6 +1249,7 @@ def internal_server_error(e):
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
         LINKEDIN_URL=LINKEDIN_URL,
         TWITTER_URL=TWITTER_URL,
+        FACEBOOK_URL=FACEBOOK_URL,
         language=language
     ), 500
 
