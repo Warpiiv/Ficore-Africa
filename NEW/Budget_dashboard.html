@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="{{ language if language in ['en', 'ha'] else 'en' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ trans.get('Monthly Budget Planner', 'Monthly Budget Planner') }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #E3F2FD, #F5F7FA); margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; }
+        .header { background: linear-gradient(135deg, #2E7D32, #0288D1); padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .header h2 { color: #FFFFFF; margin: 0; }
+        .header p { font-style: italic; color: #E0F7FA; font-size: 0.9rem; margin: 5px 0 0 0; }
+        .dashboard-card { background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); transition: opacity 0.5s ease, transform 0.5s ease; opacity: 0; transform: translateY(20px); }
+        .dashboard-card.slide-in { opacity: 1; transform: translateY(0); }
+        .progress { height: 10px; margin-bottom: 20px; background: #e9ecef; border-radius: 5px; }
+        .progress-bar { background: #2E7D32; transition: width 0.3s ease; }
+        .btn-primary { background: linear-gradient(135deg, #2E7D32, #0288D1); border: none; padding: 12px 32px; font-weight: 600; border-radius: 8px; color: white; transition: transform 0.2s ease; }
+        .btn-primary:hover { transform: scale(1.05); background: linear-gradient(135deg, #1B5E20, #01579B); }
+        .btn-secondary { background: #6c757d; border: none; padding: 12px 24px; font-weight: 600; border-radius: 8px; color: white; transition: transform 0.2s ease; margin-right: 10px; }
+        .btn-secondary:hover { transform: scale(1.05); background: #5a6268; }
+        .summary-box { border: 2px solid #2E7D32; background: #E8F5E9; border-radius: 12px; padding: 20px; margin-bottom: 20px; transition: transform 0.2s ease; }
+        .badges-box { border: 2px solid #FBC02D; background: #FFFDE7; border-radius: 12px; padding: 20px; margin-bottom: 20px; transition: transform 0.2s ease; }
+        .tips-box { border: 2px solid #0288D1; background: #E3F2FD; border-radius: 12px; padding: 20px; margin-bottom: 20px; transition: transform 0.2s ease; }
+        .chart-box { border: 2px solid #0288D1; background: #E3F2FD; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .summary-box:hover, .badges-box:hover, .tips-box:hover, .chart-box:hover { transform: scale(1.02); }
+        .section-header { color: #2E7D32; font-weight: 600; margin-bottom: 15px; }
+        .badge-item, .tip-item { margin-bottom: 10px; }
+        .badge-item strong, .tip-item strong { color: #0288D1; }
+        .deficit { color: #D32F2F; font-weight: 600; }
+        .chart-container { position: relative; height: 300px; width: 100%; margin: 0 auto; }
+        .text-center { margin-top: 20px; }
+        .info-icon { cursor: pointer; color: #0288D1; margin-left: 5px; }
+        .info-icon:hover { color: #2E7D32; }
+        .tooltip-text { visibility: hidden; width: 220px; background: #555; color: #fff; text-align: center; border-radius: 6px; padding: 10px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -110px; opacity: 0; transition: opacity 0.3s; }
+        .info-icon:hover .tooltip-text, .info-icon.active .tooltip-text { visibility: visible; opacity: 1; }
+        .footer { text-align: center; margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px; }
+        .footer p { margin: 0; color: #0288D1; }
+        .footer-links a { color: #2E7D32; margin: 0 10px; text-decoration: none; }
+        .footer-links a:hover { text-decoration: underline; }
+        .social-icons a { color: #0288D1; margin: 0 8px; font-size: 1.2rem; }
+        .social-icons a:hover { color: #2E7D32; }
+        @media (max-width: 576px) {
+            .container { padding: 10px; }
+            .dashboard-card { padding: 1rem; }
+            .summary-box, .badges-box, .tips-box, .chart-box { padding: 15px; }
+            .btn-primary, .btn-secondary { font-size: 1rem; }
+            .chart-container { height: 250px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>{{ trans.get('Monthly Budget Planner', 'Monthly Budget Planner') }}</h2>
+            <p>{{ trans.get('Financial growth passport for Africa', 'Financial growth passport for Africa') }}</p>
+        </div>
+        <div class="progress">
+            <div class="progress-bar" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <div class="dashboard-card slide-in">
+            <div class="summary-box" aria-labelledby="summary-header">
+                <h3 id="summary-header" class="section-header">{{ trans.get('Summary with Emoji', 'Summary with Emoji') }}</h3>
+                <ul>
+                    <li><strong>{{ trans.get('Monthly Income', 'Monthly Income') }}:</strong> {{ user_data.monthly_income | default(0.0) | format_currency('NGN') }}
+                        {% if user_data.monthly_income | default(0.0) == 0.0 %}
+                            <span class="text-warning"> ({{ trans.get('Warning: No income recorded!', 'Warning: No income recorded!') }})</span>
+                        {% endif %}
+                    </li>
+                    <li><strong>{{ trans.get('Housing', 'Housing') }}:</strong> {{ user_data.housing_expenses | default(0.0) | format_currency('NGN') }}</li>
+                    <li><strong>{{ trans.get('Food', 'Food') }}:</strong> {{ user_data.food_expenses | default(0.0) | format_currency('NGN') }}</li>
+                    <li><strong>{{ trans.get('Transport', 'Transport') }}:</strong> {{ user_data.transport_expenses | default(0.0) | format_currency('NGN') }}</li>
+                    <li><strong>{{ trans.get('Other', 'Other') }}:</strong> {{ user_data.other_expenses | default(0.0) | format_currency('NGN') }}</li>
+                    <li><strong>{{ trans.get('Total Expenses', 'Total Expenses') }}:</strong> {{ user_data.total_expenses | default(0.0) | format_currency('NGN') }}</li>
+                    <li><strong>{{ trans.get('Savings', 'Savings') }}:</strong> {{ user_data.savings | default(0.0) | format_currency('NGN') }}</li>
+                    <li><strong>{{ trans.get('Balance', 'Balance') }}:</strong> <span {% if user_data.surplus_deficit | default(0.0) < 0 %}class="deficit"{% endif %}>{{ user_data.surplus_deficit | default(0.0) | format_currency('NGN') }}</span>
+                        <span class="info-icon"><i class="fas fa-info-circle"></i><span class="tooltip-text">{{ trans.get('Income minus expenses and savings goal.', 'Income minus expenses and savings goal.') }}</span></span>
+                    </li>
+                </ul>
+            </div>
+            <div class="chart-box" aria-labelledby="chart-header">
+                <h3 id="chart-header" class="section-header">{{ trans.get('Expense Breakdown', 'Expense Breakdown') }}</h3>
+                <div class="chart-container">
+                    <canvas id="expenseChart" aria-label="{{ trans.get('Pie chart of expense breakdown', 'Pie chart of expense breakdown') }}"></canvas>
+                </div>
+            </div>
+            <div class="badges-box" aria-labelledby="badges-header">
+                <h3 id="badges-header" class="section-header">{{ trans.get('Badges', 'Badges') }}</h3>
+                {% if badges %}
+                    {% for badge in badges %}
+                        <div class="badge-item" aria-label="{{ trans.get(badge, badge) }}">
+                            <strong>{{ trans.get(badge, badge) }}</strong>
+                            <span class="info-icon"><i class="fas fa-info-circle"></i><span class="tooltip-text">{{ trans.get('Earned for managing your budget effectively.', 'Earned for managing your budget effectively.') }}</span></span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>{{ trans.get('No badges earned yet.', 'No badges earned yet.') }}</p>
+                {% endif %}
+            </div>
+            <div class="tips-box" aria-labelledby="tips-header">
+                <h3 id="tips-header" class="section-header">{{ trans.get('Tips', 'Tips') }}</h3>
+                {% if user_data.advice %}
+                    <div class="tip-item" aria-describedby="tip-1">
+                        <strong>{{ trans.get('Tip', 'Tip') }} 1:</strong> {{ trans.get(user_data.advice, user_data.advice) }}
+                        <span class="info-icon"><i class="fas fa-info-circle"></i><span class="tooltip-text">{{ trans.get('Actionable advice to improve your budget.', 'Actionable advice to improve your budget.') }}</span></span>
+                    </div>
+                {% else %}
+                    <p>{{ trans.get('No tips available.', 'No tips available.') }}</p>
+                {% endif %}
+            </div>
+            <div class="text-center">
+                <a href="{{ url_for('budget_step4') }}" class="btn btn-secondary" aria-label="{{ trans.get('Back to Savings & Review', 'Back to Savings & Review') }}">{{ trans.get('Back', 'Back') }}</a>
+                <a href="{{ SAVINGS_COURSE_URL }}" class="btn btn-primary" aria-label="{{ trans.get('Join Financial Course', 'Join Financial Course') }}">{{ trans.get('Join Course', 'Join Course') }}</a>
+            </div>
+        </div>
+        <footer class="footer">
+            <p>{{ trans.get('About Ficore Africa: Empowering financial growth across Africa since 2023', 'About Ficore Africa: Empowering financial growth across Africa since 2023') }}</p>
+            <div class="footer-links">
+                <a href="{{ FEEDBACK_FORM_URL }}" aria-label="{{ trans.get('Provide Feedback', 'Provide Feedback') }}">{{ trans.get('Feedback', 'Feedback') }}</a>
+                <a href="{{ WAITLIST_FORM_URL }}" aria-label="{{ trans.get('Join Waitlist', 'Join Waitlist') }}">{{ trans.get('Join Waitlist', 'Join Waitlist') }}</a>
+                <a href="{{ CONSULTANCY_FORM_URL }}" aria-label="{{ trans.get('Book Consultancy', 'Book Consultancy') }}">{{ trans.get('Consultancy', 'Consultancy') }}</a>
+            </div>
+            <div class="social-icons">
+                <a href="{{ TWITTER_URL }}" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
+                <a href="{{ FACEBOOK_URL }}" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                <a href="{{ LINKEDIN_URL }}" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+            </div>
+        </footer>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dashboardCard = document.querySelector('.dashboard-card');
+            setTimeout(() => dashboardCard.classList.add('slide-in'), 100);
+
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: [
+                        '{{ trans.get("Housing", "Housing") }}',
+                        '{{ trans.get("Food", "Food") }}',
+                        '{{ trans.get("Transport", "Transport") }}',
+                        '{{ trans.get("Other", "Other") }}'
+                    ],
+                    datasets: [{
+                        data: [
+                            {{ user_data.housing_expenses | default(0.0) }},
+                            {{ user_data.food_expenses | default(0.0) }},
+                            {{ user_data.transport_expenses | default(0.0) }},
+                            {{ user_data.other_expenses | default(0.0) }}
+                        ],
+                        backgroundColor: [
+                            '#2E7D32',
+                            '#0288D1',
+                            '#FBC02D',
+                            '#D32F2F'
+                        ],
+                        borderColor: '#FFFFFF',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: 'Poppins', size: 14 },
+                                color: '#0288D1'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#555',
+                            titleFont: { family: 'Poppins' },
+                            bodyFont: { family: 'Poppins' },
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    return `${context.label}: ₦${value.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const infoIcons = document.querySelectorAll('.info-icon');
+            infoIcons.forEach(icon => {
+                icon.addEventListener('click', () => {
+                    const tooltip = icon.querySelector('.tooltip-text');
+                    const isVisible = tooltip.style.visibility === 'visible';
+                    tooltip.style.visibility = isVisible ? 'hidden' : 'visible';
+                    tooltip.style.opacity = isVisible ? '0' : '1';
+                    icon.classList.toggle('active', !isVisible);
+                });
+            });
+        });
+    </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93eaf0dd0fc86746',t:'MTc0NzA2MzY1NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body>
+</html>
