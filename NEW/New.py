@@ -21,6 +21,7 @@ from google.oauth2.service_account import Credentials
 from tenacity import retry, stop_after_attempt, wait_exponential
 from dotenv import load_dotenv
 import random
+from translations import get_translations  # Import translations from translations.py
 
 # Configure logging
 logging.basicConfig(
@@ -183,7 +184,7 @@ RECOVERY_COURSE_URL = 'https://www.youtube.com/@FICORE.AFRICA'
 
 # Headers for Google Sheets
 PREDETERMINED_HEADERS_BUDGET = [
-    'Timestamp', 'first_name', 'email', 'language', 'monthly_income',
+    'Timestamp', 'first_name seb', 'email', 'language', 'monthly_income',
     'housing_expenses', 'food_expenses', 'transport_expenses', 'other_expenses',
     'savings_goal', 'auto_email', 'total_expenses', 'savings', 'surplus_deficit',
     'badges', 'rank', 'total_users'
@@ -198,51 +199,6 @@ PREDETERMINED_HEADERS_QUIZ = [
     'question_2', 'answer_2', 'question_3', 'answer_3', 'question_4', 'answer_4',
     'question_5', 'answer_5', 'personality', 'badges', 'auto_email'
 ]
-
-# Load translations
-def load_translations(language='en'):
-    try:
-        with open('translations.json', 'r') as f:
-            all_translations = json.load(f)
-        return all_translations.get(language, all_translations['en'])
-    except FileNotFoundError:
-        logger.warning("translations.json not found. Using minimal translations.")
-        return {
-            'Submission Success': 'Submission successful!',
-            'Session Expired': 'Session expired. Please start over.',
-            'Error retrieving data. Please try again.': 'Error retrieving data. Please try again.',
-            'Google Sheets Error': 'Unable to access Google Sheets. Try again later.',
-            'Check Inbox': 'Check your inbox for the report.',
-            'First Budget Completed!': 'First Budget Completed!',
-            'First Health Score Completed!': 'First Health Score Completed!',
-            'Financial Stability Achieved!': 'Financial Stability Achieved!',
-            'Debt Slayer!': 'Debt Slayer!',
-            'Personality Unlocked!': 'Personality Unlocked!',
-            'Planner': 'Planner: You are organized and track expenses diligently.',
-            'Spender': 'Spender: You enjoy spending impulsively.',
-            'Minimalist': 'Minimalist: You live frugally.',
-            'Saver': 'Saver: You prioritize saving.',
-            'Avoider': 'Avoider: You tend to ignore budgeting.',
-            'Planner Tip': 'Join an investment group to grow savings.',
-            'Spender Tip': 'Set a weekly entertainment budget.',
-            'Minimalist Tip': 'Invest small amounts in low-risk options.',
-            'Saver Tip': 'Explore treasury bills for savings.',
-            'Avoider Tip': 'Join a local savings group.',
-            'Yes': 'Yes',
-            'No': 'No',
-            'Budget Report Subject': 'Your Budget Report',
-            'Score Report Subject': 'Your Financial Health Score Report',
-            'Top 10% Subject': 'You’re in the Top 10%! Here’s Your Financial Health Report',
-            'Quiz Report Subject': 'Your Financial Personality Quiz Results',
-            'Continue to Income': 'Continue to Income',
-            'Continue to Expenses': 'Continue to Expenses',
-            'Continue to Savings & Review': 'Continue to Savings & Review',
-            'Continue to Dashboard': 'Continue to Dashboard',
-            'Submit': 'Submit',
-            'Budget Breakdown': 'Budget Breakdown',
-            'Income vs Expenses': 'Income vs Expenses',
-            'Quiz Summary': 'Quiz Summary'
-        }
 
 def sanitize_input(text):
     if not text:
@@ -364,8 +320,8 @@ def calculate_budget_metrics(df):
         df['surplus_deficit'] = df['monthly_income'] - df['total_expenses'] - df['savings']
         df['outcome_status'] = df['surplus_deficit'].apply(lambda x: 'Savings' if x >= 0 else 'Overspend')
         df['advice'] = df['surplus_deficit'].apply(
-            lambda x: load_translations(df['language'].iloc[0])['Great job! Save or invest your surplus to grow your wealth.'] if x >= 0 
-            else load_translations(df['language'].iloc[0])['Reduce non-essential spending to balance your budget.']
+            lambda x: get_translations(df['language'].iloc[0])['Great job! Save or invest your surplus to grow your wealth.'] if x >= 0 
+            else get_translations(df['language'].iloc[0])['Reduce non-essential spending to balance your budget.']
         )
         return df
     except Exception as e:
@@ -382,7 +338,7 @@ def assign_badges_budget(user_df):
         user_df = user_df.sort_values('Timestamp', ascending=False)
         language = user_df.iloc[0].get('language', 'en')
         if len(user_df) == 1:
-            badges.append(load_translations(language)['First Budget Completed!'])
+            badges.append(get_translations(language)['First Budget Completed!'])
         return badges
     except Exception as e:
         logger.error(f"Error in assign_badges_budget: {e}")
@@ -452,11 +408,11 @@ def assign_badges_health(user_df, all_users_df):
         user_row = user_df.iloc[0]
         language = user_row['language']
         if len(user_df) == 1:
-            badges.append(load_translations(language)['First Health Score Completed!'])
+            badges.append(get_translations(language)['First Health Score Completed!'])
         if user_row['HealthScore'] >= 50:
-            badges.append(load_translations(language)['Financial Stability Achieved!'])
+            badges.append(get_translations(language)['Financial Stability Achieved!'])
         if user_row['DebtToIncomeRatio'] < 0.3:
-            badges.append(load_translations(language)['Debt Slayer!'])
+            badges.append(get_translations(language)['Debt Slayer!'])
         return badges
     except Exception as e:
         logger.error(f"Error in assign_badges_health: {e}")
@@ -464,7 +420,7 @@ def assign_badges_health(user_df, all_users_df):
 
 def send_health_email(to_email, user_name, health_score, score_description, rank, total_users, course_title, course_url, language):
     try:
-        trans = load_translations(language)
+        trans = get_translations(language)
         subject = trans['Top 10% Subject'] if rank <= total_users * 0.1 else trans['Score Report Subject']
         msg = Message(
             subject=subject,
@@ -482,8 +438,8 @@ def send_health_email(to_email, user_name, health_score, score_description, rank
                 FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
                 WAITLIST_FORM_URL=WAITLIST_FORM_URL,
                 CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-                linkedin_url=LINKEDIN_URL,
-                twitter_url=TWITTER_URL,
+                LINKEDIN_URL=LINKEDIN_URL,
+                TWITTER_URL=TWITTER_URL,
                 language=language
             )
         )
@@ -511,8 +467,8 @@ def generate_breakdown_plot(user_df):
             user_row['NormDebtToIncome'] * 100 / 3,
             user_row['NormDebtInterest'] * 100 / 3
         ]
-        fig = px.pie(names=labels, values=values, title='Score Breakdown')
-        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=200, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        fig = px.bar(x=labels, y=values, title='Score Breakdown', labels={'x': 'Component', 'y': 'Score Contribution'})
+        fig.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         return fig.to_html(full_html=False, include_plotlyjs=False)
     except Exception as e:
         logger.error(f"Error generating breakdown plot: {e}")
@@ -525,10 +481,14 @@ def generate_comparison_plot(user_df, all_users_df):
         user_df['Timestamp'] = pd.to_datetime(user_df['Timestamp'], format='mixed', dayfirst=True, errors='coerce')
         user_df = user_df.sort_values('Timestamp', ascending=False)
         user_score = user_df.iloc[0]['HealthScore']
-        scores = all_users_df['HealthScore'].astype(float)
-        fig = px.histogram(x=scores, nbins=20, title='How Your Score Compares', labels={'x': 'Score', 'y': 'Users'})
-        fig.add_vline(x=user_score, line_dash="dash", line_color="red")
-        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=200, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        avg_score = all_users_df['HealthScore'].astype(float).mean()
+        fig = px.bar(
+            x=['Your Score', 'Average Peer Score'],
+            y=[user_score, avg_score],
+            title='How Your Score Compares',
+            labels={'x': 'Score Type', 'y': 'Score'}
+        )
+        fig.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         return fig.to_html(full_html=False, include_plotlyjs=False)
     except Exception as e:
         logger.error(f"Error generating comparison plot: {e}")
@@ -542,7 +502,7 @@ class Step1Form(FlaskForm):
     submit = SubmitField()
     def __init__(self, language='en', *args, **kwargs):
         super(Step1Form, self).__init__(*args, **kwargs)
-        self.submit.label.text = load_translations(language)['Continue to Income']
+        self.submit.label.text = get_translations(language)['Continue to Income']
 
 class Step2Form(FlaskForm):
     monthly_income = FloatField('Monthly Income', validators=[DataRequired(), non_negative])
@@ -550,7 +510,7 @@ class Step2Form(FlaskForm):
     back = SubmitField('Back')
     def __init__(self, language='en', *args, **kwargs):
         super(Step2Form, self).__init__(*args, **kwargs)
-        self.submit.label.text = load_translations(language)['Continue to Expenses']
+        self.submit.label.text = get_translations(language)['Continue to Expenses']
 
 class Step3Form(FlaskForm):
     housing_expenses = FloatField('Housing Expenses', validators=[DataRequired(), non_negative])
@@ -561,7 +521,7 @@ class Step3Form(FlaskForm):
     back = SubmitField('Back')
     def __init__(self, language='en', *args, **kwargs):
         super(Step3Form, self).__init__(*args, **kwargs)
-        self.submit.label.text = load_translations(language)['Continue to Savings & Review']
+        self.submit.label.text = get_translations(language)['Continue to Savings & Review']
 
 class Step4Form(FlaskForm):
     savings_goal = FloatField('Savings Goal', validators=[Optional(), non_negative])
@@ -570,7 +530,7 @@ class Step4Form(FlaskForm):
     back = SubmitField('Back')
     def __init__(self, language='en', *args, **kwargs):
         super(Step4Form, self).__init__(*args, **kwargs)
-        self.submit.label.text = load_translations(language)['Continue to Dashboard']
+        self.submit.label.text = get_translations(language)['Continue to Dashboard']
 
 class HealthScoreForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired()])
@@ -588,7 +548,7 @@ class HealthScoreForm(FlaskForm):
     submit = SubmitField()
     def __init__(self, language='en', *args, **kwargs):
         super(HealthScoreForm, self).__init__(*args, **kwargs)
-        self.submit.label.text = load_translations(language)['Submit']
+        self.submit.label.text = get_translations(language)['Submit']
 
 class QuizForm(FlaskForm):
     first_name = StringField('First Name', validators=[Optional()])
@@ -626,7 +586,7 @@ def assign_personality(answers, language='en'):
                 score += 1 if q['text'] in ["How often do you save?", "How often do you review your finances?", "How often do you join savings groups?"] else -1
             elif answer == 'Never':
                 score -= 1 if q['text'] in ["How often do you save?", "How often do you review your finances?", "How often do you join savings groups?"] else 1
-    trans = load_translations(language)
+    trans = get_translations(language)
     if score >= 3:
         return 'Planner', trans['Planner'], trans['Planner Tip']
     elif score >= 1:
@@ -646,7 +606,7 @@ def generate_quiz_summary_chart(answers, language='en'):
                 answer_counts[answer] += 1
         labels = list(answer_counts.keys())
         values = list(answer_counts.values())
-        fig = px.bar(x=labels, y=values, title=load_translations(language)['Quiz Summary'], labels={'x': 'Answer', 'y': 'Count'})
+        fig = px.bar(x=labels, y=values, title=get_translations(language)['Quiz Summary'], labels={'x': 'Answer', 'y': 'Count'})
         fig.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=300, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         return fig.to_html(full_html=False, include_plotlyjs=False)
     except Exception as e:
@@ -655,7 +615,7 @@ def generate_quiz_summary_chart(answers, language='en'):
 
 def send_quiz_email(to_email, user_name, personality, personality_desc, tip, language):
     try:
-        trans = load_translations(language)
+        trans = get_translations(language)
         msg = Message(
             subject=trans['Quiz Report Subject'],
             recipients=[to_email],
@@ -669,8 +629,8 @@ def send_quiz_email(to_email, user_name, personality, personality_desc, tip, lan
                 FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
                 WAITLIST_FORM_URL=WAITLIST_FORM_URL,
                 CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-                linkedin_url=LINKEDIN_URL,
-                twitter_url=TWITTER_URL,
+                LINKEDIN_URL=LINKEDIN_URL,
+                TWITTER_URL=TWITTER_URL,
                 language=language
             )
         )
@@ -687,7 +647,7 @@ def send_quiz_email_async(to_email, user_name, personality, personality_desc, ti
 
 def send_budget_email(to_email, user_name, user_data, language):
     try:
-        trans = load_translations(language)
+        trans = get_translations(language)
         msg = Message(
             subject=trans['Budget Report Subject'],
             recipients=[to_email],
@@ -699,8 +659,8 @@ def send_budget_email(to_email, user_name, user_data, language):
                 FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
                 WAITLIST_FORM_URL=WAITLIST_FORM_URL,
                 CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-                linkedin_url=LINKEDIN_URL,
-                twitter_url=TWITTER_URL,
+                LINKEDIN_URL=LINKEDIN_URL,
+                TWITTER_URL=TWITTER_URL,
                 language=language
             )
         )
@@ -724,21 +684,21 @@ def index():
     tool = request.args.get('tool', 'budget')
     return render_template(
         'index.html',
-        trans=load_translations(language),
+        trans=get_translations(language),
         FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
         WAITLIST_FORM_URL=WAITLIST_FORM_URL,
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-        linkedin_url=LINKEDIN_URL,
-        twitter_url=TWITTER_URL,
+        LINKEDIN_URL=LINKEDIN_URL,
+        TWITTER_URL=TWITTER_URL,
         tool=tool,
         language=language
     )
-    
+
 @app.route('/budget_step1', methods=['GET', 'POST'])
 def budget_step1():
     language = session.get('language', 'en')
     form = Step1Form(language=language)
-    trans = load_translations(language)
+    trans = get_translations(language)
     if form.validate_on_submit():
         session['budget_data'] = {
             'first_name': sanitize_input(form.first_name.data),
@@ -755,8 +715,8 @@ def budget_step1():
         FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
         WAITLIST_FORM_URL=WAITLIST_FORM_URL,
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-        linkedin_url=LINKEDIN_URL,
-        twitter_url=TWITTER_URL,
+        LINKEDIN_URL=LINKEDIN_URL,
+        TWITTER_URL=TWITTER_URL,
         step=1,
         language=language
     )
@@ -764,7 +724,7 @@ def budget_step1():
 @app.route('/budget_step2', methods=['GET', 'POST'])
 def budget_step2():
     language = session.get('language', 'en')
-    trans = load_translations(language)
+    trans = get_translations(language)
     form = Step2Form(language=language)
     if 'budget_data' not in session:
         flash(trans['Session Expired'], 'error')
@@ -782,8 +742,8 @@ def budget_step2():
         FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
         WAITLIST_FORM_URL=WAITLIST_FORM_URL,
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-        linkedin_url=LINKEDIN_URL,
-        twitter_url=TWITTER_URL,
+        LINKEDIN_URL=LINKEDIN_URL,
+        TWITTER_URL=TWITTER_URL,
         step=2,
         language=language
     )
@@ -791,7 +751,7 @@ def budget_step2():
 @app.route('/budget_step3', methods=['GET', 'POST'])
 def budget_step3():
     language = session.get('language', 'en')
-    trans = load_translations(language)
+    trans = get_translations(language)
     form = Step3Form(language=language)
     if 'budget_data' not in session:
         flash(trans['Session Expired'], 'error')
@@ -814,8 +774,8 @@ def budget_step3():
         FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
         WAITLIST_FORM_URL=WAITLIST_FORM_URL,
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-        linkedin_url=LINKEDIN_URL,
-        twitter_url=TWITTER_URL,
+        LINKEDIN_URL=LINKEDIN_URL,
+        TWITTER_URL=TWITTER_URL,
         step=3,
         language=language
     )
@@ -823,7 +783,7 @@ def budget_step3():
 @app.route('/budget_step4', methods=['GET', 'POST'])
 def budget_step4():
     language = session.get('language', 'en')
-    trans = load_translations(language)
+    trans = get_translations(language)
     form = Step4Form(language=language)
     if 'budget_data' not in session:
         flash(trans['Session Expired'], 'error')
@@ -887,8 +847,8 @@ def budget_step4():
         FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
         WAITLIST_FORM_URL=WAITLIST_FORM_URL,
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-        linkedin_url=LINKEDIN_URL,
-        twitter_url=TWITTER_URL,
+        LINKEDIN_URL=LINKEDIN_URL,
+        TWITTER_URL=TWITTER_URL,
         step=4,
         language=language
     )
@@ -896,7 +856,7 @@ def budget_step4():
 @app.route('/budget_dashboard', methods=['GET', 'POST'])
 def budget_dashboard():
     language = session.get('language', 'en')
-    trans = load_translations(language)
+    trans = get_translations(language)
     if 'budget_data' not in session or not session['budget_data'].get('email'):
         flash(trans['Session Expired'], 'error')
         return redirect(url_for('budget_step1'))
@@ -944,8 +904,8 @@ def budget_dashboard():
             FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
             WAITLIST_FORM_URL=WAITLIST_FORM_URL,
             CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-            linkedin_url=LINKEDIN_URL,
-            twitter_url=TWITTER_URL,
+            LINKEDIN_URL=LINKEDIN_URL,
+            TWITTER_URL=TWITTER_URL,
             language=language
         )
     except Exception as e:
@@ -956,7 +916,7 @@ def budget_dashboard():
 @app.route('/health_score', methods=['GET', 'POST'])
 def health_score():
     language = session.get('language', 'en')
-    trans = load_translations(language)
+    trans = get_translations(language)
     form = HealthScoreForm(language=language)
     if form.validate_on_submit():
         health_data = {
@@ -1009,8 +969,6 @@ def health_score():
             badges = assign_badges_health(user_df, all_users_df)
             rank = sum(all_users_df['HealthScore'].astype(float) > user_df['HealthScore'].iloc[0]) + 1
             total_users = len(all_users_df)
-            breakdown_plot = generate_breakdown_plot(user_df)
-            comparison_plot = generate_comparison_plot(user_df, all_users_df)
             if health_data.get('auto_email'):
                 threading.Thread(
                     target=send_health_email_async,
@@ -1028,22 +986,7 @@ def health_score():
                 ).start()
                 flash(trans['Check Inbox'], 'success')
             flash(trans['Submission Success'], 'success')
-            return render_template(
-                'health_dashboard.html',
-                trans=trans,
-                user_data=user_df.iloc[0],
-                badges=badges,
-                rank=rank,
-                total_users=total_users,
-                breakdown_plot=breakdown_plot,
-                comparison_plot=comparison_plot,
-                FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
-                WAITLIST_FORM_URL=WAITLIST_FORM_URL,
-                CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-                linkedin_url=LINKEDIN_URL,
-                twitter_url=TWITTER_URL,
-                language=language
-            )
+            return redirect(url_for('health_dashboard', step=1))
         except Exception as e:
             logger.error(f"Error in health_score: {e}")
             flash(trans['Error retrieving data. Please try again.'], 'error')
@@ -1055,15 +998,101 @@ def health_score():
         FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
         WAITLIST_FORM_URL=WAITLIST_FORM_URL,
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-        linkedin_url=LINKEDIN_URL,
-        twitter_url=TWITTER_URL,
+        LINKEDIN_URL=LINKEDIN_URL,
+        TWITTER_URL=TWITTER_URL,
         language=language
     )
+
+@app.route('/health_dashboard/<int:step>', methods=['GET'])
+def health_dashboard(step=1):
+    if step < 1 or step > 6:
+        flash(get_translations('en')['Error retrieving data. Please try again.'], 'error')
+        return redirect(url_for('health_score'))
+
+    # Validate session data
+    if 'health_data' not in session or 'email' not in session['health_data']:
+        flash(get_translations('en')['Session Expired'], 'error')
+        return redirect(url_for('health_score'))
+
+    language = session.get('health_data', {}).get('language', 'en')
+    trans = get_translations(language)
+    email = session['health_data']['email']
+    first_name = session['health_data'].get('first_name', 'User')
+
+    try:
+        # Fetch user data from Google Sheets
+        user_df = fetch_data_from_sheet(
+            email=email,
+            headers=PREDETERMINED_HEADERS_HEALTH,
+            worksheet_name='Health'
+        )
+
+        if user_df.empty:
+            flash(trans['Error retrieving data. Please try again.'], 'error')
+            return redirect(url_for('health_score'))
+
+        # Fetch all users' data for ranking and comparison
+        all_users_df = fetch_data_from_sheet(
+            headers=PREDETERMINED_HEADERS_HEALTH,
+            worksheet_name='Health'
+        )
+
+        # Recalculate health scores
+        user_df = calculate_health_score(user_df)
+        all_users_df = calculate_health_score(all_users_df)
+
+        # Get latest user record
+        user_df['Timestamp'] = pd.to_datetime(user_df['Timestamp'], format='mixed', errors='coerce')
+        user_df = user_df.sort_values('Timestamp', ascending=False)
+        user_data = user_df.iloc[0].to_dict()
+        health_score = user_data.get('HealthScore', 0.0)
+
+        # Assign badges
+        badges = assign_badges_health(user_df, all_users_df)
+
+        # Calculate rank
+        all_scores = all_users_df['HealthScore'].astype(float).sort_values(ascending=False)
+        rank = (all_scores >= health_score).sum()
+        total_users = len(all_scores)
+
+        # Generate plots
+        breakdown_plot = generate_breakdown_plot(user_df)
+        comparison_plot = generate_comparison_plot(user_df, all_users_df)
+
+        # Render the dashboard
+        return render_template(
+            'health_dashboard.html',
+            trans=trans,
+            user_data=user_data,
+            badges=badges,
+            rank=rank,
+            total_users=total_users,
+            health_score=health_score,
+            first_name=sanitize_input(first_name),
+            email=sanitize_input(email),
+            step=step,
+            breakdown_plot=breakdown_plot,
+            comparison_plot=comparison_plot,
+            course_title=user_data.get('CourseTitle', trans['Financial Health Course']),
+            course_url=user_data.get('CourseURL', '#'),
+            all_users_df=all_users_df,
+            FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
+            WAITLIST_FORM_URL=WAITLIST_FORM_URL,
+            CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
+            LINKEDIN_URL=LINKEDIN_URL,
+            TWITTER_URL=TWITTER_URL,
+            language=language
+        )
+
+    except Exception as e:
+        logger.error(f"Error rendering health dashboard: {e}")
+        flash(trans['Error retrieving data. Please try again.'], 'error')
+        return redirect(url_for('health_score'))
 
 @app.route('/quiz', methods=['GET', 'POST'])
 def quiz():
     language = session.get('language', 'en')
-    trans = load_translations(language)
+    trans = get_translations(language)
     form = QuizForm()
     if 'quiz_questions' not in session:
         selected_questions = random.sample(QUIZ_QUESTIONS, 5)
@@ -1150,15 +1179,15 @@ def quiz():
         FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
         WAITLIST_FORM_URL=WAITLIST_FORM_URL,
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-        linkedin_url=LINKEDIN_URL,
-        twitter_url=TWITTER_URL,
+        LINKEDIN_URL=LINKEDIN_URL,
+        TWITTER_URL=TWITTER_URL,
         language=language
     )
 
 @app.route('/quiz_results', methods=['GET', 'POST'])
 def quiz_results():
     language = session.get('language', 'en')
-    trans = load_translations(language)
+    trans = get_translations(language)
     if 'quiz_results' not in session:
         flash(trans['Session Expired'], 'error')
         return redirect(url_for('quiz'))
@@ -1170,8 +1199,8 @@ def quiz_results():
         FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
         WAITLIST_FORM_URL=WAITLIST_FORM_URL,
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-        linkedin_url=LINKEDIN_URL,
-        twitter_url=TWITTER_URL,
+        LINKEDIN_URL=LINKEDIN_URL,
+        TWITTER_URL=TWITTER_URL,
         language=language
     )
 
@@ -1182,7 +1211,7 @@ def favicon():
 @app.errorhandler(404)
 def page_not_found(e):
     language = session.get('language', 'en')
-    trans = load_translations(language)
+    trans = get_translations(language)
     logger.error(f"404 error: {request.url}")
     return render_template(
         '404.html',
@@ -1190,15 +1219,15 @@ def page_not_found(e):
         FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
         WAITLIST_FORM_URL=WAITLIST_FORM_URL,
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-        linkedin_url=LINKEDIN_URL,
-        twitter_url=TWITTER_URL,
+        LINKEDIN_URL=LINKEDIN_URL,
+        TWITTER_URL=TWITTER_URL,
         language=language
     ), 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
     language = session.get('language', 'en')
-    trans = load_translations(language)
+    trans = get_translations(language)
     logger.error(f"500 error: {str(e)}")
     return render_template(
         '500.html',
@@ -1206,8 +1235,8 @@ def internal_server_error(e):
         FEEDBACK_FORM_URL=FEEDBACK_FORM_URL,
         WAITLIST_FORM_URL=WAITLIST_FORM_URL,
         CONSULTANCY_FORM_URL=CONSULTANCY_FORM_URL,
-        linkedin_url=LINKEDIN_URL,
-        twitter_url=TWITTER_URL,
+        LINKEDIN_URL=LINKEDIN_URL,
+        TWITTER_URL=TWITTER_URL,
         language=language
     ), 500
 
